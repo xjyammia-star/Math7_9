@@ -1,0 +1,6 @@
+{
+  "name": "EduGraph Math (中数智绘)",
+  "description": "An academic AI knowledge graph tool for middle school mathematics, supporting CN, US, UK, SG, and IB curricula with Feynman-method guided learning.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["AI Learning Guide", "Exercise Generation", "Multilingual Support"]
+}
