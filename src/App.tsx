@@ -25,17 +25,41 @@ import PracticeCenter from './components/PracticeCenter';
 // ─── Curriculum config ────────────────────────────────────────────────────
 const CURRICULA: {
   id: Curriculum;
-  flag: string;
+  flag: string;       // flagcdn 2-letter code, or '' for IB
   label: { zh: string; en: string };
   shortLabel: string;
   color: string;
 }[] = [
-  { id: 'CN', flag: '\u{1F1E8}\u{1F1F3}', label: { zh: '\u4E2D\u56FD', en: 'China' },        shortLabel: 'CN', color: '#ef4444' },
-  { id: 'US', flag: '\u{1F1FA}\u{1F1F8}', label: { zh: '\u7F8E\u56FD', en: 'US' },           shortLabel: 'US', color: '#3b82f6' },
-  { id: 'UK', flag: '\u{1F1EC}\u{1F1E7}', label: { zh: '\u82F1\u56FD', en: 'UK' },           shortLabel: 'UK', color: '#8b5cf6' },
-  { id: 'SG', flag: '\u{1F1F8}\u{1F1EC}', label: { zh: '\u65B0\u52A0\u5761', en: 'Singapore' }, shortLabel: 'SG', color: '#f59e0b' },
-  { id: 'IB', flag: '\u{1F310}',          label: { zh: 'IB\u8BFE\u7A0B', en: 'IB' },         shortLabel: 'IB', color: '#10b981' },
+  { id: 'CN', flag: 'cn', label: { zh: '中国',    en: 'China' },     shortLabel: 'CN', color: '#ef4444' },
+  { id: 'US', flag: 'us', label: { zh: '美国',    en: 'US' },        shortLabel: 'US', color: '#3b82f6' },
+  { id: 'UK', flag: 'gb', label: { zh: '英国',    en: 'UK' },        shortLabel: 'UK', color: '#8b5cf6' },
+  { id: 'SG', flag: 'sg', label: { zh: '新加坡',  en: 'Singapore' }, shortLabel: 'SG', color: '#f59e0b' },
+  { id: 'IB', flag: '',   label: { zh: 'IB课程',  en: 'IB' },        shortLabel: 'IB', color: '#10b981' },
 ];
+
+// Helper: render flag image or IB globe icon
+const CurriculumFlag: React.FC<{ code: string; size?: number }> = ({ code, size = 22 }) => {
+  if (!code) {
+    // IB: simple globe SVG
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-emerald-400">
+        <circle cx="12" cy="12" r="10"/>
+        <ellipse cx="12" cy="12" rx="4" ry="10"/>
+        <line x1="2" y1="12" x2="22" y2="12"/>
+      </svg>
+    );
+  }
+  return (
+    <img
+      src={`https://flagcdn.com/w40/${code}.png`}
+      width={size + 4}
+      height={size}
+      alt={code.toUpperCase()}
+      className="rounded-sm object-cover"
+      style={{ width: size + 4, height: Math.round(size * 0.67) }}
+    />
+  );
+};
 
 // ─── Module icon helper ───────────────────────────────────────────────────
 const getModuleIcon = (id: string) => {
@@ -227,8 +251,8 @@ const App: React.FC = () => {
                       : 'border-[var(--color-brand-border)] bg-[var(--color-brand-card)] hover:border-slate-600 hover:bg-slate-800/60'}
                   `}
                 >
-                  {/* Flag emoji — larger, more prominent */}
-                  <span className="text-xl leading-none">{c.flag}</span>
+                  {/* Flag image */}
+                  <CurriculumFlag code={c.flag} size={20} />
                   {/* Short label below */}
                   <span className={`text-[9px] font-bold leading-none tracking-wide ${isActive ? 'text-[var(--color-brand-accent)]' : 'text-slate-500'}`}>
                     {c.shortLabel}
@@ -258,7 +282,7 @@ const App: React.FC = () => {
                   className="mt-2.5 px-3 py-2 rounded-xl text-[10px] font-bold tracking-wide flex items-center gap-2"
                   style={{ background: `${activeCurriculum.color}18`, border: `1px solid ${activeCurriculum.color}40`, color: activeCurriculum.color }}
                 >
-                  <span>{activeCurriculum.flag}</span>
+                  <CurriculumFlag code={activeCurriculum.flag} size={16} />
                   <span>{activeCurriculum.label[lang]}</span>
                   <span className="ml-auto opacity-60">✓</span>
                 </div>
