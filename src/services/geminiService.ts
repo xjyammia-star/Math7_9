@@ -3,16 +3,16 @@ import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 
 // ─── Doubao / ARK API client ───────────────────────────────────────────────
 // Environment variables (set in Vercel):
-//   VITE_ARK_API_KEY  – your ARK / Doubao API key
-//   VITE_ARK_MODEL    – model id, e.g. "doubao-seed-2-0-lite-250615"
-//   VITE_ARK_BASE_URL – base URL, defaults to https://ark.cn-beijing.volces.com/api/v3
+//   VITE_DOUBAO_API_KEY  – your Doubao API key
+//   VITE_DOUBAO_MODEL    – model id, e.g. "doubao-seed-2-0-lite-250615"
+//   VITE_DOUBAO_BASE_URL – base URL, defaults to https://ark.cn-beijing.volces.com/api/v3
 
 const ARK_BASE_URL =
-  (import.meta as any).env?.VITE_ARK_BASE_URL ||
+  (import.meta as any).env?.VITE_DOUBAO_BASE_URL ||
   "https://ark.cn-beijing.volces.com/api/v3";
-const ARK_API_KEY = (import.meta as any).env?.VITE_ARK_API_KEY || "";
+const ARK_API_KEY = (import.meta as any).env?.VITE_DOUBAO_API_KEY || "";
 const ARK_MODEL =
-  (import.meta as any).env?.VITE_ARK_MODEL ||
+  (import.meta as any).env?.VITE_DOUBAO_MODEL ||
   "doubao-seed-2-0-lite-250615";
 
 // OpenAI-compatible chat completion
