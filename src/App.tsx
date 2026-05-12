@@ -30,44 +30,51 @@ const CURRICULA: {
   shortLabel: string;
   color: string;
 }[] = [
-  { id: 'CN', flag: '🇨🇳', label: { zh: '中国', en: 'China' },       shortLabel: 'CN', color: '#ef4444' },
-  { id: 'US', flag: '🇺🇸', label: { zh: '美国', en: 'US' },          shortLabel: 'US', color: '#3b82f6' },
-  { id: 'UK', flag: '🇬🇧', label: { zh: '英国', en: 'UK' },          shortLabel: 'UK', color: '#8b5cf6' },
-  { id: 'SG', flag: '🇸🇬', label: { zh: '新加坡', en: 'Singapore' }, shortLabel: 'SG', color: '#f59e0b' },
-  { id: 'IB', flag: '🌐', label: { zh: 'IB课程', en: 'IB' },         shortLabel: 'IB', color: '#10b981' },
+  { id: 'CN', flag: '\u{1F1E8}\u{1F1F3}', label: { zh: '\u4E2D\u56FD', en: 'China' },        shortLabel: 'CN', color: '#ef4444' },
+  { id: 'US', flag: '\u{1F1FA}\u{1F1F8}', label: { zh: '\u7F8E\u56FD', en: 'US' },           shortLabel: 'US', color: '#3b82f6' },
+  { id: 'UK', flag: '\u{1F1EC}\u{1F1E7}', label: { zh: '\u82F1\u56FD', en: 'UK' },           shortLabel: 'UK', color: '#8b5cf6' },
+  { id: 'SG', flag: '\u{1F1F8}\u{1F1EC}', label: { zh: '\u65B0\u52A0\u5761', en: 'Singapore' }, shortLabel: 'SG', color: '#f59e0b' },
+  { id: 'IB', flag: '\u{1F310}',          label: { zh: 'IB\u8BFE\u7A0B', en: 'IB' },         shortLabel: 'IB', color: '#10b981' },
 ];
 
 // ─── Module icon helper ───────────────────────────────────────────────────
 const getModuleIcon = (id: string) => {
   switch (id) {
-    case 'algebra':   return <Binary className="w-4 h-4" />;
-    case 'geometry':  return <Shapes className="w-4 h-4" />;
-    case 'statistics':return <BarChart3 className="w-4 h-4" />;
-    case 'modeling':  return <Dna className="w-4 h-4" />;
-    case 'reasoning': return <FlaskConical className="w-4 h-4" />;
-    default:          return <BookOpen className="w-4 h-4" />;
+    case 'algebra':    return <Binary className="w-4 h-4" />;
+    case 'geometry':   return <Shapes className="w-4 h-4" />;
+    case 'statistics': return <BarChart3 className="w-4 h-4" />;
+    case 'modeling':   return <Dna className="w-4 h-4" />;
+    case 'reasoning':  return <FlaskConical className="w-4 h-4" />;
+    default:           return <BookOpen className="w-4 h-4" />;
   }
+};
+
+// All modules collapsed by default
+const DEFAULT_COLLAPSED: Record<string, boolean> = {
+  algebra: true,
+  geometry: true,
+  statistics: true,
+  modeling: true,
+  reasoning: true,
 };
 
 // ─── App ──────────────────────────────────────────────────────────────────
 const App: React.FC = () => {
-  const [lang, setLang]                     = useState<Language>('zh');
-  const [activeTab, setActiveTab]           = useState<'learn' | 'practice'>('learn');
+  const [lang, setLang]                       = useState<Language>('zh');
+  const [activeTab, setActiveTab]             = useState<'learn' | 'practice'>('learn');
   const [selectedConcept, setSelectedConcept] = useState<Concept | null>(null);
-  const [searchQuery, setSearchQuery]       = useState('');
-  const [isAiSearching, setIsAiSearching]   = useState(false);
-  const [aiResult, setAiResult]             = useState<{
+  const [searchQuery, setSearchQuery]         = useState('');
+  const [isAiSearching, setIsAiSearching]     = useState(false);
+  const [aiResult, setAiResult]               = useState<{
     refinedTitle: { zh: string; en: string };
     description: { zh: string; en: string };
     existingId: string | null;
     matchedModule: string;
     level: number;
   } | null>(null);
-  const [quotaExceeded, setQuotaExceeded]   = useState(false);
-  const [collapsedModules, setCollapsedModules] = useState<Record<string, boolean>>({});
-
-  // ── NEW: curriculum state ────────────────────────────────────────────
-  const [curriculum, setCurriculum] = useState<Curriculum | null>(null);
+  const [quotaExceeded, setQuotaExceeded]     = useState(false);
+  const [collapsedModules, setCollapsedModules] = useState<Record<string, boolean>>(DEFAULT_COLLAPSED);
+  const [curriculum, setCurriculum]           = useState<Curriculum | null>(null);
 
   const toggleModule = (moduleId: string) => {
     setCollapsedModules(prev => ({ ...prev, [moduleId]: !prev[moduleId] }));
@@ -112,7 +119,7 @@ const App: React.FC = () => {
         module: aiResult.matchedModule,
         level: aiResult.level,
         description: aiResult.description,
-        skills: [{ zh: 'AI 匹配', en: 'AI Matched' }],
+        skills: [{ zh: 'AI \u5339\u914D', en: 'AI Matched' }],
         emphasis: {},
         relatedNodes: [],
         specificFocus: aiResult.refinedTitle
@@ -121,10 +128,10 @@ const App: React.FC = () => {
       setSelectedConcept({
         id: `dynamic-raw-${effectiveQuery}-${lang}-${Math.random().toString(36).substr(2, 5)}`,
         title: { zh: effectiveQuery, en: effectiveQuery },
-        module: lang === 'zh' ? '自主探索' : 'Self-Discovery',
+        module: lang === 'zh' ? '\u81EA\u4E3B\u63A2\u7D22' : 'Self-Discovery',
         level: 3,
-        description: { zh: `正在围绕"${effectiveQuery}"进行讲解...`, en: `Explaining "${effectiveQuery}"...` },
-        skills: [{ zh: '即时匹配', en: 'Direct Match' }],
+        description: { zh: `\u6B63\u5728\u56F4\u7ED5"${effectiveQuery}"\u8FDB\u884C\u8B66\u89E3...`, en: `Explaining "${effectiveQuery}"...` },
+        skills: [{ zh: '\u5373\u65F6\u5339\u914D', en: 'Direct Match' }],
         emphasis: {},
         relatedNodes: [],
         specificFocus: { zh: effectiveQuery, en: effectiveQuery }
@@ -134,17 +141,17 @@ const App: React.FC = () => {
 
   const t = {
     zh: {
-      title: '中数智绘 EduGraph',
-      subtitle: '全体系初中数学 AI 学习工具',
-      searchPlaceholder: '输入想要学习的知识点...',
-      learnTab: '知识讲解',
-      practiceTab: '习题练习',
-      curriculumLabel: '课程体系',
-      curriculumAll: '通用模式',
-      curriculumHint: '选择课程体系，AI 将调整讲解风格',
+      title: '\u667A\u80FD\u6570\u5B66\uFF08\u521D\u4E2D\u7248\uFF09',
+      subtitle: '\u5168\u4F53\u7CFB\u521D\u4E2D\u6570\u5B66 AI \u5B66\u4E60\u5DE5\u5177',
+      searchPlaceholder: '\u8F93\u5165\u60F3\u8981\u5B66\u4E60\u7684\u77E5\u8BC6\u70B9...',
+      learnTab: '\u77E5\u8BC6\u8BB2\u89E3',
+      practiceTab: '\u4E60\u9898\u7EC3\u4E60',
+      curriculumLabel: '\u8BFE\u7A0B\u4F53\u7CFB',
+      curriculumAll: '\u901A\u7528\u6A21\u5F0F',
+      curriculumHint: '\u9009\u62E9\u8BFE\u7A0B\u4F53\u7CFB\uFF0CAI \u5C06\u8C03\u6574\u8BB2\u89E3\u98CE\u683C',
     },
     en: {
-      title: 'EduGraph Math',
+      title: 'Smart Math (Middle School)',
       subtitle: 'AI Math Knowledge Graph Tool',
       searchPlaceholder: 'Search for a concept...',
       learnTab: 'Learning',
@@ -169,7 +176,6 @@ const App: React.FC = () => {
     })).filter(m => m.concepts.length > 0);
   }, [searchQuery]);
 
-  // Active curriculum info
   const activeCurriculum = curriculum ? CURRICULA.find(c => c.id === curriculum) : null;
 
   return (
@@ -184,7 +190,7 @@ const App: React.FC = () => {
             <div className="p-2 bg-[var(--color-brand-accent)] rounded-lg text-brand-bg">
               <BrainCircuit className="w-5 h-5" />
             </div>
-            <h1 className="text-lg font-bold tracking-tight text-white">{t.title}</h1>
+            <h1 className="text-base font-bold tracking-tight text-white leading-tight">{t.title}</h1>
           </div>
           <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.18em]">{t.subtitle}</p>
         </div>
@@ -205,6 +211,7 @@ const App: React.FC = () => {
             )}
           </div>
 
+          {/* ── 5 curriculum buttons: flag on top, short label below ── */}
           <div className="grid grid-cols-5 gap-1.5">
             {CURRICULA.map(c => {
               const isActive = curriculum === c.id;
@@ -214,16 +221,19 @@ const App: React.FC = () => {
                   onClick={() => setCurriculum(isActive ? null : c.id)}
                   title={c.label[lang]}
                   className={`
-                    relative flex flex-col items-center gap-0.5 py-2 rounded-xl border transition-all
+                    relative flex flex-col items-center gap-1 py-2 rounded-xl border transition-all
                     ${isActive
                       ? 'border-[var(--color-brand-accent)] bg-[var(--color-brand-accent)]/10 shadow-sm'
                       : 'border-[var(--color-brand-border)] bg-[var(--color-brand-card)] hover:border-slate-600 hover:bg-slate-800/60'}
                   `}
                 >
-                  <span className="text-base leading-none">{c.flag}</span>
-                  <span className={`text-[9px] font-bold leading-none ${isActive ? 'text-[var(--color-brand-accent)]' : 'text-slate-500'}`}>
+                  {/* Flag emoji — larger, more prominent */}
+                  <span className="text-xl leading-none">{c.flag}</span>
+                  {/* Short label below */}
+                  <span className={`text-[9px] font-bold leading-none tracking-wide ${isActive ? 'text-[var(--color-brand-accent)]' : 'text-slate-500'}`}>
                     {c.shortLabel}
                   </span>
+                  {/* Active dot */}
                   {isActive && (
                     <span
                       className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-1.5 h-1.5 rounded-full"
@@ -244,12 +254,13 @@ const App: React.FC = () => {
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden"
               >
-                <div className="mt-2.5 px-3 py-2 rounded-xl text-[10px] font-bold tracking-wide flex items-center gap-2"
+                <div
+                  className="mt-2.5 px-3 py-2 rounded-xl text-[10px] font-bold tracking-wide flex items-center gap-2"
                   style={{ background: `${activeCurriculum.color}18`, border: `1px solid ${activeCurriculum.color}40`, color: activeCurriculum.color }}
                 >
                   <span>{activeCurriculum.flag}</span>
                   <span>{activeCurriculum.label[lang]}</span>
-                  <span className="ml-auto opacity-60">{t.curriculumHint.split('—')[1]?.trim() || '✓'}</span>
+                  <span className="ml-auto opacity-60">✓</span>
                 </div>
               </motion.div>
             )}
@@ -290,17 +301,17 @@ const App: React.FC = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest mb-0.5">
-                        {isAiSearching ? (lang === 'zh' ? '识别中...' : 'Identifying...') : (lang === 'zh' ? 'AI 智能匹配' : 'AI Best Match')}
+                        {isAiSearching ? (lang === 'zh' ? '\u8BC6\u522B\u4E2D...' : 'Identifying...') : (lang === 'zh' ? 'AI \u667A\u80FD\u5339\u914D' : 'AI Best Match')}
                       </div>
                       <div className="text-xs font-bold text-white truncate">
                         {aiResult?.refinedTitle[lang] || searchQuery}
                       </div>
                       <div className="text-[9px] text-slate-400 line-clamp-1 italic mt-0.5">
                         {quotaExceeded
-                          ? (lang === 'zh' ? 'API 额度暂用完' : 'Quota exceeded')
+                          ? (lang === 'zh' ? 'API \u989D\u5EA6\u6682\u7528\u5B8C' : 'Quota exceeded')
                           : aiResult
                             ? aiResult.description[lang]
-                            : (lang === 'zh' ? '正在深度匹配...' : 'Deep matching...')}
+                            : (lang === 'zh' ? '\u6B63\u5728\u6DF1\u5EA6\u5339\u914D...' : 'Deep matching...')}
                       </div>
                     </div>
                   </div>
@@ -310,28 +321,30 @@ const App: React.FC = () => {
           </AnimatePresence>
         </div>
 
-        {/* Knowledge tree */}
-        <div className="flex-1 overflow-y-auto px-3 space-y-3 py-3 pb-4 scrollbar-hide">
+        {/* ── Knowledge tree ── */}
+        <div className="flex-1 overflow-y-auto px-3 space-y-1 py-3 pb-4 scrollbar-hide">
           {filteredGraph.map(module => {
-            const isCollapsed = collapsedModules[module.id] && !searchQuery;
+            // When searching, always expand; otherwise use collapsed state
+            const isCollapsed = searchQuery ? false : (collapsedModules[module.id] ?? true);
             return (
-              <div key={module.id} className="space-y-1">
+              <div key={module.id} className="space-y-0.5">
+                {/* Module header — bigger font */}
                 <button
                   onClick={() => toggleModule(module.id)}
-                  className="w-full flex items-center justify-between px-2 py-1 text-slate-400 font-bold text-[10px] uppercase tracking-wider group hover:text-slate-200 transition-colors"
+                  className="w-full flex items-center justify-between px-2 py-2 text-slate-200 font-bold text-sm group hover:text-white transition-colors"
                 >
-                  <div className="flex items-center gap-1.5">
-                    {getModuleIcon(module.id)}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[var(--color-brand-accent)]">{getModuleIcon(module.id)}</span>
                     <span>{module.name[lang]}</span>
                   </div>
-                  <ChevronRight className={`w-3 h-3 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`} />
+                  <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 text-slate-500 ${isCollapsed ? '' : 'rotate-90'}`} />
                 </button>
 
                 {!isCollapsed && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
-                    className="space-y-0.5 overflow-hidden"
+                    className="space-y-0.5 overflow-hidden pl-1"
                   >
                     {module.concepts.map((concept, idx) => (
                       <button
@@ -351,7 +364,6 @@ const App: React.FC = () => {
                       >
                         <span className="line-clamp-1">{concept.title[lang]}</span>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
-                          {/* Curriculum emphasis dot */}
                           {curriculum && concept.emphasis[curriculum] && (
                             <span
                               className="w-1.5 h-1.5 rounded-full flex-shrink-0"
@@ -377,7 +389,7 @@ const App: React.FC = () => {
             className="flex items-center gap-2 px-3 py-2 w-full justify-center rounded-lg bg-[var(--color-brand-card)] border border-[var(--color-brand-border)] hover:bg-slate-800 transition-colors text-xs font-bold text-slate-300"
           >
             <Languages className="w-3.5 h-3.5" />
-            {lang === 'zh' ? 'ENGLISH' : '切换中文'}
+            {lang === 'zh' ? 'ENGLISH' : '\u5207\u6362\u4E2D\u6587'}
           </button>
         </div>
       </aside>
@@ -413,7 +425,6 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3 flex-1 justify-end min-w-0">
-            {/* Curriculum pill in header */}
             {activeCurriculum && (
               <div
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border"
@@ -423,7 +434,6 @@ const App: React.FC = () => {
                 <span>{activeCurriculum.label[lang]}</span>
               </div>
             )}
-
             {selectedConcept && (
               <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500 bg-[var(--color-brand-card)] border border-[var(--color-brand-border)] px-4 py-1.5 rounded-full uppercase tracking-widest min-w-0 overflow-hidden">
                 <span className="flex items-center gap-1 flex-shrink-0">
@@ -455,7 +465,7 @@ const App: React.FC = () => {
                   <h2 className="text-3xl font-bold text-white mb-3 tracking-tight">{t.learnTab}</h2>
                   <p className="text-slate-500 max-w-sm text-sm leading-relaxed mb-8">
                     {lang === 'zh'
-                      ? '请在左侧选择课程体系和知识点开始学习。'
+                      ? '\u8BF7\u5728\u5DE6\u4FA7\u9009\u62E9\u8BFE\u7A0B\u4F53\u7CFB\u548C\u77E5\u8BC6\u70B9\u5F00\u59CB\u5B66\u4E60\u3002'
                       : 'Select a curriculum and concept on the left to start.'}
                   </p>
                   {searchQuery && (
@@ -465,7 +475,7 @@ const App: React.FC = () => {
                       className="gold-btn px-8 py-3 rounded-xl flex items-center gap-2"
                     >
                       {isAiSearching ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                      {lang === 'zh' ? '基于搜索项开始讲解' : 'Start from Search'}
+                      {lang === 'zh' ? '\u57FA\u4E8E\u641C\u7D22\u9879\u5F00\u59CB\u8BB2\u89E3' : 'Start from Search'}
                     </button>
                   )}
                 </motion.div>
