@@ -1,38 +1,120 @@
-import { GoogleGenAI } from "@google/genai";
-import { Concept, Difficulty, Language, Grade, Message } from "../types";
+import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-const MODEL_NAME = "gemini-3-flash-preview";
+// ─── Doubao / ARK API client ───────────────────────────────────────────────
+// Environment variables (set in Vercel):
+//   VITE_ARK_API_KEY  – your ARK / Doubao API key
+//   VITE_ARK_MODEL    – model id, e.g. "doubao-seed-2-0-lite-250615"
+//   VITE_ARK_BASE_URL – base URL, defaults to https://ark.cn-beijing.volces.com/api/v3
 
-async function safeGenerate(contents: any, systemInstruction?: string, config?: any) {
+const ARK_BASE_URL =
+  (import.meta as any).env?.VITE_ARK_BASE_URL ||
+  "https://ark.cn-beijing.volces.com/api/v3";
+const ARK_API_KEY = (import.meta as any).env?.VITE_ARK_API_KEY || "";
+const ARK_MODEL =
+  (import.meta as any).env?.VITE_ARK_MODEL ||
+  "doubao-seed-2-0-lite-250615";
+
+// OpenAI-compatible chat completion
+async function safeGenerate(
+  messages: { role: "system" | "user" | "assistant"; content: string }[],
+  jsonMode = false
+): Promise<string> {
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      systemInstruction: systemInstruction ? { role: 'system', parts: [{ text: systemInstruction }] } : undefined,
-      contents,
-      generationConfig: {
-        maxOutputTokens: 2048,
-        temperature: 0.7,
-        topP: 0.95,
+    const body: Record<string, any> = {
+      model: ARK_MODEL,
+      messages,
+      max_tokens: 2048,
+      temperature: 0.7,
+      top_p: 0.95,
+    };
+    if (jsonMode) {
+      body.response_format = { type: "json_object" };
+    }
+
+    const res = await fetch(`${ARK_BASE_URL}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${ARK_API_KEY}`,
       },
-      ...config
+      body: JSON.stringify(body),
     });
-    
-    return response.text || "";
+
+    if (!res.ok) {
+      const errText = await res.text();
+      if (res.status === 429 || errText.includes("rate_limit") || errText.includes("quota")) {
+        throw new Error("QUOTA_EXHAUSTED");
+      }
+      if (res.status >= 500) {
+        throw new Error("AI_INTERNAL_ERROR");
+      }
+      throw new Error(`ARK_API_ERROR: ${res.status} ${errText}`);
+    }
+
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || "";
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    const errorString = JSON.stringify(error);
-    if (errorString.includes("429") || errorString.includes("RESOURCE_EXHAUSTED") || error?.status === 429) {
-      throw new Error("QUOTA_EXHAUSTED");
+    if (
+      error.message === "QUOTA_EXHAUSTED" ||
+      error.message === "AI_INTERNAL_ERROR"
+    ) {
+      throw error;
     }
-    if (errorString.includes("500") || error?.status === 500) {
-      throw new Error("AI_INTERNAL_ERROR");
-    }
+    console.error("ARK API Error:", error);
     throw error;
   }
 }
 
+// ─── Curriculum emphasis helpers ──────────────────────────────────────────
+const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string }> = {
+  CN: { zh: "中国课程（人教版）", en: "Chinese Curriculum (PEP)" },
+  US: { zh: "美国课程（Common Core）", en: "US Curriculum (Common Core)" },
+  UK: { zh: "英国课程（National Curriculum）", en: "UK Curriculum (NC)" },
+  SG: { zh: "新加坡课程（MOE）", en: "Singapore Curriculum (MOE)" },
+  IB: { zh: "IB课程（MYP）", en: "IB Curriculum (MYP)" },
+};
+
+const CURRICULUM_STYLE: Record<
+  Curriculum,
+  { zh: string; en: string }
+> = {
+  CN: {
+    zh: "侧重严格的笔算与代数变形训练，强调概念定义的精确表述，题目通常含多步骤计算，难度偏高，以中考题型为导向。",
+    en: "Emphasize rigorous pencil-and-paper calculation and algebraic manipulation. Stress precise concept definitions. Problems often involve multi-step computation and are oriented toward the national exam (Zhongkao).",
+  },
+  US: {
+    zh: "侧重真实情境建模与概念理解，重视图形化表达、估算与批判性思维，避免过度机械训练，强调过程而非单一答案。",
+    en: "Emphasize real-world modeling, conceptual understanding, graphical representation, estimation, and critical thinking. Avoid rote drilling; value process over a single answer.",
+  },
+  UK: {
+    zh: "侧重推理与几何证明，要求学生用准确的数学语言陈述论证过程，GCSE题型兼顾计算与解释，注重标准形式（Standard Form）、代数结构等。",
+    en: "Emphasize reasoning and geometric proof. Students must state arguments with precise mathematical language. GCSE questions balance calculation with explanation. Note Standard Form and algebraic structure.",
+  },
+  SG: {
+    zh: "以Bar Model（条形图模型）为核心低年级可视化工具，强调分层递进的课程结构，高年级考题有相当难度，兼顾程序与概念。",
+    en: "Use Bar Model as the core visualization tool for lower levels. Emphasize a layered, progressive curriculum structure. Upper-level exam questions are challenging; balance procedural and conceptual.",
+  },
+  IB: {
+    zh: "强调跨学科连接与探究式学习，要求学生反思数学在真实世界中的应用，MYP评估以任务性评估（Criterion A–D）为主，注重沟通与反思。",
+    en: "Emphasize interdisciplinary connections and inquiry-based learning. Students reflect on mathematics in real-world contexts. MYP assessment uses Criteria A–D; communication and reflection are key.",
+  },
+};
+
+function buildCurriculumInstruction(
+  curriculum: Curriculum | null,
+  lang: Language
+): string {
+  if (!curriculum) return "";
+  const label = CURRICULUM_LABELS[curriculum][lang];
+  const style = CURRICULUM_STYLE[curriculum][lang];
+  if (lang === "zh") {
+    return `\n\n## 当前课程体系：${label}\n教学风格要求：${style}\n请根据该课程体系调整讲解深度、题型选择与表达方式。`;
+  }
+  return `\n\n## Current Curriculum: ${label}\nTeaching style requirement: ${style}\nPlease adjust explanation depth, problem types, and expression style accordingly.`;
+}
+
+// ─── System prompt ─────────────────────────────────────────────────────────
 const BT = "```";
 
 const SYSTEM_PROMPT_BASE = `You are a world-class middle-school mathematics tutor specializing in the Feynman Technique.
@@ -43,24 +125,19 @@ STRICT PRINCIPLES:
    - INCLUDE if: Geometry (angles, triangles, areas), coordinate functions (slopes, shifts), number lines, or spatial reasoning.
    - OMIT if: Pure algebra or simple word problems.
    - MANDATORY: If you use phrases like "as shown in the figure" or "如图", you MUST include a "math-diagram" block.
-   - GEOMETRIC REASONING: Before outputting the JSON, mentally calculate all coordinates (x, y) based on the problem's constraints (e.g., if AB=6, BC=10, then A=(0,6), B=(0,0), C=(10,0), D=(10,6)).
+   - GEOMETRIC REASONING: Before outputting the JSON, mentally calculate all coordinates (x, y) based on the problem's constraints.
    - SHAPE COMPLETENESS: DO NOT just output points. You MUST draw the full skeleton using 'polygon' or 'line'.
    - CONFIG: Always set "config": {"axes": false, "grid": false} for non-coordinate geometry.
 
-4. VISUAL HIERARCHY: 
+3. VISUAL HIERARCHY:
    - Use 'polygon' for main shapes (triangles, rectangles).
    - Use 'line' for folding lines or auxiliary lines (dashed).
    - "importance": "primary" -> Thick gold lines.
    - "importance": "helper" -> Thin dashed grey lines.
 
-4. SCENARIO VISUALIZATION (PYTHAGOREAN):
-   - Shortest Path (Cylinder/Spider): DRAW THE UNROLLED LATERAL SURFACE (侧面展开图) as a rectangle. Width = circumference (or half), Height = cylinder height. The path is the DIAGONAL of this rectangle.
-   - Folding: Draw the rectangle ABCD, the fold line EF, and the vertex's image point (e.g., D').
-   - Real-world: Draw a right triangle formed by the ladder/tree/shadow.
-   - VARIETY: Randomly choose between these scenarios. DO NOT repeat the same specific scenario type more than twice in a block of exercises.
-3. DIAGRAM JSON FORMATS (MANDATORY STRUCTURE):
-   
-   - TYPE 1: Coordinate Geometry (Perfect for Slope/Functions)
+4. DIAGRAM JSON FORMATS (MANDATORY STRUCTURE):
+
+   - TYPE 1: Coordinate Geometry
    ${BT}math-diagram
    {
      "config": {"axes": true, "grid": true},
@@ -72,28 +149,14 @@ STRICT PRINCIPLES:
    }
    ${BT}
 
-   - TYPE 2: Pure Geometry (e.g. Triangles, Rectangles - HIDE AXES)
+   - TYPE 2: Pure Geometry (HIDE AXES)
    ${BT}math-diagram
    {
      "config": {"axes": false, "grid": false},
      "window": {"xmin": -2, "xmax": 12, "ymin": -2, "ymax": 14},
      "elements": [
-       {"type": "polygon", "points": [[0,0], [10,0], [10,12], [0,12]], "importance": "primary", "opacity": 0.1},
-       {"type": "line", "x1": 0, "y1": 0, "x2": 10, "y2": 12, "label": "Path", "importance": "primary"},
-       {"type": "point", "x": 0, "y": 12, "label": "A"},
-       {"type": "point", "x": 0, "y": 0, "label": "B"},
-       {"type": "point", "x": 10, "y": 0, "label": "C"},
-       {"type": "point", "x": 10, "y": 12, "label": "D"}
-     ]
-   }
-   ${BT}
-
-   - TYPE 2: Geometry Description
-   ${BT}math-diagram
-   {
-     "type": "geometry_desc",
-     "shapes": [
-       {"kind": "triangle", "label": "ABC", "right_angle": true, "leg1": 6, "leg2": 8}
+       {"type": "polygon", "points": [[0,0],[10,0],[10,12],[0,12]], "importance": "primary", "opacity": 0.1},
+       {"type": "point", "x": 0, "y": 0, "label": "A"}
      ]
    }
    ${BT}
@@ -103,108 +166,107 @@ STRICT PRINCIPLES:
    {
      "type": "numberline",
      "range": [-10, 10],
-     "elements": [
-       {"type": "point", "value": 5, "label": "x=5"}
-     ]
+     "elements": [{"type": "point", "value": 5, "label": "x=5"}]
    }
    ${BT}
 
-4. VARIETY RULE (STRICT): 
-   - For a specific topic, you MUST rotate problem types. Never generate the same type of problem more than twice in a row.
-   - For "Pythagorean Theorem" (勾股定理): Rotate between:
-     - Folded Geometry (折叠/矩形翻折)
-     - Shortest Path (圆柱上蚂蚁爬行/路径最短)
-     - Real-world Height/Distance (梯子靠墙/大树折断)
-     - Geometric area proofs (勾股树/赵爽弦图)
-   - If the user provides a "Special Requirement" or "Type Requirement", PRIORITIZE it for all problems in that set.
-5. NO RESOLUTIONS: When generating exercises, ONLY output the questions.
-6. LATEX: Use $...$ for ALL math symbols and equations.`;
+5. VARIETY RULE (STRICT): Rotate problem types. Never generate the same type more than twice in a row.
+6. NO RESOLUTIONS: When generating exercises, ONLY output the questions.
+7. LATEX: Use $...$ for ALL math symbols and equations.`;
 
-export async function startFeynmanSession(problemText: string, concept: Concept, lang: Language) {
-  const specificTitle = concept.specificFocus ? concept.specificFocus[lang] : concept.title[lang];
-  const isGenericTopic = !concept.specificFocus || problemText === specificTitle || problemText.length < 10;
+// ─── Public API ────────────────────────────────────────────────────────────
 
-  const prompt = [
-    { role: 'user', parts: [{ text: 
-      "Target Topic for this session: \"" + specificTitle + "\"\n" +
-      "Broader Module Context: " + concept.title[lang] + " (" + concept.module + ")\n" +
-      "Student Input: \"" + problemText + "\"\n" +
-      "Language: " + (lang === 'zh' ? 'Chinese' : 'English') + "\n\n" +
-      "STRATEGY:\n" +
-      "1. START WITH THE SPECIFIC: You must immediately start the conversation regarding \"" + specificTitle + "\". Do not start with a generic overview of \"" + concept.title[lang] + "\".\n" +
-      "   - BAD: 'Hello, let's learn about Functions and Change. First, what is a variable? Now let's talk about slope.'\n" +
-      "   - GOOD: 'Hello! I see you want to explore \"" + specificTitle + "\". To get us started, have you ever noticed how the steepness of a hill can be described by a number?'\n" +
-      "2. SOCRATIC METHOD: Do not provide direct definitions. Instead, use a simple metaphor or ask a targeted question that triggers thinking about the core essence of " + specificTitle + ". Use \"math-diagram\" ONLY if the concept is inherently visual (Geometry, Slope, Functions).\n" +
-      "3. PROGRESSIVE DRILL-DOWN: If and ONLY IF the student shows confusion about variables, dependency, or coordinates (the foundations), then briefly pivot to clarify those function concepts, then IMMEDIATELY return to " + specificTitle + ".\n" +
-      "4. TONE: Warm, intelligent, professional middle school math tutor.\n" +
-      "5. FORMAT: Keep responses concise. One short insight followed by ONE question." }] }
-  ];
+export async function startFeynmanSession(
+  problemText: string,
+  concept: Concept,
+  lang: Language,
+  curriculum: Curriculum | null = null
+) {
+  const specificTitle = concept.specificFocus
+    ? concept.specificFocus[lang]
+    : concept.title[lang];
+  const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
+  const system = SYSTEM_PROMPT_BASE + curriculumInstr;
 
-  return await safeGenerate(prompt, SYSTEM_PROMPT_BASE);
+  const userMsg =
+    `Target Topic: "${specificTitle}"\n` +
+    `Module: ${concept.title[lang]} (${concept.module})\n` +
+    `Student Input: "${problemText}"\n` +
+    `Language: ${lang === "zh" ? "Chinese" : "English"}\n\n` +
+    `STRATEGY:\n` +
+    `1. START SPECIFIC: Immediately address "${specificTitle}". Do not give a generic overview.\n` +
+    `2. SOCRATIC: Use a metaphor or question to trigger thinking. Use diagrams ONLY if visual.\n` +
+    `3. TONE: Warm, intelligent, professional middle school tutor.\n` +
+    `4. FORMAT: One short insight + ONE question. Keep it concise.`;
+
+  return await safeGenerate([
+    { role: "system", content: system },
+    { role: "user", content: userMsg },
+  ]);
 }
 
-export async function generateExercises(conceptTitle: string, conceptDesc: string, grade: Grade, difficulty: Difficulty, count: number, lang: Language) {
-  const prompt = [
-    { role: 'user', parts: [{ text: 
-      "Task: Generate " + count + " mathematics exercises for " + conceptTitle +
-      ".\nGrade Level: " + grade +
-      "\nDifficulty: " + difficulty +
-      "\nLanguage: " + (lang === 'zh' ? 'Chinese' : 'English') +
-      "\nVARIETY CHECK: You MUST rotate problem types. Never generate the same scenario twice in a row. " +
-      "For 'Pythagorean Theorem' (勾股定理), YOU ARE A 'MATH COURSEWARE ENGINEER' (数学课件工程师). FOLLOW THESE STEPS FOR DIAGRAMS:\n" +
-      "1. GEOMETRIC MODELING: Mentally calculate EXACT coordinates (x, y) based on lengths. E.g., for a 3-4-5 triangle, use (0,0), (4,0), (0,3).\n" +
-      "2. LADDER PROBLEMS (梯子滑动): Define Wall at x=0, Ground at y=0. Ladder state 1: (0,8) to (6,0). Ladder state 2: (0,7) to (sqrt(100-49),0). DRAW BOTH using 'line' or 'polygon'. Use importance:'primary' for final state and 'helper' for initial state.\n" +
-      "3. SHAPES OVER POINTS: DO NOT just output points. You MUST draw shapes using 'polygon' (for full triangles/rectangles) or 'line' (for single segments).\n" +
-      "4. GRID VS GEOMETRY: \n" +
-      "   - For coordinate/grid problems: set config:{axes:true, grid:true}.\n" +
-      "   - For standard geometry (e.g., folding, ladders): set config:{axes:false, grid:false} to behave like a blank drawing board.\n" +
-      "5. LABELS: Every point A, B, C... mentioned in text MUST be a 'point' with a 'label' in JSON.\n" +
-      "6. VARIETY: Rotate between ladder, folding, shortest path, and proofs." +
-      "\nCRITICAL: DO NOT include solutions or '解析'. ONLY output the numbered questions.\n" +
-      "VISUALS (MANDATORY): \n" +
-      "1. MODELING: Treat the diagram like a Python Matplotlib plot. Calculate EXACT coordinates (x, y) for all points before generating JSON.\n" +
-      "2. SHAPES: Draw the main geometry (Rectangles, Triangles) using 'polygon' with its 'points' array. Do NOT just output loose 'point' elements.\n" +
-      "3. CONFIG: For geometry problems, you MUST set 'config': {'axes': false, 'grid': false} to provide a clean canvas.\n" +
-      "4. LABELS: Every point mentioned in the text MUST have a corresponding 'point' element with a 'label' attribute in the JSON.\n" +
-      "5. EXAMPLE (Ladder against wall): Back Wall (0,10) to (0,0), Ground (0,0) to (8,0), Ladder (0,6) to (8,0). Draw as polygon or multiple lines.\n" +
-      "Request Timestamp: " + Date.now() }] }
-  ];
+export async function generateExercises(
+  conceptTitle: string,
+  conceptDesc: string,
+  grade: Grade,
+  difficulty: Difficulty,
+  count: number,
+  lang: Language,
+  curriculum: Curriculum | null = null
+) {
+  const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
+  const system = SYSTEM_PROMPT_BASE + curriculumInstr;
 
-  return await safeGenerate(prompt, SYSTEM_PROMPT_BASE);
+  const userMsg =
+    `Task: Generate ${count} mathematics exercises for "${conceptTitle}".\n` +
+    `Grade Level: ${grade}\n` +
+    `Difficulty: ${difficulty}\n` +
+    `Language: ${lang === "zh" ? "Chinese" : "English"}\n` +
+    `Description: ${conceptDesc}\n\n` +
+    `VARIETY CHECK: Rotate problem types. Never repeat same scenario twice.\n` +
+    `VISUALS: For geometry problems, calculate EXACT coordinates and draw shapes with 'polygon'/'line'. Set config:{axes:false, grid:false} for pure geometry.\n` +
+    `CRITICAL: DO NOT include solutions. ONLY output the numbered questions.\n` +
+    `Timestamp: ${Date.now()}`;
+
+  return await safeGenerate([
+    { role: "system", content: system },
+    { role: "user", content: userMsg },
+  ]);
 }
 
 export async function solveExercises(exercises: string, lang: Language) {
-  const prompt = [
-    { role: 'user', parts: [{ text: 
-      "Solve these exercises in " + (lang === 'zh' ? 'Chinese' : 'English') + ":\n" +
-      exercises }] }
-  ];
-
-  return await safeGenerate(prompt, "Provide final answer + brief explanation for each.");
+  return await safeGenerate([
+    {
+      role: "system",
+      content: `Provide a clear final answer + brief step-by-step explanation for each exercise. Language: ${lang === "zh" ? "Chinese" : "English"}. Use $...$ for all math.`,
+    },
+    { role: "user", content: exercises },
+  ]);
 }
 
 export async function identifyTopic(query: string, lang: Language) {
-  const curriculumSummary = KNOWLEDGE_GRAPH.map(m => ({
+  const curriculumSummary = KNOWLEDGE_GRAPH.map((m) => ({
     module: m.id,
-    concepts: m.concepts.map(c => ({ id: c.id, title: c.title }))
+    concepts: m.concepts.map((c) => ({ id: c.id, title: c.title })),
   }));
 
-  const prompt = [
-    { role: 'user', parts: [{ text: 
-      "Analyze User Query: \"" + query + "\"\n" +
-      "Curriculum Context: " + JSON.stringify(curriculumSummary) + "\n" +
-      "Language: " + (lang === 'zh' ? 'Chinese' : 'English') + "\n" +
-      "Task: Identify the mathematical concept.\n" +
-      "1. If it matches an existing concept ID EXACTLY or as a major sub-topic, use that ID.\n" +
-      "2. ALWAYS provide a 'refinedTitle' that captures the SPECIFIC topic the user asked for (e.g. if they ask for 'slope' and you match 'functions', the refinedTitle should be 'Slope').\n" +
-      "3. Provide a tailored description for that specific topic." }] }
-  ];
+  const systemMsg = `Return ONLY valid JSON in this exact format (no markdown, no extra text):
+{ "existingId": "string or null", "matchedModule": "string", "refinedTitle": { "zh": "...", "en": "..." }, "description": { "zh": "...", "en": "..." }, "level": <number 1-5> }`;
 
-  const text = await safeGenerate(prompt, 
-    "JSON format: { \"existingId\": \"string|null\", \"matchedModule\": \"string\", \"refinedTitle\": { \"zh\": \"...\", \"en\": \"...\" }, \"description\": { \"zh\": \"...\", \"en\": \"...\" }, \"level\": number (1-5) }",
-    { responseMimeType: "application/json" }
+  const userMsg =
+    `Analyze query: "${query}"\n` +
+    `Curriculum: ${JSON.stringify(curriculumSummary)}\n` +
+    `Language: ${lang === "zh" ? "Chinese" : "English"}\n` +
+    `Match the query to an existing concept ID or suggest the closest module. Provide a refined title capturing the SPECIFIC topic.`;
+
+  const text = await safeGenerate(
+    [
+      { role: "system", content: systemMsg },
+      { role: "user", content: userMsg },
+    ],
+    true
   );
-  
+
   try {
     const jsonStr = text.match(/\{[\s\S]*\}/)?.[0] || text;
     return JSON.parse(jsonStr);
@@ -213,11 +275,23 @@ export async function identifyTopic(query: string, lang: Language) {
   }
 }
 
-export async function chatStep(history: Message[], lang: Language) {
-  const contents = history.map(m => ({
-    role: m.role === 'user' ? 'user' : 'model',
-    parts: [{ text: m.content }],
-  }));
+export async function chatStep(
+  history: Message[],
+  lang: Language,
+  curriculum: Curriculum | null = null
+) {
+  const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
+  const system = SYSTEM_PROMPT_BASE + curriculumInstr;
 
-  return await safeGenerate(contents, SYSTEM_PROMPT_BASE);
+  const messages: { role: "system" | "user" | "assistant"; content: string }[] =
+    [{ role: "system", content: system }];
+
+  history.forEach((m) => {
+    messages.push({
+      role: m.role === "user" ? "user" : "assistant",
+      content: m.content,
+    });
+  });
+
+  return await safeGenerate(messages);
 }
