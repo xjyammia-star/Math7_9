@@ -19,6 +19,17 @@ import { generateExercises, solveExercises } from '../services/geminiService';
 import LearningAgent from './LearningAgent';
 import MathDiagram from './MathDiagram';
 
+// Same sanitizer as LearningAgent — fixes bare LaTeX in prose
+function sanitizeMath(text: string): string {
+  text = text.replace(/\\text\{([^}]*)\}/g, '$1');
+  text = text.replace(/(?<!\$)\\odot\s*([A-Za-z])/g, '$\\odot $1$');
+  text = text.replace(/(?<!\$)\\angle\s*([A-Za-z]{1,3})/g, '$\\angle $1$');
+  text = text.replace(/(?<!\$)\\triangle\s*([A-Za-z]{3})/g, '$\\triangle $1$');
+  text = text.replace(/(?<!\$)\\parallel(?!\})/g, '$\\parallel$');
+  text = text.replace(/(?<!\$)\\perp(?!\})/g, '$\\perp$');
+  return text;
+}
+
 // ── Curriculum display helper ────────────────────────────────────────────
 const CURRICULUM_LABELS: Record<string, { zh: string; en: string; flag: string; color: string }> = {
   CN: { zh: '中国课程',   en: 'Chinese Curriculum',    flag: '🇨🇳', color: '#ef4444' },
@@ -337,7 +348,7 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
                     rehypePlugins={[rehypeKatex]}
                     components={mdComponents}
                   >
-                    {showSolution ? (solution || '') : exercises}
+                    {sanitizeMath(showSolution ? (solution || '') : exercises)}
                   </ReactMarkdown>
                 </div>
 
