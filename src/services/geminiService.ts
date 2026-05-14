@@ -399,6 +399,110 @@ RULES:
   return await safeGenerate(messages, false, 500);
 }
 
+// ─── Problem type pools per topic ────────────────────────────────────────────
+// AI has no memory between calls, so we inject a random selection from this pool
+// to force variety. Each call picks 3 types at random to present as options.
+const PROBLEM_TYPE_POOLS: Record<string, string[]> = {
+  // Keyword → pool of problem types
+  '勾股': [
+    '梯子靠墙（梯子滑动，求高度或距离）',
+    '电线杆/大树折断（折断后形成直角三角形）',
+    '矩形/正方形对角线长度',
+    '坐标系中两点距离',
+    '等腰三角形高线求法',
+    '直角三角形面积与周长',
+    '船只/飞机的直线距离（实际测量情境）',
+    '勾股数判断（判断三边是否构成直角三角形）',
+    '正方形内切圆/外接圆半径',
+    '圆柱侧面展开最短路径',
+    '斜坡坡度与水平距离',
+    '矩形折叠（折叠顶点到对边）',
+  ],
+  'pythag': [
+    'Ladder sliding on a wall (find height or distance)',
+    'Broken tree/pole (forms right triangle)',
+    'Diagonal of rectangle or square',
+    'Distance between two coordinate points',
+    'Height of isosceles triangle',
+    'Area and perimeter of right triangle',
+    'Real-world distance (boat, plane, building)',
+    'Pythagorean triple identification',
+    'Shortest path on cylinder (unrolled surface)',
+    'Slope and horizontal distance',
+    'Rectangle fold problems',
+  ],
+  '相似': [
+    '平行线截三角形（AA相似）',
+    '投影/影子测量高度（间接测量）',
+    '地图比例尺计算',
+    '两三角形对应边之比求未知边',
+    '相似三角形面积比',
+    '梯形中位线与相似',
+    '直角三角形射影定理',
+  ],
+  '圆': [
+    '切线长定理（外部点到圆的切线）',
+    '圆周角与圆心角关系',
+    '弦切角定理',
+    '相交弦定理',
+    '圆内接四边形对角互补',
+    '弧长与扇形面积',
+    '垂径定理求弦长',
+  ],
+  '函数': [
+    '由图象判断斜率与截距',
+    '两直线交点坐标',
+    '实际情境建模（费用、速度、时间）',
+    '一次函数与坐标轴围成的三角形面积',
+    '判断点是否在直线上',
+    '平行线/垂线条件下的k值',
+  ],
+  '二次函数': [
+    '求顶点坐标（配方法）',
+    '抛物线与x轴交点（判别式）',
+    '最大值/最小值实际应用（利润、面积最大）',
+    '二次函数图象变换（平移、翻转）',
+    '二次函数与一次函数交点',
+    '由顶点和一点确定解析式',
+  ],
+  '方程': [
+    '行程问题（相遇、追及）',
+    '工程问题（合作完成工作）',
+    '浓度/混合溶液问题',
+    '盈亏问题（买卖利润）',
+    '数字问题（两位数、连续整数）',
+    '几何面积列方程',
+  ],
+  '不等式': [
+    '数轴上表示解集',
+    '实际情境约束（预算、库存）',
+    '不等式组求整数解',
+    '与方程联立求范围',
+  ],
+  '概率': [
+    '古典概型列举法',
+    '树状图求概率',
+    '有放回/无放回抽样',
+    '至少/至多问题',
+    '频率估计概率',
+  ],
+};
+
+/** Pick N random items from an array without repeating */
+function pickRandom<T>(arr: T[], n: number): T[] {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(n, arr.length));
+}
+
+/** Find the matching pool for a concept title */
+function getTypePool(conceptTitle: string): string[] | null {
+  const title = conceptTitle.toLowerCase();
+  for (const [key, pool] of Object.entries(PROBLEM_TYPE_POOLS)) {
+    if (title.includes(key.toLowerCase())) return pool;
+  }
+  return null;
+}
+
 export async function generateExercises(
   conceptTitle: string,
   conceptDesc: string,
@@ -411,21 +515,29 @@ export async function generateExercises(
   const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
   const system = SYSTEM_PROMPT_BASE + curriculumInstr;
 
+  // Pick random problem types from pool to force variety
+  const pool = getTypePool(conceptTitle);
+  const pickedTypes = pool ? pickRandom(pool, Math.max(count, 3)) : null;
+  const varietyInstr = pickedTypes
+    ? (lang === "zh"
+        ? `\n本次必须从以下题型中选取（每种最多用一次，禁止重复）：\n${pickedTypes.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}\n如果题目数量少于列表，从中任选，但绝对不能全部选折叠题或全部选同一类型。`
+        : `\nFor this batch, you MUST use these problem types (use each at most once, no repeats):\n${pickedTypes.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}\nNever use only one scenario type for all problems.`)
+    : `\nVARIETY: Rotate problem types. Never use the same scenario twice in one batch.`;
+
   const userMsg =
-    `Task: Generate ${count} mathematics exercises for "${conceptTitle}".\n` +
+    `Task: Generate ${count} mathematics exercise(s) for "${conceptTitle}".\n` +
     `Grade Level: ${grade}\n` +
     `Difficulty: ${difficulty}\n` +
     `Language: ${lang === "zh" ? "Chinese" : "English"}\n` +
-    `Description: ${conceptDesc}\n\n` +
-    `VARIETY CHECK: Rotate problem types. Never repeat same scenario twice.\n` +
-    `VISUALS: For geometry problems, calculate EXACT coordinates and draw shapes with 'polygon'/'line'. Set config:{axes:false, grid:false} for pure geometry.\n` +
+    `Description: ${conceptDesc}\n` +
+    varietyInstr + `\n` +
     `CRITICAL: DO NOT include solutions. ONLY output the numbered questions.\n` +
     `Timestamp: ${Date.now()}`;
 
   return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
-  ], false, 2048);  // exercises need more space
+  ], false, 2048);
 }
 
 export async function solveExercises(exercises: string, lang: Language) {
