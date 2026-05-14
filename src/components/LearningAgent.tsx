@@ -9,6 +9,40 @@ import { Concept, Language, Curriculum, Message } from '../types';
 import { startFeynmanSession, chatStep, guideExercise, guideExerciseStep } from '../services/geminiService';
 import MathDiagram from './MathDiagram';
 
+/**
+ * Fixes common AI mistakes where LaTeX commands appear bare in prose
+ * (outside of $...$), causing them to render as raw text.
+ * E.g.  \odot O  →  $\odot O$
+ *       \text{cm} → cm
+ *       \angle ABC → $\angle ABC$
+ */
+function sanitizeMath(text: string): string {
+  // Remove \text{...} used as units — just keep the inner text
+  text = text.replace(/\\text\{([^}]*)\}/g, '$1');
+
+  // Wrap bare LaTeX commands that appear outside $...$ in inline math
+  // Strategy: find LaTeX sequences not already inside $, wrap them
+  const bareLatexPattern = /(?<!\$)\\(odot|angle|triangle|parallel|perp|cdot|times|div|leq|geq|neq|approx|pi|sqrt|frac|sin|cos|tan|Rightarrow|overset)\b([^$\n]*?)(?=\s|,|。|，|、|；|：|（|）|\(|\)|$)/g;
+
+  // Simpler targeted replacements for the most common offenders
+  // Match: \odot followed by a letter/word (not already in $)
+  text = text.replace(/(?<!\$)\\odot\s*([A-Za-z])/g, '$\\odot $1$');
+  text = text.replace(/(?<!\$)\\angle\s*([A-Za-z]{1,3})/g, '$\\angle $1$');
+  text = text.replace(/(?<!\$)\\triangle\s*([A-Za-z]{3})/g, '$\\triangle $1$');
+  text = text.replace(/(?<!\$)\\parallel(?!\})/g, '$\\parallel$');
+  text = text.replace(/(?<!\$)\\perp(?!\})/g, '$\\perp$');
+
+  // Units written as \text{cm} etc. already removed above
+  // Handle bare "12 \text{cm}" patterns already handled
+
+  // Clean up any double $$ that might result from nested wrapping
+  text = text.replace(/\$\$([^$]+)\$\$/g, (_, inner) =>
+    inner.trim().includes('\n') ? `$$${inner}$$` : `$$${inner}$$`
+  );
+
+  return text;
+}
+
 interface LearningAgentProps {
   concept: Concept;
   lang: Language;
@@ -247,7 +281,7 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
                     rehypePlugins={[rehypeKatex]}
                     components={mdComponents}
                   >
-                    {msg.content}
+                    {sanitizeMath(msg.content)}
                   </ReactMarkdown>
                 </div>
               )}
