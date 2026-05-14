@@ -268,7 +268,11 @@ STRICT PRINCIPLES:
 
 5. VARIETY RULE (STRICT): Rotate problem types. Never generate the same type more than twice in a row.
 6. NO RESOLUTIONS: When generating exercises, ONLY output the questions.
-7. LATEX: Use $...$ for ALL math symbols and equations.
+7. LATEX — KaTeX SAFE FORMAT ONLY:
+   - Inline math: $x^2$   Display math: $$x = \frac{a}{b}$$
+   - ALLOWED: \frac, \sqrt, ^{}, _{}, \times, \div, \pm, \leq, \geq, \neq, \approx, \sin, \cos, \tan, \pi, \Rightarrow, \cdot
+   - FORBIDDEN (breaks rendering): \implies, \boxed, \left( \right), \because, \therefore, \text{} inside $, align env, cases env
+   - Write "所以" / "因为" as plain Chinese text OUTSIDE dollar signs, never as LaTeX commands.
 8. LANGUAGE CONSISTENCY (CRITICAL): You MUST reply in the same language as the conversation. If the student writes in Chinese, ALWAYS reply in Chinese — even if your system instructions are in English. Never switch languages mid-conversation. This rule overrides everything else.`;
 
 // ─── Public API ────────────────────────────────────────────────────────────
@@ -309,6 +313,92 @@ export async function startFeynmanSession(
   ], false, 400);  // opener: just a hook + 1 question
 }
 
+export async function guideExercise(
+  exercises: string,
+  concept: Concept,
+  lang: Language,
+  curriculum: Curriculum | null = null
+) {
+  const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
+
+  // A completely different system prompt for exercise guidance mode
+  const system = `You are a patient, Socratic math tutor helping a student work through specific problems.
+
+EXERCISE GUIDANCE MODE — completely different from general teaching:
+1. YOUR ONLY JOB: Guide the student through the SPECIFIC problems shown below. Do NOT teach the topic from scratch.
+2. SOCRATIC: Never give the answer or full solution. Ask ONE targeted question that moves the student one step forward.
+3. FIRST MESSAGE: 
+   - Briefly acknowledge the problem(s) the student is working on (name the problem type / key condition).
+   - Identify the FIRST STUMBLING BLOCK: what is the single first step a student would need to do?
+   - Ask ONE question about that first step only. Keep it concrete and tied to the actual numbers/letters in the problem.
+   - GOOD: "这道题矩形ABCD中AB=8，AD=10。折叠题的第一步是找出折叠前后相等的线段。你觉得折叠后，哪些线段的长度是不变的？"
+   - BAD: "让我们先复习一下勾股定理的公式…" ← DO NOT do this.
+4. SUBSEQUENT TURNS: Follow the student's answer. If correct, affirm and give the next micro-step question. If wrong, give a gentle hint and re-ask.
+5. NEVER give a full worked solution. Maximum one algebraic step per reply.
+6. USE DIAGRAMS only if the student is confused about the geometric setup (use template system).
+7. LANGUAGE: Always reply in ${lang === "zh" ? "Chinese" : "English"}.
+8. LENGTH: Keep each reply to 3-5 sentences + 1 question. Never write paragraphs of theory.` + curriculumInstr;
+
+  const userMsg =
+    `The student is working on the following problem(s):
+
+` +
+    `"""
+${exercises}
+"""
+
+` +
+    `Knowledge topic: ${concept.title[lang]}
+` +
+    `Language: ${lang === "zh" ? "Chinese" : "English"}
+
+` +
+    `Start your guidance. Remember: address THIS specific problem immediately. ` +
+    `Do NOT give a generic topic introduction. ` +
+    `Identify the first concrete step and ask ONE question about it.`;
+
+  return await safeGenerate([
+    { role: "system", content: system },
+    { role: "user", content: userMsg },
+  ], false, 500);
+}
+
+export async function guideExerciseStep(
+  history: Message[],
+  exercises: string,
+  concept: Concept,
+  lang: Language,
+  curriculum: Curriculum | null = null
+) {
+  const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
+
+  const system = `You are a patient, Socratic math tutor guiding a student through specific problems.
+RULES:
+- Stay focused on the problems shown. Never drift to general theory.
+- Never give the full answer. One micro-step hint per reply.
+- Ask exactly ONE follow-up question per reply.
+- Keep replies to 3-5 sentences.
+- Language: always ${lang === "zh" ? "Chinese" : "English"}.
+- The problems the student is working on: """${exercises}"""` + curriculumInstr;
+
+  const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
+    { role: "system", content: system }
+  ];
+  history.forEach(m => {
+    messages.push({ role: m.role === "user" ? "user" : "assistant", content: m.content });
+  });
+
+  // Language reminder every 3 turns
+  if (history.length >= 3) {
+    const reminder = lang === "zh"
+      ? "（请继续用中文，专注于当前习题的引导，不要切换到通用教学。）"
+      : "(Continue in English, stay focused on guiding through the current exercise.)";
+    messages.push({ role: "user", content: reminder });
+  }
+
+  return await safeGenerate(messages, false, 500);
+}
+
 export async function generateExercises(
   conceptTitle: string,
   conceptDesc: string,
@@ -342,10 +432,27 @@ export async function solveExercises(exercises: string, lang: Language) {
   return await safeGenerate([
     {
       role: "system",
-      content: `Provide a clear final answer + brief step-by-step explanation for each exercise. Language: ${lang === "zh" ? "Chinese" : "English"}. Use $...$ for all math.`,
+      content: `You are a math solution writer. Provide a clear step-by-step solution for each exercise.
+
+LANGUAGE: ${lang === "zh" ? "Write entirely in Chinese." : "Write entirely in English."}
+
+MATH FORMATTING RULES (critical — the renderer is KaTeX):
+- Inline math: wrap in single dollar signs: $x^2 + 1$
+- Display math (its own line): wrap in double dollar signs: $$x = \\frac{-b}{2a}$$
+- ALLOWED LaTeX: fractions \\frac{}{}, square roots \\sqrt{}, powers ^{}, subscripts _{}, \\times, \\div, \\pm, \\leq, \\geq, \\neq, \\approx, basic Greek letters, \\sin \\cos \\tan
+- FORBIDDEN (will break rendering): \\implies, \\boxed, \\left( \\right), \\because, \\therefore, \\quad used alone, \\text{} inside math, align environment, cases environment
+- For "therefore" write: 所以 (in Chinese) or "So," (in English) as plain text OUTSIDE the $ signs
+- For arrows/implications write: → as plain text or $\\Rightarrow$
+- Keep each math expression simple. Split complex expressions across multiple lines rather than one long formula.
+
+STRUCTURE for each problem:
+**第N题** (or **Problem N**)
+Step 1: [plain text explanation] $[simple formula]$
+Step 2: ...
+**答案：** $[final answer]$ (or **Answer:** $[final answer]$)`,
     },
     { role: "user", content: exercises },
-  ], false, 2048);  // solutions need full space
+  ], false, 2048);
 }
 
 export async function identifyTopic(query: string, lang: Language) {
