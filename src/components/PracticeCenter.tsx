@@ -362,7 +362,8 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
                           lang={lang}
                           curriculum={curriculum}
                           autoStart={true}
-                          initialContext={`Student is working on these problems: ${exercises}`}
+                          mode="guide"
+                          initialContext={exercises}
                         />
                       </div>
                     </div>
