@@ -176,9 +176,20 @@ STRICT PRINCIPLES:
    ${BT}
 
    Rectangle with fold (矩形折叠):
+   Convention: A=top-left, B=top-right, C=bottom-right, D=bottom-left.
+   E_side / F_side: which edge the crease endpoint is on, e.g. "AD" = left edge, "BC" = right edge, "AB" = top edge, "DC" = bottom edge.
+   E_ratio / F_ratio: position along that edge from the first letter (0.0 = at first letter, 1.0 = at second letter).
+   fold_vertex: which corner is being folded ("A","B","C","D").
+   fold_land_x / fold_land_y: where the folded vertex lands (in rectangle coords, origin = D bottom-left).
    ${BT}math-diagram
-   {"template":"rectangle_fold","width":10,"height":6,"fold_e":3,"fold_f":3,"label_AE":"3","label_EB":"3"}
+   {"template":"rectangle_fold","width":10,"height":6,"fold_vertex":"A","E_side":"AD","E_ratio":0.5,"F_side":"BC","F_ratio":0.5,"fold_land_x":10,"fold_land_y":3,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_F":"F","label_Ap":"A'","label_AE":"3","label_BF":"3","label_EF":"EF"}
    ${BT}
+
+   IMPORTANT for rectangle_fold:
+   - ALWAYS specify fold_vertex (which corner is folded).
+   - ALWAYS compute fold_land_x and fold_land_y from the problem geometry (e.g. midpoint of CD = (width/2, 0) if D is at origin, or use the given landing point).
+   - E_ratio and F_ratio MUST be computed from the problem's given lengths divided by the side length.
+   - Example: AB=8, AD=10, A folds to midpoint of CD → fold_land_x=4, fold_land_y=0. E on AD with AE=x → E_ratio = x/10. F on BC with BF=y → F_ratio = y/10.
 
    Parallelogram (平行四边形):
    ${BT}math-diagram
