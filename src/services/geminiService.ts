@@ -429,32 +429,46 @@ export async function generateExercises(
 }
 
 export async function solveExercises(exercises: string, lang: Language) {
+  const lang_str = lang === "zh" ? "Chinese" : "English";
+  const system = `You are a math solution writer. Language: ${lang_str}.
+
+MATH FORMAT (KaTeX only):
+- Inline: $x^2$   Display: $$\\frac{a}{b}$$
+- ALLOWED: \\frac, \\sqrt, ^{}, _{}, \\times, \\div, \\pm, \\leq, \\geq, \\neq, \\approx, \\sin, \\cos, \\tan, \\pi, \\Rightarrow
+- FORBIDDEN: \\implies \\boxed \\left( \\right) \\because \\therefore \\text{} align cases
+- "所以"/"因为" → plain text outside $...$
+
+OUTPUT FORMAT — follow EXACTLY, blank line between every item:
+
+**第1题**
+
+**步骤1：** 说明文字 $公式$
+
+**步骤2：** 说明文字
+
+$$独立公式$$
+
+**步骤3：** 说明文字 $公式$
+
+**答案：** $最终答案$
+
+---
+
+**第2题**
+
+（以此类推）
+
+RULES:
+- Each 步骤 on its own line, with a blank line before it.
+- NEVER put two steps on the same line.
+- Blank line before and after every $$ block.
+- Use --- between problems.`;
+
   return await safeGenerate([
-    {
-      role: "system",
-      content: `You are a math solution writer. Provide a clear step-by-step solution for each exercise.
-
-LANGUAGE: ${lang === "zh" ? "Write entirely in Chinese." : "Write entirely in English."}
-
-MATH FORMATTING RULES (critical — the renderer is KaTeX):
-- Inline math: wrap in single dollar signs: $x^2 + 1$
-- Display math (its own line): wrap in double dollar signs: $$x = \\frac{-b}{2a}$$
-- ALLOWED LaTeX: fractions \\frac{}{}, square roots \\sqrt{}, powers ^{}, subscripts _{}, \\times, \\div, \\pm, \\leq, \\geq, \\neq, \\approx, basic Greek letters, \\sin \\cos \\tan
-- FORBIDDEN (will break rendering): \\implies, \\boxed, \\left( \\right), \\because, \\therefore, \\quad used alone, \\text{} inside math, align environment, cases environment
-- For "therefore" write: 所以 (in Chinese) or "So," (in English) as plain text OUTSIDE the $ signs
-- For arrows/implications write: → as plain text or $\\Rightarrow$
-- Keep each math expression simple. Split complex expressions across multiple lines rather than one long formula.
-
-STRUCTURE for each problem:
-**第N题** (or **Problem N**)
-Step 1: [plain text explanation] $[simple formula]$
-Step 2: ...
-**答案：** $[final answer]$ (or **Answer:** $[final answer]$)`,
-    },
+    { role: "system", content: system },
     { role: "user", content: exercises },
   ], false, 2048);
 }
-
 export async function identifyTopic(query: string, lang: Language) {
   const curriculumSummary = KNOWLEDGE_GRAPH.map((m) => ({
     module: m.id,
