@@ -6,7 +6,7 @@ import rehypeKatex from 'rehype-katex';
 import remarkMath from 'remark-math';
 import 'katex/dist/katex.min.css';
 import { Concept, Language, Curriculum, Message } from '../types';
-import { startFeynmanSession, chatStep } from '../services/geminiService';
+import { startFeynmanSession, chatStep, guideExercise, guideExerciseStep } from '../services/geminiService';
 import MathDiagram from './MathDiagram';
 
 interface LearningAgentProps {
@@ -16,6 +16,7 @@ interface LearningAgentProps {
   initialMessage?: string;
   initialContext?: string;
   autoStart?: boolean;
+  mode?: 'learn' | 'guide';   // 'guide' = exercise guidance mode
 }
 
 const LearningAgent: React.FC<LearningAgentProps> = ({
@@ -24,7 +25,8 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
   curriculum = null,
   initialMessage,
   initialContext,
-  autoStart
+  autoStart,
+  mode = 'learn',
 }) => {
   const [history, setHistory]     = useState<Message[]>([]);
   const [input, setInput]         = useState('');
@@ -63,8 +65,14 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
       setLoading(true);
       setError(null);
       try {
-        const targetTitle = concept.specificFocus ? concept.specificFocus[lang] : concept.title[lang];
-        const resp = await startFeynmanSession(initialContext || targetTitle, concept, lang, curriculum);
+        let resp: string;
+        if (mode === 'guide' && initialContext) {
+          // Guide mode: initialContext is the exercise text
+          resp = await guideExercise(initialContext, concept, lang, curriculum);
+        } else {
+          const targetTitle = concept.specificFocus ? concept.specificFocus[lang] : concept.title[lang];
+          resp = await startFeynmanSession(initialContext || targetTitle, concept, lang, curriculum);
+        }
         setHistory([{ role: 'model', content: resp }]);
       } catch (err: any) {
         setError(err?.message === 'AI_INTERNAL_ERROR' ? t.error : 'Connection error. Please try again.');
@@ -89,7 +97,12 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
     setInput('');
     setLoading(true);
     try {
-      const resp = await chatStep(newHistory, lang, curriculum);
+      let resp: string;
+      if (mode === 'guide' && initialContext) {
+        resp = await guideExerciseStep(newHistory, initialContext, concept, lang, curriculum);
+      } else {
+        resp = await chatStep(newHistory, lang, curriculum);
+      }
       setHistory([...newHistory, { role: 'model', content: resp }]);
     } catch (err: any) {
       setError(err?.message === 'AI_INTERNAL_ERROR' ? t.error : 'Connection error. Please try again.');
@@ -195,7 +208,9 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-[var(--color-brand-accent)]" />
           <h2 className="text-sm font-bold text-slate-200">
-            {lang === 'zh' ? '费曼引导模式' : 'Feynman Guided Mode'}
+            {mode === 'guide'
+              ? (lang === 'zh' ? '解题引导模式' : 'Exercise Guide Mode')
+              : (lang === 'zh' ? '费曼引导模式' : 'Feynman Guided Mode')}
           </h2>
         </div>
         <div className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">
