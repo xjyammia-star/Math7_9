@@ -176,20 +176,46 @@ STRICT PRINCIPLES:
    ${BT}
 
    Rectangle with fold (矩形折叠):
-   Convention: A=top-left, B=top-right, C=bottom-right, D=bottom-left.
-   E_side / F_side: which edge the crease endpoint is on, e.g. "AD" = left edge, "BC" = right edge, "AB" = top edge, "DC" = bottom edge.
-   E_ratio / F_ratio: position along that edge from the first letter (0.0 = at first letter, 1.0 = at second letter).
-   fold_vertex: which corner is being folded ("A","B","C","D").
-   fold_land_x / fold_land_y: where the folded vertex lands (in rectangle coords, origin = D bottom-left).
+
+   COORDINATE SYSTEM (memorise this):
+     D=(0,0) bottom-left,  C=(width,0) bottom-right
+     A=(0,height) top-left, B=(width,height) top-right
+     AD = left edge (vertical, length=height)
+     BC = right edge (vertical, length=height)
+     AB = top edge  (horizontal, length=width)
+     DC = bottom edge (horizontal, length=width)
+
+   KEY PARAMETERS:
+     fold_vertex        — corner being folded: "A"|"B"|"C"|"D"
+     E_side, E_ratio    — crease endpoint E: which edge + ratio from first→second letter (0=first letter, 1=second letter)
+     F_side, F_ratio    — crease endpoint F: same convention
+     fold_land_x/y      — where the folded vertex IMAGE (A') lands, in the coordinate system above
+
+   WORKED EXAMPLE — "AB=8, AD=10, fold A onto BC at A', BF=3":
+     • Rect coords: D=(0,0), C=(8,0), B=(8,10), A=(0,10)
+     • F is on BC with BF=3, so F=(8, 10-3)=(8,7)  →  F_side="BC", F_ratio=3/10=0.3
+     • A'=fold image of A, lands on BC. By fold symmetry A'F=AF, so compute:
+         AF² = AE² + EF²  (fold preserves distances, A'F=AF)
+         A lies at (0,10). A'=(8, 10-BA') on BC.
+         If problem says A' is at BF=3 below B, then A'=(8,7) → fold_land_x=8, fold_land_y=7
+       NOTE: A' and F are DIFFERENT points unless the problem says they coincide!
+         If BF=3 means F is the fold crease endpoint and A' is somewhere else on BC, use the
+         geometry to find A'. For example if problem says "A' lands at midpoint of BC":
+         A'=(8,5) → fold_land_x=8, fold_land_y=5
+     • E is on AD. Use fold property EA=EA' to find E:
+         EA = distance from E to A=(0,10).  EA'=distance from E=(0,e) to A'=(8,7).
+         EA²=(10-e)²,  EA'²=64+(7-e)²  →  solve (10-e)²=64+(7-e)²  → e=3.375
+         → E_side="AD", E_ratio=(10-3.375)/10=0.6625
+
+   FULL EXAMPLE OUTPUT for the above problem:
    ${BT}math-diagram
-   {"template":"rectangle_fold","width":10,"height":6,"fold_vertex":"A","E_side":"AD","E_ratio":0.5,"F_side":"BC","F_ratio":0.5,"fold_land_x":10,"fold_land_y":3,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_F":"F","label_Ap":"A'","label_AE":"3","label_BF":"3","label_EF":"EF"}
+   {"template":"rectangle_fold","width":8,"height":10,"fold_vertex":"A","E_side":"AD","E_ratio":0.6625,"F_side":"BC","F_ratio":0.3,"fold_land_x":8,"fold_land_y":7,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_F":"F","label_Ap":"A'","label_BF":"3","label_EF":"EF"}
    ${BT}
 
-   IMPORTANT for rectangle_fold:
-   - ALWAYS specify fold_vertex (which corner is folded).
-   - ALWAYS compute fold_land_x and fold_land_y from the problem geometry (e.g. midpoint of CD = (width/2, 0) if D is at origin, or use the given landing point).
-   - E_ratio and F_ratio MUST be computed from the problem's given lengths divided by the side length.
-   - Example: AB=8, AD=10, A folds to midpoint of CD → fold_land_x=4, fold_land_y=0. E on AD with AE=x → E_ratio = x/10. F on BC with BF=y → F_ratio = y/10.
+   RULES:
+   - fold_land_x/y is the IMAGE of fold_vertex, NOT the same as F.
+   - Always compute E_ratio and F_ratio from the given side lengths.
+   - E_ratio = (distance from first letter of E_side to E) / (length of that side).
 
    Parallelogram (平行四边形):
    ${BT}math-diagram
