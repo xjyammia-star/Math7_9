@@ -18,13 +18,14 @@ const ARK_MODEL =
 // OpenAI-compatible chat completion
 async function safeGenerate(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
-  jsonMode = false
+  jsonMode = false,
+  maxTokens = 800   // default: short chat replies; pass higher for exercises
 ): Promise<string> {
   try {
     const body: Record<string, any> = {
       model: ARK_MODEL,
       messages,
-      max_tokens: 2048,
+      max_tokens: maxTokens,
       temperature: 0.7,
       top_p: 0.95,
     };
@@ -201,7 +202,8 @@ STRICT PRINCIPLES:
 
 5. VARIETY RULE (STRICT): Rotate problem types. Never generate the same type more than twice in a row.
 6. NO RESOLUTIONS: When generating exercises, ONLY output the questions.
-7. LATEX: Use $...$ for ALL math symbols and equations.`;
+7. LATEX: Use $...$ for ALL math symbols and equations.
+8. LANGUAGE CONSISTENCY (CRITICAL): You MUST reply in the same language as the conversation. If the student writes in Chinese, ALWAYS reply in Chinese — even if your system instructions are in English. Never switch languages mid-conversation. This rule overrides everything else.`;
 
 // ─── Public API ────────────────────────────────────────────────────────────
 
@@ -238,7 +240,7 @@ export async function startFeynmanSession(
   return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
-  ]);
+  ], false, 400);  // opener: just a hook + 1 question
 }
 
 export async function generateExercises(
@@ -267,7 +269,7 @@ export async function generateExercises(
   return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
-  ]);
+  ], false, 2048);  // exercises need more space
 }
 
 export async function solveExercises(exercises: string, lang: Language) {
@@ -277,7 +279,7 @@ export async function solveExercises(exercises: string, lang: Language) {
       content: `Provide a clear final answer + brief step-by-step explanation for each exercise. Language: ${lang === "zh" ? "Chinese" : "English"}. Use $...$ for all math.`,
     },
     { role: "user", content: exercises },
-  ]);
+  ], false, 2048);  // solutions need full space
 }
 
 export async function identifyTopic(query: string, lang: Language) {
@@ -329,5 +331,13 @@ export async function chatStep(
     });
   });
 
-  return await safeGenerate(messages);
+  // Inject language reminder after every 3 turns to prevent language drift
+  if (history.length >= 3) {
+    const langReminder = lang === "zh"
+      ? "（请继续用中文回复，保持费曼阶梯教学法，当前阶段继续引导，不要跳级。）"
+      : "(Please continue in English, maintain Feynman Ladder method, keep guiding at current rung.)";
+    messages.push({ role: "user", content: langReminder });
+  }
+
+  return await safeGenerate(messages, false, 600);  // chat reply: 3-5 sentences
 }
