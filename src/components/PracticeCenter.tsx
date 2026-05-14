@@ -153,7 +153,8 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
         return '';
       }).join('');
       const isDiagramOnly = (text.trim().startsWith('{') && text.trim().endsWith('}') &&
-        (text.includes('"type"') || text.includes('"geometry"') || text.includes('"window"') || text.includes('"points"'))) ||
+        (text.includes('"template"') || text.includes('"type"') ||
+         text.includes('"geometry"') || text.includes('"window"') || text.includes('"points"'))) ||
         text.trim().includes('\nrect ') || text.trim().includes('\nline ') ||
         text.trim().startsWith('rect ') || text.trim().startsWith('line ');
       if (isDiagramOnly) {
@@ -167,8 +168,9 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
     code({ node, inline, className, children, ...props }: any) {
       const match = /language-(\w+)/.exec(className || '');
       const content = String(children).replace(/\n$/, '');
-      const isDiagram = content.includes('"type"') || content.includes('"geometry"') ||
-        content.includes('"window"') || content.includes('"points"') ||
+      const isDiagram = content.includes('"template"') || content.includes('"type"') ||
+        content.includes('"geometry"') || content.includes('"window"') ||
+        content.includes('"points"') ||
         content.includes('\nrect ') || content.includes('\nline ') ||
         content.startsWith('rect ') || content.startsWith('line ');
       if (!inline && ((match && match[1] === 'math-diagram') || isDiagram)) {
