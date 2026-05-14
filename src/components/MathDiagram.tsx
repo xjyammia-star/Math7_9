@@ -325,52 +325,153 @@ function Rectangle({ data }: { data: any }) {
   );
 }
 
-/** rectangle_fold: rectangle ABCD with fold line EF (E on AB, F on CD or BC) and reflected vertex D' */
+/**
+ * rectangle_fold — rectangle ABCD with a fold.
+ *
+ * Coordinate convention (matches most Chinese textbook problems):
+ *   A = top-left,  B = top-right,  C = bottom-right,  D = bottom-left
+ *   (so AB is the top edge with length = width,  AD is the left edge with length = height)
+ *
+ * The fold crease goes from point E (on one side) to point F (on another side).
+ * The folded vertex (fold_vertex, default "A") lands at fold_land_x, fold_land_y.
+ *
+ * Required fields:
+ *   width, height           — rectangle dimensions
+ *   fold_vertex             — which corner is folded: "A"|"B"|"C"|"D" (default "A")
+ *   E_side / E_ratio        — where E sits: which side ("AB"|"AD"|"BC"|"CD") + ratio 0–1 from first letter
+ *   F_side / F_ratio        — same for F
+ *   fold_land_x, fold_land_y — coordinates of where the folded vertex lands (in the rect coordinate system)
+ *
+ * Optional label overrides:
+ *   label_A … label_D, label_E, label_F, label_Ap (label for the folded image, default "A'")
+ *   label_EF, label_AE, label_AF, label_BE, label_BF, label_DF, label_CE, label_CF
+ */
 function RectangleFold({ data }: { data: any }) {
-  const w: number = data.width  ?? 8;
+  const w: number = data.width  ?? 10;
   const h: number = data.height ?? 6;
-  // E is on AB at height e_h from B; F is on CD at height f_h from C (or on BC)
-  const eH: number = data.fold_e ?? h / 2;   // E's y coord
-  const fH: number = data.fold_f ?? h / 2;   // F's y coord
-  const pad = Math.max(w, h) * 0.28;
-  const sc = makeScaler(-pad, w + pad * 1.5, -pad, h + pad);
 
-  const A = { x: 0, y: h }, B = { x: 0, y: 0 };
-  const C = { x: w, y: 0 }, D = { x: w, y: h };
-  const E = { x: 0, y: eH };
-  const F = { x: w, y: fH };
+  // ── Rectangle corners (math coords): A top-left, B top-right, C bottom-right, D bottom-left
+  const rectPts: Record<string, Pt> = {
+    A: { x: 0, y: h },
+    B: { x: w, y: h },
+    C: { x: w, y: 0 },
+    D: { x: 0, y: 0 },
+  };
 
-  // Reflect D over line EF
-  const efDx = F.x - E.x, efDy = F.y - E.y;
-  const efLen2 = efDx * efDx + efDy * efDy;
-  const t = ((D.x - E.x) * efDx + (D.y - E.y) * efDy) / efLen2;
-  const projX = E.x + t * efDx, projY = E.y + t * efDy;
-  const Dp = { x: 2 * projX - D.x, y: 2 * projY - D.y };
+  // ── Helper: point on a side at a given ratio (0 = first letter, 1 = second letter)
+  function ptOnSide(side: string, ratio: number): Pt {
+    const p1 = rectPts[side[0]], p2 = rectPts[side[1]];
+    if (!p1 || !p2) return { x: 0, y: 0 };
+    return { x: p1.x + (p2.x - p1.x) * ratio, y: p1.y + (p2.y - p1.y) * ratio };
+  }
 
-  const pts = [A, B, C, D].map(sc);
-  const sE = sc(E), sF = sc(F), sDp = sc(Dp);
+  // ── E and F positions
+  const eSide: string  = data.E_side  ?? 'AD';
+  const eRatio: number = data.E_ratio ?? 0.5;
+  const fSide: string  = data.F_side  ?? 'BC';
+  const fRatio: number = data.F_ratio ?? 0.5;
+  const E = ptOnSide(eSide, eRatio);
+  const F = ptOnSide(fSide, fRatio);
 
-  const lAE = data.label_AE ?? String(+(h - eH).toFixed(1));
-  const lEB = data.label_EB ?? String(+eH.toFixed(1));
+  // ── Folded vertex and its image
+  const foldVertex: string = data.fold_vertex ?? 'A';
+  const V = rectPts[foldVertex];
+
+  // Image of V: if explicitly given use it, otherwise reflect V over line EF
+  let Vp: Pt;
+  if (data.fold_land_x !== undefined && data.fold_land_y !== undefined) {
+    Vp = { x: Number(data.fold_land_x), y: Number(data.fold_land_y) };
+  } else {
+    // Reflect V over EF
+    const efDx = F.x - E.x, efDy = F.y - E.y;
+    const efLen2 = efDx * efDx + efDy * efDy || 1;
+    const t = ((V.x - E.x) * efDx + (V.y - E.y) * efDy) / efLen2;
+    Vp = { x: 2 * (E.x + t * efDx) - V.x, y: 2 * (E.y + t * efDy) - V.y };
+  }
+
+  // ── Viewport: include all points with generous padding
+  const allPts = [...Object.values(rectPts), E, F, Vp];
+  const xs = allPts.map(p => p.x), ys = allPts.map(p => p.y);
+  const rangeX = Math.max(...xs) - Math.min(...xs) || w;
+  const rangeY = Math.max(...ys) - Math.min(...ys) || h;
+  const pad = Math.max(rangeX, rangeY) * 0.25;
+  const sc = makeScaler(Math.min(...xs) - pad, Math.max(...xs) + pad,
+                        Math.min(...ys) - pad, Math.max(...ys) + pad);
+
+  const sA = sc(rectPts.A), sB = sc(rectPts.B);
+  const sC = sc(rectPts.C), sD = sc(rectPts.D);
+  const sE = sc(E), sF = sc(F), sVp = sc(Vp);
+
+  // Label defaults
+  const lA  = data.label_A  ?? 'A';
+  const lB  = data.label_B  ?? 'B';
+  const lC  = data.label_C  ?? 'C';
+  const lD  = data.label_D  ?? 'D';
+  const lE  = data.label_E  ?? 'E';
+  const lF  = data.label_F  ?? 'F';
+  const lVp = data.label_Ap ?? data.label_Vp ?? (foldVertex + "'");
+
+  // Smart offsets for corner labels
+  const cornerOffset = (key: string) => {
+    if (key === 'A') return { x: -18, y: -4 };
+    if (key === 'B') return { x:   8, y: -4 };
+    if (key === 'C') return { x:   8, y:  14 };
+    if (key === 'D') return { x: -18, y:  14 };
+    return { x: 8, y: -10 };
+  };
+
+  // Smart offset for E/F based on which side they're on
+  const sideOffset = (side: string): Pt => {
+    if (side.includes('A') && side.includes('D')) return { x: -20, y: 0 }; // left side
+    if (side.includes('B') && side.includes('C')) return { x:  10, y: 0 }; // right side
+    if (side.includes('A') && side.includes('B')) return { x:   0, y:-14 }; // top
+    if (side.includes('D') && side.includes('C')) return { x:   0, y: 14 }; // bottom
+    return { x: 8, y: -10 };
+  };
+
+  // Segment labels
   const lEF = data.label_EF ?? '';
+  const lAE = data.label_AE ?? '';
+  const lBE = data.label_BE ?? '';
+  const lDF = data.label_DF ?? '';
+  const lCF = data.label_CF ?? '';
+  const lAF = data.label_AF ?? '';
+  const lBF = data.label_BF ?? '';
 
   return (
     <g>
-      <Poly pts={pts} />
-      {/* Fold line */}
-      <Seg a={sE} b={sF} stroke={GOLD} sw={2} dash="6,4" />
-      {/* Reflected triangle EFD' */}
-      <Poly pts={[sE, sF, sDp]} fill="rgba(245,158,11,0.12)" stroke={GOLD} sw={1.8} dash="4,3" />
-      <Dot p={pts[0]} label={data.labels?.[0] ?? 'A'} offset={{ x: -18, y: -4 }} />
-      <Dot p={pts[1]} label={data.labels?.[1] ?? 'B'} offset={{ x: -18, y: 12 }} />
-      <Dot p={pts[2]} label={data.labels?.[2] ?? 'C'} offset={{ x: 8,  y: 12 }} />
-      <Dot p={pts[3]} label={data.labels?.[3] ?? 'D'} offset={{ x: 8,  y: -4 }} />
-      <Dot p={sE}  label={data.label_E  ?? 'E'}  offset={{ x: -18, y: 0 }} />
-      <Dot p={sF}  label={data.label_F  ?? 'F'}  offset={{ x: 8,   y: 0 }} />
-      <Dot p={sDp} label={data.label_Dp ?? "D'"} offset={{ x: 8,   y: -4 }} color={GREY} />
-      {lAE && <SegLabel a={pts[0]} b={sE} label={lAE} />}
-      {lEB && <SegLabel a={sE} b={pts[1]} label={lEB} />}
-      {lEF && <SegLabel a={sE} b={sF} label={lEF} />}
+      {/* Main rectangle */}
+      <Poly pts={[sA, sB, sC, sD]} />
+
+      {/* Fold crease line EF (dashed gold) */}
+      <Seg a={sE} b={sF} stroke={GOLD} sw={2.2} dash="7,4" />
+
+      {/* Folded triangle: E, F, V' (the flipped region) */}
+      <Poly pts={[sE, sF, sVp]}
+        fill="rgba(245,158,11,0.10)" stroke={GOLD} sw={1.6} dash="4,3" />
+
+      {/* Corner labels */}
+      <Dot p={sA} label={lA} offset={cornerOffset('A')} />
+      <Dot p={sB} label={lB} offset={cornerOffset('B')} />
+      <Dot p={sC} label={lC} offset={cornerOffset('C')} />
+      <Dot p={sD} label={lD} offset={cornerOffset('D')} />
+
+      {/* E and F */}
+      <Dot p={sE} label={lE} offset={sideOffset(eSide)} />
+      <Dot p={sF} label={lF} offset={sideOffset(fSide)} />
+
+      {/* Folded vertex image V' */}
+      <Dot p={sVp} label={lVp} color={GREY}
+        offset={{ x: Vp.x > w / 2 ? 10 : -22, y: Vp.y > h / 2 ? -14 : 12 }} />
+
+      {/* Segment labels */}
+      {lEF && <SegLabel a={sE} b={sF} label={lEF} color={GOLD} />}
+      {lAE && <SegLabel a={sA} b={sE} label={lAE} />}
+      {lBE && <SegLabel a={sB} b={sE} label={lBE} />}
+      {lDF && <SegLabel a={sD} b={sF} label={lDF} />}
+      {lCF && <SegLabel a={sC} b={sF} label={lCF} />}
+      {lAF && <SegLabel a={sA} b={sF} label={lAF} />}
+      {lBF && <SegLabel a={sB} b={sF} label={lBF} />}
     </g>
   );
 }
