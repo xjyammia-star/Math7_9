@@ -402,14 +402,14 @@ function RectangleFold({ data }: { data: any }) {
   const sC = sc(rectPts.C), sD = sc(rectPts.D);
   const sE = sc(E), sF = sc(F), sVp = sc(Vp);
 
-  // Label defaults
+  // Label defaults — empty string means "don't show"
   const lA  = data.label_A  ?? 'A';
   const lB  = data.label_B  ?? 'B';
   const lC  = data.label_C  ?? 'C';
   const lD  = data.label_D  ?? 'D';
-  const lE  = data.label_E  ?? 'E';
-  const lF  = data.label_F  ?? 'F';
-  const lVp = data.label_Ap ?? data.label_Vp ?? (foldVertex + "'");
+  const lE  = data.label_E  ?? '';   // no default — AI must explicitly pass the letter from the problem
+  const lF  = data.label_F  ?? '';   // same
+  const lVp = data.label_Ap ?? data.label_Vp ?? '';
 
   // Smart offsets for corner labels
   const cornerOffset = (key: string) => {
