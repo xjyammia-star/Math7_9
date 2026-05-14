@@ -213,9 +213,16 @@ STRICT PRINCIPLES:
    ${BT}
 
    RULES:
-   - fold_land_x/y is the IMAGE of fold_vertex, NOT the same as F.
+   - fold_land_x/y is the IMAGE of fold_vertex (e.g. D'), NOT the same as the crease endpoint F.
    - Always compute E_ratio and F_ratio from the given side lengths.
    - E_ratio = (distance from first letter of E_side to E) / (length of that side).
+   - label_E and label_F MUST use the EXACT letters from the problem text.
+     e.g. if the crease is "AF", then the two crease endpoints are A (a corner, already labelled) and F (on a side).
+     In that case: label_E = "" (or omit, since A is already a corner), label_F = "F".
+   - label_Ap MUST use the EXACT image-point label from the problem (e.g. "D'", "E", "A'").
+   - NEVER use default letters E/F if the problem uses different letters for those points.
+   - If a crease endpoint coincides with a rectangle corner (like A), do NOT add a separate label for it;
+     the corner dot is already shown. Just set the corresponding E_side/E_ratio to that corner position.
 
    Parallelogram (平行四边形):
    ${BT}math-diagram
