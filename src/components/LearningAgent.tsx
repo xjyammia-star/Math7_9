@@ -10,35 +10,76 @@ import { startFeynmanSession, chatStep, guideExercise, guideExerciseStep } from 
 import MathDiagram from './MathDiagram';
 
 /**
- * Fixes common AI mistakes where LaTeX commands appear bare in prose
- * (outside of $...$), causing them to render as raw text.
- * E.g.  \odot O  →  $\odot O$
- *       \text{cm} → cm
- *       \angle ABC → $\angle ABC$
+ * Fixes AI LaTeX mistakes before rendering with KaTeX.
+ * Handles both \odot O (with backslash) and odotO (without backslash) patterns.
  */
 function sanitizeMath(text: string): string {
-  // Remove \text{...} used as units — just keep the inner text
+  // 1. Remove \text{...} — keep inner content as plain text
   text = text.replace(/\\text\{([^}]*)\}/g, '$1');
 
-  // Wrap bare LaTeX commands that appear outside $...$ in inline math
-  // Strategy: find LaTeX sequences not already inside $, wrap them
-  const bareLatexPattern = /(?<!\$)\\(odot|angle|triangle|parallel|perp|cdot|times|div|leq|geq|neq|approx|pi|sqrt|frac|sin|cos|tan|Rightarrow|overset)\b([^$\n]*?)(?=\s|,|。|，|、|；|：|（|）|\(|\)|$)/g;
-
-  // Simpler targeted replacements for the most common offenders
-  // Match: \odot followed by a letter/word (not already in $)
+  // 2. Fix bare LaTeX commands that have backslash but no $ wrapper
   text = text.replace(/(?<!\$)\\odot\s*([A-Za-z])/g, '$\\odot $1$');
   text = text.replace(/(?<!\$)\\angle\s*([A-Za-z]{1,3})/g, '$\\angle $1$');
   text = text.replace(/(?<!\$)\\triangle\s*([A-Za-z]{3})/g, '$\\triangle $1$');
   text = text.replace(/(?<!\$)\\parallel(?!\})/g, '$\\parallel$');
   text = text.replace(/(?<!\$)\\perp(?!\})/g, '$\\perp$');
 
-  // Units written as \text{cm} etc. already removed above
-  // Handle bare "12 \text{cm}" patterns already handled
+  // 3. Fix AI dropping the backslash entirely: "odotO" → "$\odot O$"
+  //    Pattern: word "odot" immediately followed by a capital letter
+  text = text.replace(/\bodot([A-Z])/g, '$\\odot $1$');
 
-  // Clean up any double $$ that might result from nested wrapping
-  text = text.replace(/\$\$([^$]+)\$\$/g, (_, inner) =>
-    inner.trim().includes('\n') ? `$$${inner}$$` : `$$${inner}$$`
-  );
+  // 4. "perpAB交AB于点C" → "$\perp AB$交AB于点C"  (perp followed by letters)
+  text = text.replace(/\bperp([A-Z]{1,3})/g, '$\\perp $1$');
+
+  // 5. "parallelAB" → "$\parallel AB$"
+  text = text.replace(/\bparallel([A-Z]{1,3})/g, '$\\parallel $1$');
+
+  // 6. Standalone angle/triangle without backslash: "angleABC" → "$\angle ABC$"
+  text = text.replace(/\bangle([A-Z]{1,3})/g, '$\\angle $1$');
+  text = text.replace(/\btriangle([A-Z]{3})/g, '$\\triangle $1$');
+
+  // 7. Clean up accidental double-dollar from nested wrapping: "$$x$$" on same line → "$x$"
+  text = text.replace(/\$\$([^$\n]+)\$\$/g, (_, inner) => `$$${inner}$$`);
+
+  return text;
+}/g, '$1');
+
+  // 2. Fix WITH backslash — bare LaTeX commands outside $...$
+  //    Must run before the "without backslash" pass
+  text = text.replace(/(?<!\$)\\odot\s*([A-Za-z])/g, '$\\odot $1$');
+  text = text.replace(/(?<!\$)\\angle\s*([A-Za-z]{1,4})/g, '$\\angle $1$');
+  text = text.replace(/(?<!\$)\\triangle\s*([A-Za-z]{2,4})/g, '$\\triangle $1$');
+  text = text.replace(/(?<!\$)\\parallel(?!\})/g, '$\\parallel$');
+  text = text.replace(/(?<!\$)\\perp(?!\})/g, '$\\perp$');
+  text = text.replace(/(?<!\$)\\overset\{\\frown\}\{([^}]+)\}/g, '$\\overset{\\frown}{$1}$');
+
+  // 3. Fix WITHOUT backslash — AI forgets the \ entirely
+  //    e.g.  "odotO"  →  "$\odot O$"
+  //          "OCperpAB"  →  "OC$\perp$AB"
+  //          "triangleABC" → "$\triangle ABC$"
+
+  // "odot" followed by a capital letter  e.g. odotO, odot O
+  text = text.replace(/\bodot\s*([A-Z])\b/g, '$\\odot $1$');
+
+  // "perpXY交..." pattern: word + perp + word  e.g. OCperpAB
+  text = text.replace(/([A-Z]{1,3})perp([A-Z]{1,3})/g, '$1$\\perp$$2');
+
+  // standalone "perp" between spaces
+  text = text.replace(/\bperp\b/g, '$\\perp$');
+
+  // "triangleABC" or "triangle ABC"
+  text = text.replace(/\btriangle\s*([A-Z]{2,4})\b/g, '$\\triangle $1$');
+
+  // "angleABC" or "angle ABC"  
+  text = text.replace(/\bangle\s*([A-Z]{1,4})\b/g, '$\\angle $1$');
+
+  // 4. Clean up accidental double-dollar from nested wrapping
+  //    e.g.  $$\odot O$$  should stay as display math only if it's on its own line
+  text = text.replace(/\$\$([^$\n]+)\$\$/g, (_, inner) => `$$${inner.trim()}$$`);
+
+  // 5. Remove duplicate adjacent $ signs that can appear: $$ when we meant $
+  //    (only fix inline, not display math markers)
+  text = text.replace(/\$([^$\n]*)\$\$([^$\n]*)\$/g, '$$$1$2$');
 
   return text;
 }
