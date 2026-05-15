@@ -14,84 +14,28 @@ import MathDiagram from './MathDiagram';
  * Handles both \odot O (with backslash) and odotO (without backslash) patterns.
  */
 function sanitizeMath(text: string): string {
-  // 1. Remove \text{...} — keep inner content as plain text
+  // 1. Remove \text{...} — keep inner text as plain
   text = text.replace(/\\text\{([^}]*)\}/g, '$1');
 
-  // 2. Fix bare LaTeX commands that have backslash but no $ wrapper
-  text = text.replace(/(?<!\$)\\odot\s*([A-Za-z])/g, '$\\odot $1$');
-  text = text.replace(/(?<!\$)\\angle\s*([A-Za-z]{1,3})/g, '$\\angle $1$');
-  text = text.replace(/(?<!\$)\\triangle\s*([A-Za-z]{3})/g, '$\\triangle $1$');
-  text = text.replace(/(?<!\$)\\parallel(?!\})/g, '$\\parallel$');
-  text = text.replace(/(?<!\$)\\perp(?!\})/g, '$\\perp$');
-
-  // 3. Fix AI dropping the backslash entirely: "odotO" → "$\odot O$"
-  //    Pattern: word "odot" immediately followed by a capital letter
-  text = text.replace(/\bodot([A-Z])/g, '$\\odot $1$');
-
-  // 4. "perpAB交AB于点C" → "$\perp AB$交AB于点C"  (perp followed by letters)
-  text = text.replace(/\bperp([A-Z]{1,3})/g, '$\\perp $1$');
-
-  // 5. "parallelAB" → "$\parallel AB$"
-  text = text.replace(/\bparallel([A-Z]{1,3})/g, '$\\parallel $1$');
-
-  // 6. Standalone angle/triangle without backslash: "angleABC" → "$\angle ABC$"
-  text = text.replace(/\bangle([A-Z]{1,3})/g, '$\\angle $1$');
-  text = text.replace(/\btriangle([A-Z]{3})/g, '$\\triangle $1$');
-
-  // 7. Clean up accidental double-dollar from nested wrapping: "$$x$$" on same line → "$x$"
-  text = text.replace(/\$\$([^$\n]+)\$\$/g, (_, inner) => `$$${inner}$$`);
-
-  return text;
-}/g, '$1');
-
-  // 2. Fix WITH backslash — bare LaTeX commands outside $...$
-  //    Must run before the "without backslash" pass
+  // 2. Fix bare LaTeX WITH backslash but missing $ wrapper
   text = text.replace(/(?<!\$)\\odot\s*([A-Za-z])/g, '$\\odot $1$');
   text = text.replace(/(?<!\$)\\angle\s*([A-Za-z]{1,4})/g, '$\\angle $1$');
   text = text.replace(/(?<!\$)\\triangle\s*([A-Za-z]{2,4})/g, '$\\triangle $1$');
   text = text.replace(/(?<!\$)\\parallel(?!\})/g, '$\\parallel$');
   text = text.replace(/(?<!\$)\\perp(?!\})/g, '$\\perp$');
-  text = text.replace(/(?<!\$)\\overset\{\\frown\}\{([^}]+)\}/g, '$\\overset{\\frown}{$1}$');
 
-  // 3. Fix WITHOUT backslash — AI forgets the \ entirely
-  //    e.g.  "odotO"  →  "$\odot O$"
-  //          "OCperpAB"  →  "OC$\perp$AB"
-  //          "triangleABC" → "$\triangle ABC$"
-
-  // "odot" followed by a capital letter  e.g. odotO, odot O
-  text = text.replace(/\bodot\s*([A-Z])\b/g, '$\\odot $1$');
-
-  // "perpXY交..." pattern: word + perp + word  e.g. OCperpAB
-  text = text.replace(/([A-Z]{1,3})perp([A-Z]{1,3})/g, '$1$\\perp$$2');
-
-  // standalone "perp" between spaces
+  // 3. Fix AI omitting backslash entirely: "odotO" → "$\odot O$"
+  text = text.replace(/\bodot\s*([A-Z])/g, '$\\odot $1$');
+  text = text.replace(/([A-Z]{1,2})perp([A-Z]{1,2})/g, '$1$\\perp$$2');
   text = text.replace(/\bperp\b/g, '$\\perp$');
+  text = text.replace(/\bparallel([A-Z]{1,3})/g, '$\\parallel $1$');
+  text = text.replace(/\bangle([A-Z]{1,4})/g, '$\\angle $1$');
+  text = text.replace(/\btriangle([A-Z]{2,4})/g, '$\\triangle $1$');
 
-  // "triangleABC" or "triangle ABC"
-  text = text.replace(/\btriangle\s*([A-Z]{2,4})\b/g, '$\\triangle $1$');
-
-  // "angleABC" or "angle ABC"  
-  text = text.replace(/\bangle\s*([A-Z]{1,4})\b/g, '$\\angle $1$');
-
-  // 4. Clean up accidental double-dollar from nested wrapping
-  //    e.g.  $$\odot O$$  should stay as display math only if it's on its own line
+  // 4. Clean up double-dollar on same line
   text = text.replace(/\$\$([^$\n]+)\$\$/g, (_, inner) => `$$${inner.trim()}$$`);
 
-  // 5. Remove duplicate adjacent $ signs that can appear: $$ when we meant $
-  //    (only fix inline, not display math markers)
-  text = text.replace(/\$([^$\n]*)\$\$([^$\n]*)\$/g, '$$$1$2$');
-
   return text;
-}
-
-interface LearningAgentProps {
-  concept: Concept;
-  lang: Language;
-  curriculum?: Curriculum | null;
-  initialMessage?: string;
-  initialContext?: string;
-  autoStart?: boolean;
-  mode?: 'learn' | 'guide';   // 'guide' = exercise guidance mode
 }
 
 const LearningAgent: React.FC<LearningAgentProps> = ({
