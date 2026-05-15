@@ -661,26 +661,51 @@ function NumberLine({ data }: { data: any }) {
 /** coordinate_points: free points + labelled segments on a grid */
 function CoordinatePoints({ data }: { data: any }) {
   const rawPts: { x: number; y: number; label?: string }[] = data.points ?? [];
-  const segs: [string, string][] = data.segments ?? data.lines ?? [];
+  const segs: ([string, string] | { from: string; to: string; dash?: boolean; label?: string })[] =
+    data.segments ?? data.lines ?? [];
+  const showAxes: boolean = data.axes !== false; // default true, set axes:false for pure geometry
+  const showCircle: { cx?: number; cy?: number; r?: number } | null = data.circle ?? null;
+
   if (rawPts.length === 0) return null;
+
   const xs = rawPts.map(p => p.x), ys = rawPts.map(p => p.y);
-  const margin = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) * 0.3 + 2;
+  // Include circle bounds if present
+  if (showCircle?.r) {
+    const cx = showCircle.cx ?? 0, cy = showCircle.cy ?? 0, r = showCircle.r;
+    xs.push(cx - r, cx + r); ys.push(cy - r, cy + r);
+  }
+  const margin = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) * 0.28 + 1.5;
   const xMin = Math.min(...xs) - margin, xMax = Math.max(...xs) + margin;
   const yMin = Math.min(...ys) - margin, yMax = Math.max(...ys) + margin;
   const sc = makeScaler(xMin, xMax, yMin, yMax);
   const ptMap: Record<string, Pt> = {};
   rawPts.forEach(p => { if (p.label) ptMap[p.label] = sc({ x: p.x, y: p.y }); });
+
   return (
     <g>
-      <Axes sc={sc} xMin={xMin} xMax={xMax} yMin={yMin} yMax={yMax} />
-      {segs.map(([a, b], i) => {
+      {showAxes && <Axes sc={sc} xMin={xMin} xMax={xMax} yMin={yMin} yMax={yMax} />}
+      {/* Optional circle (e.g. for chord/tangent problems) */}
+      {showCircle?.r && (() => {
+        const cx = sc({ x: showCircle.cx ?? 0, y: showCircle.cy ?? 0 });
+        const rPx = Math.abs(sc({ x: (showCircle.cx ?? 0) + showCircle.r, y: showCircle.cy ?? 0 }).x - cx.x);
+        return <circle cx={cx.x} cy={cx.y} r={rPx} fill="none" stroke={GREY} strokeWidth={1.8} strokeDasharray="4,3" />;
+      })()}
+      {segs.map((seg, i) => {
+        const [a, b] = Array.isArray(seg) ? seg : [seg.from, seg.to];
+        const isDash = !Array.isArray(seg) && seg.dash;
+        const segLabel = !Array.isArray(seg) ? seg.label : undefined;
         const pa = ptMap[a], pb = ptMap[b];
         if (!pa || !pb) return null;
-        return <Seg key={i} a={pa} b={pb} stroke={GOLD} sw={2} />;
+        return (
+          <g key={i}>
+            <Seg a={pa} b={pb} stroke={GOLD} sw={2} dash={isDash ? '5,4' : ''} />
+            {segLabel && <SegLabel a={pa} b={pb} label={segLabel} color={GOLD} />}
+          </g>
+        );
       })}
       {rawPts.map((p, i) => (
         <Dot key={i} p={sc({ x: p.x, y: p.y })} label={p.label}
-          offset={{ x: 8, y: -12 }} />
+          offset={(p as any).offset ?? { x: 8, y: -12 }} />
       ))}
     </g>
   );
@@ -773,6 +798,152 @@ function Parallelogram({ data }: { data: any }) {
   );
 }
 
+/**
+ * circle_chord — circle with centre O, a chord AB, and optional perpendicular from O to chord.
+ * Fields: radius, chord_half (half the chord length, so AC=CB=chord_half),
+ *         show_perpendicular (bool, default true), oc_length (optional label for OC),
+ *         label_O, label_A, label_B, label_C, label_radius, label_chord
+ */
+function CircleChord({ data }: { data: any }) {
+  const r: number = data.radius ?? 5;
+  const chordHalf: number = data.chord_half ?? (data.chord ? data.chord / 2 : r * 0.6);
+  const showPerp: boolean = data.show_perpendicular !== false;
+
+  // O at centre. Chord AB is horizontal, C is midpoint (foot of perpendicular from O).
+  // OC = sqrt(r² - (chord_half)²)
+  const oc = Math.sqrt(Math.max(0, r * r - chordHalf * chordHalf));
+
+  const O: Pt  = { x: 0, y: 0 };
+  const A: Pt  = { x: -chordHalf, y: oc };
+  const B: Pt  = { x:  chordHalf, y: oc };
+  const C: Pt  = { x: 0,          y: oc };
+
+  const pad = r * 0.35;
+  const sc = makeScaler(-r - pad, r + pad, -r - pad, r + pad);
+  const sO = sc(O), sA = sc(A), sB = sc(B), sC = sc(C);
+
+  // Draw circle as SVG circle element using pixel radius
+  const pixelR = Math.abs(sc({ x: r, y: 0 }).x - sc({ x: 0, y: 0 }).x);
+
+  const lO  = data.label_O  ?? 'O';
+  const lA  = data.label_A  ?? 'A';
+  const lB  = data.label_B  ?? 'B';
+  const lC  = data.label_C  ?? (showPerp ? 'C' : '');
+  const lOA = data.label_radius ?? String(r);
+  const lOC = data.label_oc ?? (Number.isInteger(oc) ? String(oc) : '');
+  const lAC = data.label_chord_half ?? (Number.isInteger(chordHalf) ? String(chordHalf) : '');
+
+  return (
+    <g>
+      {/* Circle */}
+      <circle cx={sO.x} cy={sO.y} r={pixelR}
+        fill="none" stroke={GREY} strokeWidth={2} strokeOpacity={0.6} />
+
+      {/* Chord AB */}
+      <Seg a={sA} b={sB} stroke={GOLD} sw={2.5} />
+
+      {/* Radius OA */}
+      <Seg a={sO} b={sA} stroke={GREY} sw={1.5} dash="4,3" />
+
+      {/* Radius OB */}
+      <Seg a={sO} b={sB} stroke={GREY} sw={1.5} dash="4,3" />
+
+      {/* Perpendicular OC */}
+      {showPerp && (
+        <>
+          <Seg a={sO} b={sC} stroke={GOLD} sw={2} dash="5,4" />
+          <RightAngleMark v={sC} a={sA} b={sO} size={9} />
+        </>
+      )}
+
+      {/* Labels */}
+      <Dot p={sO} label={lO} offset={{ x: -16, y: 10 }} />
+      <Dot p={sA} label={lA} offset={{ x: -18, y: 0 }} />
+      <Dot p={sB} label={lB} offset={{ x: 10,  y: 0 }} />
+      {lC && <Dot p={sC} label={lC} offset={{ x: 6, y: -14 }} color={GREY} />}
+
+      {/* Segment labels */}
+      {lOA && <SegLabel a={sO} b={sA} label={lOA} color={GREY} />}
+      {lOC && <SegLabel a={sO} b={sC} label={lOC} />}
+      {lAC && <SegLabel a={sA} b={sC} label={lAC} color={GOLD} />}
+    </g>
+  );
+}
+
+/**
+ * circle_tangent — circle with external point P, two tangents PA and PB.
+ * Fields: radius, op_dist (distance OP), label_O, label_P, label_A, label_B,
+ *         label_radius, label_pa (tangent length), show_chord (draw AB, default true)
+ */
+function CircleTangent({ data }: { data: any }) {
+  const r: number   = data.radius   ?? 5;
+  const op: number  = data.op_dist  ?? 13;
+
+  // PA = sqrt(OP² - r²)
+  const pa = Math.sqrt(Math.max(0, op * op - r * r));
+  // Angle at O between OP and OA
+  const alpha = Math.asin(r / op);
+
+  const O: Pt = { x: 0,  y: 0 };
+  const P: Pt = { x: op, y: 0 };
+  const A: Pt = { x: r * Math.cos(Math.PI / 2 - alpha), y:  r * Math.sin(Math.PI / 2 - alpha) };
+  const B: Pt = { x: A.x, y: -A.y };
+
+  const allPts = [O, P, A, B];
+  const xs = allPts.map(p => p.x), ys = allPts.map(p => p.y);
+  const pad = Math.max(op, r) * 0.28;
+  const sc = makeScaler(Math.min(...xs) - pad, Math.max(...xs) + pad,
+    Math.min(...ys) - pad, Math.max(...ys) + pad);
+
+  const sO = sc(O), sP = sc(P), sA = sc(A), sB = sc(B);
+  const pixelR = Math.abs(sc({ x: r, y: 0 }).x - sc({ x: 0, y: 0 }).x);
+
+  const lO  = data.label_O  ?? 'O';
+  const lP  = data.label_P  ?? 'P';
+  const lA  = data.label_A  ?? 'A';
+  const lB  = data.label_B  ?? 'B';
+  const lR  = data.label_radius ?? String(r);
+  const lPA = data.label_pa ?? (Number.isInteger(pa) ? String(pa) : `${+pa.toFixed(2)}`);
+  const lOP = data.label_op ?? String(op);
+  const showChord: boolean = data.show_chord !== false;
+
+  return (
+    <g>
+      {/* Circle */}
+      <circle cx={sO.x} cy={sO.y} r={pixelR}
+        fill="none" stroke={GREY} strokeWidth={2} strokeOpacity={0.6} />
+
+      {/* Tangent lines PA and PB */}
+      <Seg a={sP} b={sA} stroke={GOLD} sw={2.5} />
+      <Seg a={sP} b={sB} stroke={GOLD} sw={2.5} />
+
+      {/* Radii OA and OB (dashed) */}
+      <Seg a={sO} b={sA} stroke={GREY} sw={1.5} dash="4,3" />
+      <Seg a={sO} b={sB} stroke={GREY} sw={1.5} dash="4,3" />
+
+      {/* OP line (dashed) */}
+      <Seg a={sO} b={sP} stroke={GREY} sw={1.2} dash="4,3" />
+
+      {/* Right angles at tangent points */}
+      <RightAngleMark v={sA} a={sO} b={sP} size={9} />
+      <RightAngleMark v={sB} a={sO} b={sP} size={9} />
+
+      {/* Chord AB */}
+      {showChord && <Seg a={sA} b={sB} stroke={GREY} sw={1.5} dash="4,3" />}
+
+      {/* Labels */}
+      <Dot p={sO} label={lO} offset={{ x: -16, y: 10 }} />
+      <Dot p={sP} label={lP} offset={{ x: 10,  y: 0 }} />
+      <Dot p={sA} label={lA} offset={{ x: -8,  y: -14 }} />
+      <Dot p={sB} label={lB} offset={{ x: -8,  y: 12 }} />
+
+      {lR  && <SegLabel a={sO} b={sA} label={lR} color={GREY} />}
+      {lPA && <SegLabel a={sP} b={sA} label={lPA} color={GOLD} />}
+      {lOP && <SegLabel a={sO} b={sP} label={lOP} />}
+    </g>
+  );
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 interface MathDiagramProps {
@@ -801,6 +972,8 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'parallelogram':       content = <Parallelogram data={parsed} />; break;
       case 'ladder':              content = <Ladder data={parsed} />; break;
       case 'cylinder_unrolled':   content = <CylinderUnrolled data={parsed} />; break;
+      case 'circle_chord':        content = <CircleChord data={parsed} />; break;
+      case 'circle_tangent':      content = <CircleTangent data={parsed} />; break;
       case 'linear_function':     content = <LinearFunction data={parsed} />; break;
       case 'quadratic_function':  content = <QuadraticFunction data={parsed} />; break;
       case 'number_line':
