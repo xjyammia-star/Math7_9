@@ -19,59 +19,24 @@ import { generateExercises, solveExercises } from '../services/geminiService';
 import LearningAgent from './LearningAgent';
 import MathDiagram from './MathDiagram';
 
-// Same sanitizer as LearningAgent — fixes bare LaTeX in prose
+// Fixes bare LaTeX commands in AI output before KaTeX rendering
 function sanitizeMath(text: string): string {
-  // 1. Remove \text{...} — keep inner content as plain text
   text = text.replace(/\\text\{([^}]*)\}/g, '$1');
-
-  // 2. Fix bare LaTeX commands that have backslash but no $ wrapper
-  text = text.replace(/(?<!\$)\\odot\s*([A-Za-z])/g, '$\\odot $1$');
-  text = text.replace(/(?<!\$)\\angle\s*([A-Za-z]{1,3})/g, '$\\angle $1$');
-  text = text.replace(/(?<!\$)\\triangle\s*([A-Za-z]{3})/g, '$\\triangle $1$');
-  text = text.replace(/(?<!\$)\\parallel(?!\})/g, '$\\parallel$');
-  text = text.replace(/(?<!\$)\\perp(?!\})/g, '$\\perp$');
-
-  // 3. Fix AI dropping the backslash entirely: "odotO" → "$\odot O$"
-  //    Pattern: word "odot" immediately followed by a capital letter
-  text = text.replace(/\bodot([A-Z])/g, '$\\odot $1$');
-
-  // 4. "perpAB交AB于点C" → "$\perp AB$交AB于点C"  (perp followed by letters)
-  text = text.replace(/\bperp([A-Z]{1,3})/g, '$\\perp $1$');
-
-  // 5. "parallelAB" → "$\parallel AB$"
-  text = text.replace(/\bparallel([A-Z]{1,3})/g, '$\\parallel $1$');
-
-  // 6. Standalone angle/triangle without backslash: "angleABC" → "$\angle ABC$"
-  text = text.replace(/\bangle([A-Z]{1,3})/g, '$\\angle $1$');
-  text = text.replace(/\btriangle([A-Z]{3})/g, '$\\triangle $1$');
-
-  // 7. Clean up accidental double-dollar from nested wrapping: "$$x$$" on same line → "$x$"
-  text = text.replace(/\$\$([^$\n]+)\$\$/g, (_, inner) => `$$${inner}$$`);
-
-  return text;
-}/g, '$1');
   text = text.replace(/(?<!\$)\\odot\s*([A-Za-z])/g, '$\\odot $1$');
   text = text.replace(/(?<!\$)\\angle\s*([A-Za-z]{1,4})/g, '$\\angle $1$');
   text = text.replace(/(?<!\$)\\triangle\s*([A-Za-z]{2,4})/g, '$\\triangle $1$');
   text = text.replace(/(?<!\$)\\parallel(?!\})/g, '$\\parallel$');
   text = text.replace(/(?<!\$)\\perp(?!\})/g, '$\\perp$');
-  text = text.replace(/\bodot\s*([A-Z])\b/g, '$\\odot $1$');
-  text = text.replace(/([A-Z]{1,3})perp([A-Z]{1,3})/g, '$1$\\perp$$2');
+  text = text.replace(/\bodot\s*([A-Z])/g, '$\\odot $1$');
+  text = text.replace(/([A-Z]{1,2})perp([A-Z]{1,2})/g, '$1$\\perp$$2');
   text = text.replace(/\bperp\b/g, '$\\perp$');
-  text = text.replace(/\btriangle\s*([A-Z]{2,4})\b/g, '$\\triangle $1$');
-  text = text.replace(/\bangle\s*([A-Z]{1,4})\b/g, '$\\angle $1$');
+  text = text.replace(/\bparallel([A-Z]{1,3})/g, '$\\parallel $1$');
+  text = text.replace(/\bangle([A-Z]{1,4})/g, '$\\angle $1$');
+  text = text.replace(/\btriangle([A-Z]{2,4})/g, '$\\triangle $1$');
   text = text.replace(/\$\$([^$\n]+)\$\$/g, (_, inner) => `$$${inner.trim()}$$`);
   return text;
 }
 
-// ── Curriculum display helper ────────────────────────────────────────────
-const CURRICULUM_LABELS: Record<string, { zh: string; en: string; flag: string; color: string }> = {
-  CN: { zh: '中国课程',   en: 'Chinese Curriculum',    flag: '🇨🇳', color: '#ef4444' },
-  US: { zh: '美国课程',   en: 'US Curriculum',          flag: '🇺🇸', color: '#3b82f6' },
-  UK: { zh: '英国课程',   en: 'UK Curriculum',          flag: '🇬🇧', color: '#8b5cf6' },
-  SG: { zh: '新加坡课程', en: 'Singapore Curriculum',   flag: '🇸🇬', color: '#f59e0b' },
-  IB: { zh: 'IB 课程',   en: 'IB Curriculum',          flag: '🌐', color: '#10b981' },
-};
 
 interface PracticeCenterProps {
   concept: Concept | null;
