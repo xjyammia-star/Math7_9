@@ -19,6 +19,15 @@ import { generateExercises, solveExercises } from '../services/geminiService';
 import LearningAgent from './LearningAgent';
 import MathDiagram from './MathDiagram';
 
+// ─── Curriculum labels (mirrors App.tsx CURRICULA) ────────────────────────
+const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string; flag: string; color: string }> = {
+  CN: { zh: '中国课程（人教版）', en: 'Chinese Curriculum (PEP)', flag: '🇨🇳', color: '#ef4444' },
+  US: { zh: '美国课程（Common Core）', en: 'US Curriculum (Common Core)', flag: '🇺🇸', color: '#3b82f6' },
+  UK: { zh: '英国课程（National Curriculum）', en: 'UK Curriculum (NC)', flag: '🇬🇧', color: '#8b5cf6' },
+  SG: { zh: '新加坡课程（MOE）', en: 'Singapore Curriculum (MOE)', flag: '🇸🇬', color: '#f59e0b' },
+  IB: { zh: 'IB课程（MYP）', en: 'IB Curriculum (MYP)', flag: '🌐', color: '#10b981' },
+};
+
 // Fixes bare LaTeX commands in AI output before KaTeX rendering
 function sanitizeMath(text: string): string {
   text = text.replace(/\\text\{([^}]*)\}/g, '$1');
