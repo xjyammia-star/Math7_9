@@ -71,12 +71,17 @@ function sanitizeMath(text: string): string {
   // \angle ABC (1–4 letters)
   text = text.replace(/(?<!\$)(?<!\\frac\{)\\angle\s+([A-Za-z]{1,4})/g, '$\\angle $1$');
   text = text.replace(/(?<!\$)(?<!\\frac\{)\\angle([A-Za-z]{1,4})/g, '$\\angle $1$');
+  // Fix: $\angle XYZ missing closing $ before punctuation
+  text = text.replace(/(\$\\angle\s+[A-Za-z]{1,4})([^$\w])/g,
+    (_, expr, after) => `${expr}$${after}`);
 
   // \triangle ABC (2–4 letters), handles trailing Chinese punctuation
   text = text.replace(/(?<!\$)(?<!\\frac\{)\\triangle\s+([A-Za-z]{2,4})/g, '$\\triangle $1$');
   text = text.replace(/(?<!\$)(?<!\\frac\{)\\triangle([A-Za-z]{2,4})/g, '$\\triangle $1$');
-  // Fix case where \triangle was already wrapped but has no closing $: $\triangle XYZ：
-  text = text.replace(/(\$\\triangle\s+[A-Za-z]{2,4})([^$\w])/g, '$1$$2');
+  // Fix: $\triangle XYZ missing closing $ before punctuation
+  // Use function replacement to avoid $1/$2 capture group conflicts
+  text = text.replace(/(\$\\triangle\s+[A-Za-z]{2,4})([^$\w])/g,
+    (_, expr, after) => `${expr}$${after}`);
 
   // \parallel (standalone or before letters)
   text = text.replace(/(?<!\$)(?<!\\)\\parallel\s+([A-Za-z]{1,4})/g, '$\\parallel $1$');
