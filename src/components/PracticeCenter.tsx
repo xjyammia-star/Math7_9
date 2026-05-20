@@ -33,11 +33,9 @@ const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string; flag: stri
 // Handles all known failure patterns collected from real AI output.
 function sanitizeMath(text: string): string {
 
-  // ── Step 0: Fix escaped dollar signs and spacing issues ──────────────
+  // ── Step 0: Fix escaped dollar signs ────────────────────────────────
   // \$ (AI sometimes writes \$ instead of $) → $
   text = text.replace(/\\\$/g, '$');
-  // $expr $ (space before closing $) → $expr$
-  text = text.replace(/\$([^$\n]+?)\s\$/g, '$$$1$');
 
   // ── Step 1: Remove unsupported commands ──────────────────────────────
   // \parallelogram → plain text (AI-invented command, not real LaTeX)
