@@ -33,6 +33,12 @@ const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string; flag: stri
 // Handles all known failure patterns collected from real AI output.
 function sanitizeMath(text: string): string {
 
+  // ── Step 0: Fix escaped dollar signs and spacing issues ──────────────
+  // \$ (AI sometimes writes \$ instead of $) → $
+  text = text.replace(/\\\$/g, '$');
+  // $expr $ (space before closing $) → $expr$
+  text = text.replace(/\$([^$\n]+?)\s\$/g, '$$$1$');
+
   // ── Step 1: Remove unsupported commands ──────────────────────────────
   // \parallelogram → plain text (AI-invented command, not real LaTeX)
   text = text.replace(/\\parallelogram/g, '平行四边形');
@@ -66,9 +72,11 @@ function sanitizeMath(text: string): string {
   text = text.replace(/(?<!\$)(?<!\\frac\{)\\angle\s+([A-Za-z]{1,4})/g, '$\\angle $1$');
   text = text.replace(/(?<!\$)(?<!\\frac\{)\\angle([A-Za-z]{1,4})/g, '$\\angle $1$');
 
-  // \triangle ABC (2–4 letters)
+  // \triangle ABC (2–4 letters), handles trailing Chinese punctuation
   text = text.replace(/(?<!\$)(?<!\\frac\{)\\triangle\s+([A-Za-z]{2,4})/g, '$\\triangle $1$');
   text = text.replace(/(?<!\$)(?<!\\frac\{)\\triangle([A-Za-z]{2,4})/g, '$\\triangle $1$');
+  // Fix case where \triangle was already wrapped but has no closing $: $\triangle XYZ：
+  text = text.replace(/(\$\\triangle\s+[A-Za-z]{2,4})([^$\w])/g, '$1$$2');
 
   // \parallel (standalone or before letters)
   text = text.replace(/(?<!\$)(?<!\\)\\parallel\s+([A-Za-z]{1,4})/g, '$\\parallel $1$');
