@@ -11,6 +11,8 @@ export function sanitizeMath(text: string): string {
   // ── Step 0: Fix escaped dollar signs ─────────────────────────────────
   // \$ (AI sometimes writes \$ instead of $) → $
   text = text.replace(/\\\$/g, '$');
+  // \\cmd (double backslash before LaTeX commands) → \cmd
+  text = text.replace(/\\\\(perp|parallel|triangle|angle|sim|cong|odot|cdot|times|div|frac|sqrt)/g, '\\$1');
 
   // ── Step 1: Remove/replace unsupported commands ───────────────────────
   // \parallelogram → plain text (AI-invented command, not real LaTeX)
