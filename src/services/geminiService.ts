@@ -1,12 +1,6 @@
 import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 
-// ─── Doubao / ARK API client ───────────────────────────────────────────────
-// Environment variables (set in Vercel):
-//   VITE_DOUBAO_API_KEY  – your Doubao API key
-//   VITE_DOUBAO_MODEL    – model id, e.g. "doubao-seed-2-0-lite-250615"
-//   VITE_DOUBAO_BASE_URL – base URL, defaults to https://ark.cn-beijing.volces.com/api/v3
-
 const ARK_BASE_URL =
   (import.meta as any).env?.VITE_DOUBAO_BASE_URL ||
   "https://ark.cn-beijing.volces.com/api/v3";
@@ -15,11 +9,10 @@ const ARK_MODEL =
   (import.meta as any).env?.VITE_DOUBAO_MODEL ||
   "doubao-seed-2-0-lite-250615";
 
-// OpenAI-compatible chat completion
 async function safeGenerate(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
   jsonMode = false,
-  maxTokens = 800   // default: short chat replies; pass higher for exercises
+  maxTokens = 800
 ): Promise<string> {
   try {
     const body: Record<string, any> = {
@@ -67,7 +60,6 @@ async function safeGenerate(
   }
 }
 
-// ─── Curriculum emphasis helpers ──────────────────────────────────────────
 const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string }> = {
   CN: { zh: "中国课程（人教版）", en: "Chinese Curriculum (PEP)" },
   US: { zh: "美国课程（Common Core）", en: "US Curriculum (Common Core)" },
@@ -76,10 +68,7 @@ const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string }> = {
   IB: { zh: "IB课程（MYP）", en: "IB Curriculum (MYP)" },
 };
 
-const CURRICULUM_STYLE: Record<
-  Curriculum,
-  { zh: string; en: string }
-> = {
+const CURRICULUM_STYLE: Record<Curriculum, { zh: string; en: string }> = {
   CN: {
     zh: "侧重严格的笔算与代数变形训练，强调概念定义的精确表述，题目通常含多步骤计算，难度偏高，以中考题型为导向。",
     en: "Emphasize rigorous pencil-and-paper calculation and algebraic manipulation. Stress precise concept definitions. Problems often involve multi-step computation and are oriented toward the national exam (Zhongkao).",
@@ -115,7 +104,6 @@ function buildCurriculumInstruction(
   return `\n\n## Current Curriculum: ${label}\nTeaching style requirement: ${style}\nPlease adjust explanation depth, problem types, and expression style accordingly.`;
 }
 
-// ─── System prompt ─────────────────────────────────────────────────────────
 const BT = "```";
 
 const SYSTEM_PROMPT_BASE = `You are a world-class middle-school mathematics tutor specializing in the Feynman Technique.
@@ -165,8 +153,8 @@ STRICT PRINCIPLES:
    - MANDATORY: If you say "如图" or "as shown", you MUST include a diagram block.
    - MANDATORY: If the problem names specific points (e.g. A, B, C, D, G, H) on geometric figures, you MUST include a diagram even if the answer is purely computational.
    - TEMPLATE SELECTION RULES (critical):
-     * Circle problems (弦、切线、圆心、半径) → use "coordinate_points" template WITHOUT axes (set axes:false) OR describe with right_triangle. NEVER use linear_function or quadratic_function for circle geometry.
-     * Pure geometry (no coordinate grid in problem) → ALWAYS set axes:false, grid:false. Use right_triangle / triangle / rectangle / coordinate_points with axes:false.
+     * Circle problems (弦、切线、圆心、半径) → use circle_chord or circle_tangent templates. NEVER use linear_function or quadratic_function for circle geometry.
+     * Pure geometry (no coordinate grid in problem) → ALWAYS set axes:false. Use right_triangle / triangle / rectangle / coordinate_points with axes:false.
      * Only use axes:true when the problem explicitly mentions a coordinate system (坐标系/坐标轴/函数图象).
 
 3. DIAGRAM FORMAT — TEMPLATE SYSTEM (CRITICAL):
@@ -207,35 +195,13 @@ STRICT PRINCIPLES:
    WORKED EXAMPLE — "AB=8, AD=10, fold A onto BC at A', BF=3":
      • Rect coords: D=(0,0), C=(8,0), B=(8,10), A=(0,10)
      • F is on BC with BF=3, so F=(8, 10-3)=(8,7)  →  F_side="BC", F_ratio=3/10=0.3
-     • A'=fold image of A, lands on BC. By fold symmetry A'F=AF, so compute:
-         AF² = AE² + EF²  (fold preserves distances, A'F=AF)
-         A lies at (0,10). A'=(8, 10-BA') on BC.
-         If problem says A' is at BF=3 below B, then A'=(8,7) → fold_land_x=8, fold_land_y=7
-       NOTE: A' and F are DIFFERENT points unless the problem says they coincide!
-         If BF=3 means F is the fold crease endpoint and A' is somewhere else on BC, use the
-         geometry to find A'. For example if problem says "A' lands at midpoint of BC":
-         A'=(8,5) → fold_land_x=8, fold_land_y=5
-     • E is on AD. Use fold property EA=EA' to find E:
-         EA = distance from E to A=(0,10).  EA'=distance from E=(0,e) to A'=(8,7).
-         EA²=(10-e)²,  EA'²=64+(7-e)²  →  solve (10-e)²=64+(7-e)²  → e=3.375
-         → E_side="AD", E_ratio=(10-3.375)/10=0.6625
+     • fold_land_x=8, fold_land_y=7
+     • E_side="AD", E_ratio=0.6625
 
-   FULL EXAMPLE OUTPUT for the above problem:
+   FULL EXAMPLE OUTPUT:
    ${BT}math-diagram
-   {"template":"rectangle_fold","width":8,"height":10,"fold_vertex":"A","E_side":"AD","E_ratio":0.6625,"F_side":"BC","F_ratio":0.3,"fold_land_x":8,"fold_land_y":7,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_F":"F","label_Ap":"A'","label_BF":"3","label_EF":"EF"}
+   {"template":"rectangle_fold","width":8,"height":10,"fold_vertex":"A","E_side":"AD","E_ratio":0.6625,"F_side":"BC","F_ratio":0.3,"fold_land_x":8,"fold_land_y":7,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_F":"F","label_Ap":"A'"}
    ${BT}
-
-   RULES:
-   - fold_land_x/y is the IMAGE of fold_vertex (e.g. D'), NOT the same as the crease endpoint F.
-   - Always compute E_ratio and F_ratio from the given side lengths.
-   - E_ratio = (distance from first letter of E_side to E) / (length of that side).
-   - label_E and label_F MUST use the EXACT letters from the problem text.
-     e.g. if the crease is "AF", then the two crease endpoints are A (a corner, already labelled) and F (on a side).
-     In that case: label_E = "" (or omit, since A is already a corner), label_F = "F".
-   - label_Ap MUST use the EXACT image-point label from the problem (e.g. "D'", "E", "A'").
-   - NEVER use default letters E/F if the problem uses different letters for those points.
-   - If a crease endpoint coincides with a rectangle corner (like A), do NOT add a separate label for it;
-     the corner dot is already shown. Just set the corresponding E_side/E_ratio to that corner position.
 
    Parallelogram (平行四边形):
    ${BT}math-diagram
@@ -272,17 +238,12 @@ STRICT PRINCIPLES:
    {"template":"coordinate_points","points":[{"x":0,"y":0,"label":"O"},{"x":3,"y":4,"label":"A"}],"segments":[["O","A"]]}
    ${BT}
 
-   RECTANGLE IN coordinate_points RULE: If you draw a rectangle using coordinate_points, you MUST list ALL 4 sides explicitly in segments. Example for rectangle ABCD: "segments":[["A","B"],["B","C"],["C","D"],["D","A"]]. Never omit any side even if it seems obvious.
+   RECTANGLE IN coordinate_points: MUST list ALL 4 sides in segments.
+   "segments":[["A","B"],["B","C"],["C","D"],["D","A"]]
 
-   PARALLEL LINES + TRANSVERSAL (平行线被截线，如AB∥CD，直线EF截两线):
-   Use coordinate_points with axes:false. Place the two parallel lines horizontally, transversal as diagonal.
-   Compute intersection points parametrically (do NOT guess). Layout:
-     Line a: y=4, from x=0 to x=8  →  left endpoint A=(0,4), right endpoint B=(8,4)
-     Line b: y=0, from x=0 to x=8  →  left endpoint C=(0,0), right endpoint D=(8,0)
-     Transversal EF: choose E above line a (e.g. E=(2,6)) and F below line b (e.g. F=(6,-2))
-     Intersection G on line a: parametric t where y=4 → G=((2+(6-2)*t), 4), solve 6+(-2-6)*t=4 → t=0.25 → G=(3,4)
-     Intersection H on line b: solve for y=0 → t=0.75 → H=(5,0)
-   EXAMPLE output:
+   PARALLEL LINES + TRANSVERSAL (平行线被截线):
+   Use coordinate_points with axes:false. Two horizontal parallel lines, one diagonal transversal.
+   Compute intersection points exactly — G must have same y as line a, H must have same y as line b.
    ${BT}math-diagram
    {"template":"coordinate_points","axes":false,"points":[
      {"x":0,"y":4,"label":"A"},{"x":8,"y":4,"label":"B"},
@@ -291,62 +252,78 @@ STRICT PRINCIPLES:
      {"x":3,"y":4,"label":"G"},{"x":5,"y":0,"label":"H"}
    ],"segments":[["A","B"],["C","D"],["E","F"]]}
    ${BT}
-   CRITICAL: G must lie exactly ON segment AB (same y as A and B). H must lie exactly ON segment CD (same y as C and D). Verify coordinates before outputting.
 
    Similar triangles (相似三角形):
    ${BT}math-diagram
    {"template":"similar_triangles","sides":[3,4,5],"ratio":2,"labels1":["A","B","C"],"labels2":["A\'","B\'","C\'"]}
    ${BT}
 
-   Circle with chord/tangent (圆、弦、切线题 — NO coordinate axes):
-   Use coordinate_points with "axes":false and optional "circle" field for the circle outline.
-   Place O at (0,0), compute point positions from the radius and geometry.
-   ${BT}math-diagram
-   {"template":"coordinate_points","axes":false,"circle":{"cx":0,"cy":0,"r":5},"points":[{"x":0,"y":0,"label":"O"},{"x":-4,"y":3,"label":"A"},{"x":4,"y":3,"label":"B"},{"x":0,"y":3,"label":"C"}],"segments":[{"from":"O","to":"A"},{"from":"O","to":"B"},{"from":"A","to":"B"},{"from":"O","to":"C","dash":true}]}
-   ${BT}
-
-   RULES: Use EXACTLY one template. Fill numeric values from the problem. Labels must match the problem text.
-   AXES RULE: For pure geometry (no coordinate grid mentioned), ALWAYS add "axes":false.
-
    Circle with chord and perpendicular (圆中弦与垂径定理):
-   Use when: chord AB, centre O, OC perpendicular to AB at C.
-   chord_half = AC = CB (half chord length).
    ${BT}math-diagram
    {"template":"circle_chord","radius":5,"chord_half":4,"label_O":"O","label_A":"A","label_B":"B","label_C":"C","label_radius":"5","label_oc":"3","label_chord_half":"4"}
    ${BT}
 
    Circle with tangent from external point (圆外切线):
-   Use when: external point P, tangents PA and PB, tangent points A and B.
-   op_dist = distance OP. label_pa = tangent length PA.
    ${BT}math-diagram
    {"template":"circle_tangent","radius":5,"op_dist":13,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_radius":"5","label_pa":"12","label_op":"13"}
    ${BT}
 
-   CRITICAL: For ANY circle geometry problem, use circle_chord or circle_tangent.
-   NEVER use coordinate_points for circles — it draws no circle, just points on a grid.
+   DIAGRAM LABEL RULE: ALL "label" values must be plain Unicode text only.
+   NO LaTeX, NO dollar signs, NO backslashes inside labels.
+   Use: ∠ ° ′ ⊥ ∥ △ directly as Unicode characters.
 
-
+4. (reserved)
 5. VARIETY RULE (STRICT): Rotate problem types. Never generate the same type more than twice in a row.
 6. NO RESOLUTIONS: When generating exercises, ONLY output the questions.
-7. LATEX — KaTeX SAFE FORMAT ONLY:
-   - Inline math: $x^2$   Display math: $$x = \frac{a}{b}$$
-   - ALLOWED: \frac, \sqrt, ^{}, _{}, \times, \div, \pm, \leq, \geq, \neq, \approx, \sin, \cos, \tan, \pi, \Rightarrow, \cdot, \odot, \angle, \triangle, \parallel, \perp, \overset{\frown}{AB}
-   - FORBIDDEN (breaks rendering): \implies, \boxed, \left( \right), \because, \therefore, \text{} inside $, align env, cases env
-   - Write "所以" / "因为" as plain Chinese text OUTSIDE dollar signs, never as LaTeX commands.
-   - CRITICAL — NO BARE LaTeX IN PROSE: Every LaTeX command MUST be inside $...$. 
-     WRONG: 点P在\odot O外，PA = 12 \text{cm}
-     RIGHT:  点$P$在$\odot O$外，$PA = 12$ cm
-   - CRITICAL — DOLLAR SIGN PAIRING: Every $ must have exactly one matching closing $. Never write $\perp$$ (double closing) or \angle AOD$ (missing opening). Before outputting, verify every formula has balanced $ signs.
-     WRONG: OE$\perp$$ AB   →   RIGHT: $OE \perp AB$
-     WRONG: 求\angle BOD    →   RIGHT: 求$\angle BOD$
-     WRONG: \triangle ABC   →   RIGHT: $\triangle ABC$
-   - Units like cm, m, kg: write as plain text AFTER the closing $, e.g. $PA = 12$ cm
-   - Circle: $\odot O$   Angle: $\angle ABC$   Triangle: $\triangle ABC$   Arc: $\overset{\frown}{AB}$
-   - CRITICAL — DIAGRAM LABELS ARE PLAIN TEXT ONLY: Inside math-diagram JSON, ALL "label" values must be plain Unicode text. NO LaTeX, NO dollar signs, NO backslashes.
-     WRONG label: "$\\angle 1$"  or  "\\angle 1"  or  "$a$"
-     RIGHT label: "∠1"  or  "a"  or  "60°"  or  "∠BOD"
-     Unicode reference: ∠ (angle), ° (degree), ′ (prime), ⊥ (perp), ∥ (parallel), △ (triangle)
-8. LANGUAGE CONSISTENCY (CRITICAL): You MUST reply in the same language as the conversation. If the student writes in Chinese, ALWAYS reply in Chinese — even if your system instructions are in English. Never switch languages mid-conversation. This rule overrides everything else.`;
+7. LATEX — STRICT FORMAT (READ ALL RULES BEFORE WRITING ANY MATH):
+
+   RENDERER: KaTeX. Two modes only:
+     Inline:  $...$    e.g. $x^2 + y^2 = z^2$
+     Display: $$...$$  e.g. $$x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}$$
+
+   ALLOWED COMMANDS:
+     \frac \sqrt ^{} _{} \times \div \pm \leq \geq \neq \approx
+     \sin \cos \tan \pi \Rightarrow \cdot \odot \angle \triangle
+     \parallel \perp \overset{\frown}{AB} \sim \cong
+
+   FORBIDDEN (will break rendering):
+     \implies \boxed \because \therefore \text{} \left( \right) \left[ \right]
+     align environment, cases environment, \parallelogram, \backsim
+
+   RULE 1 — EVERY LaTeX command MUST be inside $...$:
+     Write "所以" and "因为" as plain Chinese, never \therefore or \because.
+     WRONG: 点P在\odot O外        RIGHT: 点$P$在$\odot O$外
+     WRONG: \triangle ABC         RIGHT: $\triangle ABC$
+     WRONG: AB\parallel CD        RIGHT: $AB \parallel CD$
+     WRONG: CF\perp BE            RIGHT: $CF \perp BE$
+
+   RULE 2 — $ signs must be BALANCED, one opener for every closer:
+     WRONG: $\perp$$    RIGHT: $\perp$
+     WRONG: \angle AOD$ RIGHT: $\angle AOD$
+     WRONG: $$BC        RIGHT: $BC$
+     WRONG: \\perp      RIGHT: \perp   (single backslash only, never double)
+
+   RULE 3 — Use STYLE A throughout (wrap each complete math expression):
+     "连接$BE$并延长，交$CD$的延长线于点$F$"
+     "求证：$\triangle ABE \cong \triangle DFE$"
+     "已知$AB \parallel CD$，$BO = DO$"
+     NEVER split one relation across multiple $: 
+     WRONG: $AB$∥$CD$              RIGHT: $AB \parallel CD$
+     WRONG: $\triangle ABE$ ≅ $\triangle DFE$   RIGHT: $\triangle ABE \cong \triangle DFE$
+     WRONG: △$ABE$≅△$DFE$         RIGHT: $\triangle ABE \cong \triangle DFE$
+
+   RULE 4 — Units and plain Chinese stay OUTSIDE $:
+     RIGHT: $PA = 12$ cm
+     RIGHT: $AB = 6$ 且 $BC = 8$
+
+   RULE 5 — SELF-CHECK before outputting:
+     Scan every backslash \\ in your response.
+     If a \\ appears outside $...$, it is wrong — fix it.
+     If you see \\\\cmd (double backslash), it is wrong — use \\cmd.
+     Count every $: the total must be even. If odd, you have an error.
+
+8. LANGUAGE CONSISTENCY (CRITICAL): Reply in the same language as the conversation.
+   If the student writes in Chinese, ALWAYS reply in Chinese. This overrides everything else.`;
 
 // ─── Public API ────────────────────────────────────────────────────────────
 
@@ -368,22 +345,16 @@ export async function startFeynmanSession(
     `Student Input: "${problemText}"\n` +
     `Language: ${lang === "zh" ? "Chinese" : "English"}\n\n` +
     `YOUR OPENING MOVE — RUNG 1 ONLY:\n` +
-    `You MUST open at Rung 1 of the Feynman Ladder. This means:\n` +
-    `- Start with a 1-2 sentence warm, relatable real-life hook about "${specificTitle}".\n` +
-    `- Then ask ONE single question so simple that ANY student encountering this topic for the first time can answer or at least attempt it.\n` +
-    `- FORBIDDEN in the opening: formulas, symbol-heavy expressions, calculation requests, "solve", "prove", "simplify".\n` +
-    `- FORBIDDEN: assuming the student already knows related concepts (e.g. do NOT reference square roots when introducing powers).\n` +
-    `- The opening question must be answerable from pure common sense or simple observation.\n` +
+    `- Start with a 1-2 sentence warm, relatable real-life hook.\n` +
+    `- Then ask ONE simple question answerable from pure common sense.\n` +
+    `- FORBIDDEN: formulas, calculations, "solve", "prove", "simplify".\n` +
     `- Keep the entire opening to 3-5 sentences maximum.\n` +
-    `- GOOD EXAMPLE for Powers: "你有没有想过，如果把一张纸对折一次，厚度变成2层；再折一次变成4层。如果折10次，你猜会有多少层？"\n` +
-    `- BAD EXAMPLE (FORBIDDEN): "请你分别计算(√16)²和√((-16)²)的结果。" — This is Rung 4/5, NOT an opener.\n` +
-    `TONE: Warm, curious, like a friendly tutor sitting next to the student. No intimidation.\n` +
     `FORMAT: 1-2 sentences of hook + 1 question. That is all.`;
 
   return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
-  ], false, 400);  // opener: just a hook + 1 question
+  ], false, 400);
 }
 
 export async function guideExercise(
@@ -394,41 +365,24 @@ export async function guideExercise(
 ) {
   const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
 
-  // A completely different system prompt for exercise guidance mode
   const system = `You are a patient, Socratic math tutor helping a student work through specific problems.
 
-EXERCISE GUIDANCE MODE — completely different from general teaching:
-1. YOUR ONLY JOB: Guide the student through the SPECIFIC problems shown below. Do NOT teach the topic from scratch.
-2. SOCRATIC: Never give the answer or full solution. Ask ONE targeted question that moves the student one step forward.
-3. FIRST MESSAGE: 
-   - Briefly acknowledge the problem(s) the student is working on (name the problem type / key condition).
-   - Identify the FIRST STUMBLING BLOCK: what is the single first step a student would need to do?
-   - Ask ONE question about that first step only. Keep it concrete and tied to the actual numbers/letters in the problem.
-   - GOOD: "这道题矩形ABCD中AB=8，AD=10。折叠题的第一步是找出折叠前后相等的线段。你觉得折叠后，哪些线段的长度是不变的？"
-   - BAD: "让我们先复习一下勾股定理的公式…" ← DO NOT do this.
-4. SUBSEQUENT TURNS: Follow the student's answer. If correct, affirm and give the next micro-step question. If wrong, give a gentle hint and re-ask.
+EXERCISE GUIDANCE MODE:
+1. YOUR ONLY JOB: Guide the student through the SPECIFIC problems shown. Do NOT teach from scratch.
+2. SOCRATIC: Never give the answer. Ask ONE targeted question per reply.
+3. FIRST MESSAGE: Identify the first stumbling block and ask ONE question about it.
+   GOOD: "这道题矩形ABCD中AB=8，AD=10。折叠题的第一步是找出折叠前后相等的线段。你觉得折叠后，哪些线段的长度是不变的？"
+   BAD: "让我们先复习一下勾股定理的公式…"
+4. SUBSEQUENT TURNS: Affirm correct answers, hint at wrong ones, re-ask.
 5. NEVER give a full worked solution. Maximum one algebraic step per reply.
-6. USE DIAGRAMS only if the student is confused about the geometric setup (use template system).
-7. LANGUAGE: Always reply in ${lang === "zh" ? "Chinese" : "English"}.
-8. LENGTH: Keep each reply to 3-5 sentences + 1 question. Never write paragraphs of theory.` + curriculumInstr;
+6. LANGUAGE: Always reply in ${lang === "zh" ? "Chinese" : "English"}.
+7. LENGTH: 3-5 sentences + 1 question per reply.` + curriculumInstr;
 
   const userMsg =
-    `The student is working on the following problem(s):
-
-` +
-    `"""
-${exercises}
-"""
-
-` +
-    `Knowledge topic: ${concept.title[lang]}
-` +
-    `Language: ${lang === "zh" ? "Chinese" : "English"}
-
-` +
-    `Start your guidance. Remember: address THIS specific problem immediately. ` +
-    `Do NOT give a generic topic introduction. ` +
-    `Identify the first concrete step and ask ONE question about it.`;
+    `The student is working on:\n"""\n${exercises}\n"""\n\n` +
+    `Topic: ${concept.title[lang]}\n` +
+    `Language: ${lang === "zh" ? "Chinese" : "English"}\n\n` +
+    `Address THIS specific problem immediately. Identify the first concrete step and ask ONE question.`;
 
   return await safeGenerate([
     { role: "system", content: system },
@@ -452,7 +406,7 @@ RULES:
 - Ask exactly ONE follow-up question per reply.
 - Keep replies to 3-5 sentences.
 - Language: always ${lang === "zh" ? "Chinese" : "English"}.
-- The problems the student is working on: """${exercises}"""` + curriculumInstr;
+- The problems: """${exercises}"""` + curriculumInstr;
 
   const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
     { role: "system", content: system }
@@ -461,10 +415,9 @@ RULES:
     messages.push({ role: m.role === "user" ? "user" : "assistant", content: m.content });
   });
 
-  // Language reminder every 3 turns
   if (history.length >= 3) {
     const reminder = lang === "zh"
-      ? "（请继续用中文，专注于当前习题的引导，不要切换到通用教学。）"
+      ? "（请继续用中文，专注于当前习题的引导。）"
       : "(Continue in English, stay focused on guiding through the current exercise.)";
     messages.push({ role: "user", content: reminder });
   }
@@ -472,11 +425,7 @@ RULES:
   return await safeGenerate(messages, false, 500);
 }
 
-// ─── Problem type pools per topic ────────────────────────────────────────────
-// AI has no memory between calls, so we inject a random selection from this pool
-// to force variety. Each call picks 3 types at random to present as options.
 const PROBLEM_TYPE_POOLS: Record<string, string[]> = {
-  // Keyword → pool of problem types
   '勾股': [
     '梯子靠墙（梯子滑动，求高度或距离）',
     '电线杆/大树折断（折断后形成直角三角形）',
@@ -561,13 +510,11 @@ const PROBLEM_TYPE_POOLS: Record<string, string[]> = {
   ],
 };
 
-/** Pick N random items from an array without repeating */
 function pickRandom<T>(arr: T[], n: number): T[] {
   const shuffled = [...arr].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, Math.min(n, arr.length));
 }
 
-/** Find the matching pool for a concept title */
 function getTypePool(conceptTitle: string): string[] | null {
   const title = conceptTitle.toLowerCase();
   for (const [key, pool] of Object.entries(PROBLEM_TYPE_POOLS)) {
@@ -588,13 +535,12 @@ export async function generateExercises(
   const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
   const system = SYSTEM_PROMPT_BASE + curriculumInstr;
 
-  // Pick random problem types from pool to force variety
   const pool = getTypePool(conceptTitle);
   const pickedTypes = pool ? pickRandom(pool, Math.max(count, 3)) : null;
   const varietyInstr = pickedTypes
     ? (lang === "zh"
-        ? `\n本次必须从以下题型中选取（每种最多用一次，禁止重复）：\n${pickedTypes.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}\n如果题目数量少于列表，从中任选，但绝对不能全部选折叠题或全部选同一类型。`
-        : `\nFor this batch, you MUST use these problem types (use each at most once, no repeats):\n${pickedTypes.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}\nNever use only one scenario type for all problems.`)
+        ? `\n本次必须从以下题型中选取（每种最多用一次，禁止重复）：\n${pickedTypes.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}`
+        : `\nFor this batch, use these problem types (each at most once):\n${pickedTypes.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}`)
     : `\nVARIETY: Rotate problem types. Never use the same scenario twice in one batch.`;
 
   const userMsg =
@@ -622,38 +568,27 @@ MATH FORMAT (KaTeX only):
 - ALLOWED: \\frac, \\sqrt, ^{}, _{}, \\times, \\div, \\pm, \\leq, \\geq, \\neq, \\approx, \\sin, \\cos, \\tan, \\pi, \\Rightarrow
 - FORBIDDEN: \\implies \\boxed \\left( \\right) \\because \\therefore \\text{} align cases
 - "所以"/"因为" → plain text outside $...$
+- EVERY $ must be balanced. Count them — total must be even.
 
-OUTPUT FORMAT — follow EXACTLY, blank line between every item:
-
+OUTPUT FORMAT:
 **第1题**
 
 **步骤1：** 说明文字 $公式$
 
-**步骤2：** 说明文字
-
 $$独立公式$$
-
-**步骤3：** 说明文字 $公式$
 
 **答案：** $最终答案$
 
 ---
 
-**第2题**
-
-（以此类推）
-
-RULES:
-- Each 步骤 on its own line, with a blank line before it.
-- NEVER put two steps on the same line.
-- Blank line before and after every $$ block.
-- Use --- between problems.`;
+**第2题**`;
 
   return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: exercises },
   ], false, 2048);
 }
+
 export async function identifyTopic(query: string, lang: Language) {
   const curriculumSummary = KNOWLEDGE_GRAPH.map((m) => ({
     module: m.id,
@@ -667,13 +602,10 @@ export async function identifyTopic(query: string, lang: Language) {
     `Analyze query: "${query}"\n` +
     `Curriculum: ${JSON.stringify(curriculumSummary)}\n` +
     `Language: ${lang === "zh" ? "Chinese" : "English"}\n` +
-    `Match the query to an existing concept ID or suggest the closest module. Provide a refined title capturing the SPECIFIC topic.`;
+    `Match to existing concept ID or suggest closest module.`;
 
   const text = await safeGenerate(
-    [
-      { role: "system", content: systemMsg },
-      { role: "user", content: userMsg },
-    ],
+    [{ role: "system", content: systemMsg }, { role: "user", content: userMsg }],
     true
   );
 
@@ -703,7 +635,6 @@ export async function chatStep(
     });
   });
 
-  // Inject language reminder after every 3 turns to prevent language drift
   if (history.length >= 3) {
     const langReminder = lang === "zh"
       ? "（请继续用中文回复，保持费曼阶梯教学法，当前阶段继续引导，不要跳级。）"
@@ -711,5 +642,5 @@ export async function chatStep(
     messages.push({ role: "user", content: langReminder });
   }
 
-  return await safeGenerate(messages, false, 600);  // chat reply: 3-5 sentences
+  return await safeGenerate(messages, false, 600);
 }
