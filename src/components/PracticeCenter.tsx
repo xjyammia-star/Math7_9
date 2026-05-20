@@ -34,6 +34,8 @@ const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string; flag: stri
 function sanitizeMath(text: string): string {
 
   // ── Step 1: Remove unsupported commands ──────────────────────────────
+  // \parallelogram → plain text (AI-invented command, not real LaTeX)
+  text = text.replace(/\\parallelogram/g, '平行四边形');
   // \backsim → \sim
   text = text.replace(/\\backsim/g, '\\sim');
   // \text{...} outside math — strip the wrapper, keep the content
@@ -45,12 +47,14 @@ function sanitizeMath(text: string): string {
   text = text.replace(/\\therefore/g, '所以');
 
   // ── Step 2: Fix double-dollar at end of inline expression ────────────
-  // Pattern: $expr$$ or \cmd$$ → remove the extra $
-  // e.g. "\triangle DFE$$" → "\triangle DFE$"  (handled below after wrapping)
-  // e.g. "$\perp$$" → "$\perp$"
+  // Pattern: \cmd letters$$ → $\cmd letters$
+  // e.g. "\triangle DFE$$" → "$\triangle DFE$"
+  text = text.replace(/\\(triangle|angle|sim|cong|perp|parallel|odot)\s*([A-Za-z]{0,4})\$\$/g,
+    (_, cmd, letters) => `$\\${cmd}${letters ? ' ' + letters : ''}$`);
+  // Pattern: $expr$$ → $expr$  (one extra $ at end)
   text = text.replace(/(\$[^$\n]+)\$\$/g, '$1$');
-  // Also: word$$ → word$ (bare $$ after non-math text)
-  text = text.replace(/([^$\n])\$\$(\s)/g, '$1$$$2');
+  // Also: word$$ → word$ (bare $$ after non-math text followed by space/punctuation)
+  text = text.replace(/([^$\n])\$\$(\s|;|。|，|）|\))/g, '$1\$$2');
 
   // ── Step 3: Wrap bare LaTeX commands that are outside $...$ ──────────
   // Order matters: longest/most specific patterns first.
