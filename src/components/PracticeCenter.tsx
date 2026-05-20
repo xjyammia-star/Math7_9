@@ -18,6 +18,7 @@ import { Concept, Language, Curriculum, Difficulty, Grade } from '../types';
 import { generateExercises, solveExercises } from '../services/geminiService';
 import LearningAgent from './LearningAgent';
 import MathDiagram from './MathDiagram';
+import { sanitizeMath } from '../utils/mathUtils';
 
 // ─── Curriculum labels ────────────────────────────────────────────────────
 const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string; flag: string; color: string }> = {
@@ -27,108 +28,6 @@ const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string; flag: stri
   SG: { zh: '新加坡课程（MOE）', en: 'Singapore Curriculum (MOE)', flag: '🇸🇬', color: '#f59e0b' },
   IB: { zh: 'IB课程（MYP）', en: 'IB Curriculum (MYP)', flag: '🌐', color: '#10b981' },
 };
-
-// ─── sanitizeMath ─────────────────────────────────────────────────────────
-// Fixes malformed LaTeX in AI output before KaTeX rendering.
-// Handles all known failure patterns collected from real AI output.
-function sanitizeMath(text: string): string {
-
-  // ── Step 0: Fix escaped dollar signs ────────────────────────────────
-  // \$ (AI sometimes writes \$ instead of $) → $
-  text = text.replace(/\\\$/g, '$');
-
-  // ── Step 1: Remove unsupported commands ──────────────────────────────
-  // \parallelogram → plain text (AI-invented command, not real LaTeX)
-  text = text.replace(/\\parallelogram/g, '平行四边形');
-  // \backsim → \sim
-  text = text.replace(/\\backsim/g, '\\sim');
-  // \text{...} outside math — strip the wrapper, keep the content
-  text = text.replace(/\\text\{([^}]*)\}/g, '$1');
-  // \implies → \Rightarrow
-  text = text.replace(/\\implies/g, '\\Rightarrow');
-  // \because / \therefore → plain Chinese
-  text = text.replace(/\\because/g, '因为');
-  text = text.replace(/\\therefore/g, '所以');
-
-  // ── Step 2: Fix double/triple-dollar at end of inline expression ─────
-  // Pattern: $$$ → $ (three consecutive dollars, keep only one)
-  text = text.replace(/\$\$\$+/g, '$');
-  // Pattern: \cmd letters$$ → $\cmd letters$
-  // e.g. "\triangle DFE$$" → "$\triangle DFE$"
-  text = text.replace(/\\(triangle|angle|sim|cong|perp|parallel|odot)\s*([A-Za-z]{0,4})\$\$/g,
-    (_, cmd, letters) => `$\\${cmd}${letters ? ' ' + letters : ''}$`);
-  // Pattern: $expr$$ → $expr$  (one extra $ at end)
-  text = text.replace(/(\$[^$\n]+)\$\$/g, '$1$');
-  // Also: word$$ → word$ (bare $$ after non-math text followed by space/punctuation)
-  text = text.replace(/([^$\n])\$\$(\s|;|。|，|）|\))/g, (_, before, after) => `${before}$${after}`);
-
-  // ── Step 3: Wrap bare LaTeX commands that are outside $...$ ──────────
-  // Order matters: longest/most specific patterns first.
-
-  // \odot X  (circle notation)
-  text = text.replace(/(?<!\$)(?<!\\)\\odot\s*([A-Za-z])/g, '$\\odot $1$');
-
-  // \angle ABC (1–4 letters)
-  text = text.replace(/(?<!\$)(?<!\\frac\{)\\angle\s+([A-Za-z]{1,4})/g, '$\\angle $1$');
-  text = text.replace(/(?<!\$)(?<!\\frac\{)\\angle([A-Za-z]{1,4})/g, '$\\angle $1$');
-  // Fix: $\angle XYZ missing closing $ before punctuation
-  text = text.replace(/(\$\\angle\s+[A-Za-z]{1,4})([^$\w])/g,
-    (_, expr, after) => `${expr}$${after}`);
-
-  // \triangle ABC (2–4 letters), handles trailing Chinese punctuation
-  text = text.replace(/(?<!\$)(?<!\\frac\{)\\triangle\s+([A-Za-z]{2,4})/g, '$\\triangle $1$');
-  text = text.replace(/(?<!\$)(?<!\\frac\{)\\triangle([A-Za-z]{2,4})/g, '$\\triangle $1$');
-  // Fix: $\triangle XYZ missing closing $ before punctuation
-  // Use function replacement to avoid $1/$2 capture group conflicts
-  text = text.replace(/(\$\\triangle\s+[A-Za-z]{2,4})([^$\w])/g,
-    (_, expr, after) => `${expr}$${after}`);
-
-  // \parallel (standalone or before letters)
-  text = text.replace(/(?<!\$)(?<!\\)\\parallel\s+([A-Za-z]{1,4})/g, '$\\parallel $1$');
-  text = text.replace(/(?<!\$)(?<!\\)\\parallel(?![}\s]*[A-Za-z])/g, '$\\parallel$');
-
-  // \perp (standalone or between identifiers)
-  // e.g. "CF\perp BE" → "$CF \perp BE$"
-  text = text.replace(/([A-Za-z]{1,4})\s*\\perp\s*([A-Za-z]{1,4})/g, '$$$1 \\perp $2$$');
-  // remaining bare \perp
-  text = text.replace(/(?<!\$)(?<!\\)\\perp(?!\})/g, '$\\perp$');
-
-  // \sim (similarity) standalone
-  text = text.replace(/(?<!\$)(?<!\\)\\sim(?![a-z])/g, '$\\sim$');
-
-  // \cong (congruence) standalone
-  text = text.replace(/(?<!\$)(?<!\\)\\cong(?![a-z])/g, '$\\cong$');
-
-  // \overset{\frown}{AB} arc notation
-  text = text.replace(/(?<!\$)\\overset\{\\frown\}\{([A-Za-z]{2})\}/g, '$\\overset{\\frown}{$1}$');
-
-  // ── Step 4: Fix mismatched $ signs ───────────────────────────────────
-  // Pattern: word$\cmd  (missing opening $)
-  // e.g. "CF$\perp BE$" → "$CF \perp BE$"
-  // We catch: non-$ char immediately before $ that starts a LaTeX cmd
-  text = text.replace(/([A-Za-z0-9])\$\\([a-zA-Z]+)/g, '$$$$1 \\$2');
-
-  // ── Step 5: Fix plain-text math symbols written without $ ────────────
-  // "odot X" (missing backslash and dollar)
-  text = text.replace(/\bodot\s+([A-Z])/g, '$\\odot $1$');
-  // "perp" as plain word
-  text = text.replace(/\bperp\b/g, '$\\perp$');
-  // "parallel" as plain word before letters
-  text = text.replace(/\bparallel\s*([A-Z]{1,3})/g, '$\\parallel $1$');
-
-  // ── Step 6: Clean up doubled $$ that may have been introduced ────────
-  // $$ inside inline context (not at start of line = display math)
-  // Only collapse mid-line $$expr$$ that should be $expr$
-  text = text.replace(/(?<!^)\$\$([^$\n]{1,80})\$\$(?!\n)/gm, '$$$1$$');
-
-  // ── Step 7: Remove \left( \right) wrappers (KaTeX chokes on these) ───
-  text = text.replace(/\\left\(/g, '(');
-  text = text.replace(/\\right\)/g, ')');
-  text = text.replace(/\\left\[/g, '[');
-  text = text.replace(/\\right\]/g, ']');
-
-  return text;
-}
 
 
 interface PracticeCenterProps {

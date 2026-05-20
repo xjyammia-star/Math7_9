@@ -8,35 +8,7 @@ import 'katex/dist/katex.min.css';
 import { Concept, Language, Curriculum, Message } from '../types';
 import { startFeynmanSession, chatStep, guideExercise, guideExerciseStep } from '../services/geminiService';
 import MathDiagram from './MathDiagram';
-
-/**
- * Fixes AI LaTeX mistakes before rendering with KaTeX.
- * Handles both \odot O (with backslash) and odotO (without backslash) patterns.
- */
-function sanitizeMath(text: string): string {
-  // 1. Remove \text{...} — keep inner text as plain
-  text = text.replace(/\\text\{([^}]*)\}/g, '$1');
-
-  // 2. Fix bare LaTeX WITH backslash but missing $ wrapper
-  text = text.replace(/(?<!\$)\\odot\s*([A-Za-z])/g, '$\\odot $1$');
-  text = text.replace(/(?<!\$)\\angle\s*([A-Za-z]{1,4})/g, '$\\angle $1$');
-  text = text.replace(/(?<!\$)\\triangle\s*([A-Za-z]{2,4})/g, '$\\triangle $1$');
-  text = text.replace(/(?<!\$)\\parallel(?!\})/g, '$\\parallel$');
-  text = text.replace(/(?<!\$)\\perp(?!\})/g, '$\\perp$');
-
-  // 3. Fix AI omitting backslash entirely: "odotO" → "$\odot O$"
-  text = text.replace(/\bodot\s*([A-Z])/g, '$\\odot $1$');
-  text = text.replace(/([A-Z]{1,2})perp([A-Z]{1,2})/g, '$1$\\perp$$2');
-  text = text.replace(/\bperp\b/g, '$\\perp$');
-  text = text.replace(/\bparallel([A-Z]{1,3})/g, '$\\parallel $1$');
-  text = text.replace(/\bangle([A-Z]{1,4})/g, '$\\angle $1$');
-  text = text.replace(/\btriangle([A-Z]{2,4})/g, '$\\triangle $1$');
-
-  // 4. Clean up double-dollar on same line
-  text = text.replace(/\$\$([^$\n]+)\$\$/g, (_, inner) => `$$${inner.trim()}$$`);
-
-  return text;
-}
+import { sanitizeMath } from '../utils/mathUtils';
 
 const LearningAgent: React.FC<LearningAgentProps> = ({
   concept,
@@ -86,7 +58,6 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
       try {
         let resp: string;
         if (mode === 'guide' && initialContext) {
-          // Guide mode: initialContext is the exercise text
           resp = await guideExercise(initialContext, concept, lang, curriculum);
         } else {
           const targetTitle = concept.specificFocus ? concept.specificFocus[lang] : concept.title[lang];
@@ -130,7 +101,7 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
     }
   };
 
-  // ── Markdown renderer helpers (shared) ──────────────────────────────────
+  // ── Markdown renderer helpers ────────────────────────────────────────
   const mdComponents = {
     p({ node, children }: any) {
       const textSource = Array.isArray(children) ? children : [children];
@@ -172,7 +143,7 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
     }
   };
 
-  // ── Not started ─────────────────────────────────────────────────────────
+  // ── Not started ──────────────────────────────────────────────────────
   if (!isStarted) {
     return (
       <div className="flex flex-col h-full bg-[var(--color-brand-bg)] max-w-6xl mx-auto items-center justify-center p-12 text-center">
@@ -185,7 +156,6 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
         </motion.div>
         <h3 className="text-2xl font-bold text-white mb-2">{t.welcome}: {concept.title[lang]}</h3>
 
-        {/* Curriculum emphasis hint */}
         {curriculum && concept.emphasis[curriculum] ? (
           <div className="mb-8 max-w-sm mx-auto space-y-1">
             <p className="text-slate-500 text-sm">{t.readyPrompt}</p>
@@ -219,10 +189,9 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
     );
   }
 
-  // ── Chat UI ──────────────────────────────────────────────────────────────
+  // ── Chat UI ──────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full bg-[var(--color-brand-bg)] max-w-6xl mx-auto">
-      {/* Sub-header */}
       <div className="p-4 bg-[var(--color-brand-card)] border-b border-[var(--color-brand-border)] flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-[var(--color-brand-accent)]" />
@@ -237,7 +206,6 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
         </div>
       </div>
 
-      {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
         {history.map((msg, idx) => (
           <motion.div
@@ -274,7 +242,6 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
           </motion.div>
         ))}
 
-        {/* Loading dots */}
         {loading && (
           <div className="flex gap-4">
             <div className="w-8 h-8 rounded-lg bg-[var(--color-brand-accent)] text-[var(--color-brand-bg)] flex items-center justify-center">
@@ -288,7 +255,6 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
           </div>
         )}
 
-        {/* Error */}
         {error && (
           <div className="p-4 bg-red-900/10 border border-red-900/30 rounded-2xl flex items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-red-400 text-xs">
@@ -305,7 +271,6 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
         )}
       </div>
 
-      {/* Input */}
       <div className="p-6 border-t border-[var(--color-brand-border)] bg-[var(--color-brand-card)]/30">
         <div className="relative flex items-center gap-2 max-w-3xl mx-auto">
           <input
