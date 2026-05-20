@@ -52,7 +52,9 @@ function sanitizeMath(text: string): string {
   text = text.replace(/\\because/g, '因为');
   text = text.replace(/\\therefore/g, '所以');
 
-  // ── Step 2: Fix double-dollar at end of inline expression ────────────
+  // ── Step 2: Fix double/triple-dollar at end of inline expression ─────
+  // Pattern: $$$ → $ (three consecutive dollars, keep only one)
+  text = text.replace(/\$\$\$+/g, '$');
   // Pattern: \cmd letters$$ → $\cmd letters$
   // e.g. "\triangle DFE$$" → "$\triangle DFE$"
   text = text.replace(/\\(triangle|angle|sim|cong|perp|parallel|odot)\s*([A-Za-z]{0,4})\$\$/g,
@@ -60,7 +62,7 @@ function sanitizeMath(text: string): string {
   // Pattern: $expr$$ → $expr$  (one extra $ at end)
   text = text.replace(/(\$[^$\n]+)\$\$/g, '$1$');
   // Also: word$$ → word$ (bare $$ after non-math text followed by space/punctuation)
-  text = text.replace(/([^$\n])\$\$(\s|;|。|，|）|\))/g, '$1\$$2');
+  text = text.replace(/([^$\n])\$\$(\s|;|。|，|）|\))/g, (_, before, after) => `${before}$${after}`);
 
   // ── Step 3: Wrap bare LaTeX commands that are outside $...$ ──────────
   // Order matters: longest/most specific patterns first.
