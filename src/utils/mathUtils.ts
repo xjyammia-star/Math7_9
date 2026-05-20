@@ -33,6 +33,8 @@ export function sanitizeMath(text: string): string {
   // ── Step 2: Fix double/triple-dollar at end of inline expression ──────
   // $$$ or more → $ (compress runs of 3+ dollars)
   text = text.replace(/\$\$\$+/g, '$');
+  // $$word → $word (extra $ at start of inline expression)
+  text = text.replace(/\$\$([A-Za-z])/g, '$$$1');
   // \cmd letters$$ → $\cmd letters$
   text = text.replace(/\\(triangle|angle|sim|cong|perp|parallel|odot)\s*([A-Za-z]{0,4})\$\$/g,
     (_, cmd, letters) => `$\\${cmd}${letters ? ' ' + letters : ''}$`);
