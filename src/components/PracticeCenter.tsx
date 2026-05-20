@@ -19,7 +19,7 @@ import { generateExercises, solveExercises } from '../services/geminiService';
 import LearningAgent from './LearningAgent';
 import MathDiagram from './MathDiagram';
 
-// ─── Curriculum labels (mirrors App.tsx CURRICULA) ────────────────────────
+// ─── Curriculum labels ────────────────────────────────────────────────────
 const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string; flag: string; color: string }> = {
   CN: { zh: '中国课程（人教版）', en: 'Chinese Curriculum (PEP)', flag: '🇨🇳', color: '#ef4444' },
   US: { zh: '美国课程（Common Core）', en: 'US Curriculum (Common Core)', flag: '🇺🇸', color: '#3b82f6' },
@@ -28,21 +28,88 @@ const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string; flag: stri
   IB: { zh: 'IB课程（MYP）', en: 'IB Curriculum (MYP)', flag: '🌐', color: '#10b981' },
 };
 
-// Fixes bare LaTeX commands in AI output before KaTeX rendering
+// ─── sanitizeMath ─────────────────────────────────────────────────────────
+// Fixes malformed LaTeX in AI output before KaTeX rendering.
+// Handles all known failure patterns collected from real AI output.
 function sanitizeMath(text: string): string {
+
+  // ── Step 1: Remove unsupported commands ──────────────────────────────
+  // \backsim → \sim
+  text = text.replace(/\\backsim/g, '\\sim');
+  // \text{...} outside math — strip the wrapper, keep the content
   text = text.replace(/\\text\{([^}]*)\}/g, '$1');
-  text = text.replace(/(?<!\$)\\odot\s*([A-Za-z])/g, '$\\odot $1$');
-  text = text.replace(/(?<!\$)\\angle\s*([A-Za-z]{1,4})/g, '$\\angle $1$');
-  text = text.replace(/(?<!\$)\\triangle\s*([A-Za-z]{2,4})/g, '$\\triangle $1$');
-  text = text.replace(/(?<!\$)\\parallel(?!\})/g, '$\\parallel$');
-  text = text.replace(/(?<!\$)\\perp(?!\})/g, '$\\perp$');
-  text = text.replace(/\bodot\s*([A-Z])/g, '$\\odot $1$');
-  text = text.replace(/([A-Z]{1,2})perp([A-Z]{1,2})/g, '$1$\\perp$$2');
+  // \implies → \Rightarrow
+  text = text.replace(/\\implies/g, '\\Rightarrow');
+  // \because / \therefore → plain Chinese
+  text = text.replace(/\\because/g, '因为');
+  text = text.replace(/\\therefore/g, '所以');
+
+  // ── Step 2: Fix double-dollar at end of inline expression ────────────
+  // Pattern: $expr$$ or \cmd$$ → remove the extra $
+  // e.g. "\triangle DFE$$" → "\triangle DFE$"  (handled below after wrapping)
+  // e.g. "$\perp$$" → "$\perp$"
+  text = text.replace(/(\$[^$\n]+)\$\$/g, '$1$');
+  // Also: word$$ → word$ (bare $$ after non-math text)
+  text = text.replace(/([^$\n])\$\$(\s)/g, '$1$$$2');
+
+  // ── Step 3: Wrap bare LaTeX commands that are outside $...$ ──────────
+  // Order matters: longest/most specific patterns first.
+
+  // \odot X  (circle notation)
+  text = text.replace(/(?<!\$)(?<!\\)\\odot\s*([A-Za-z])/g, '$\\odot $1$');
+
+  // \angle ABC (1–4 letters)
+  text = text.replace(/(?<!\$)(?<!\\frac\{)\\angle\s+([A-Za-z]{1,4})/g, '$\\angle $1$');
+  text = text.replace(/(?<!\$)(?<!\\frac\{)\\angle([A-Za-z]{1,4})/g, '$\\angle $1$');
+
+  // \triangle ABC (2–4 letters)
+  text = text.replace(/(?<!\$)(?<!\\frac\{)\\triangle\s+([A-Za-z]{2,4})/g, '$\\triangle $1$');
+  text = text.replace(/(?<!\$)(?<!\\frac\{)\\triangle([A-Za-z]{2,4})/g, '$\\triangle $1$');
+
+  // \parallel (standalone or before letters)
+  text = text.replace(/(?<!\$)(?<!\\)\\parallel\s+([A-Za-z]{1,4})/g, '$\\parallel $1$');
+  text = text.replace(/(?<!\$)(?<!\\)\\parallel(?![}\s]*[A-Za-z])/g, '$\\parallel$');
+
+  // \perp (standalone or between identifiers)
+  // e.g. "CF\perp BE" → "$CF \perp BE$"
+  text = text.replace(/([A-Za-z]{1,4})\s*\\perp\s*([A-Za-z]{1,4})/g, '$$$1 \\perp $2$$');
+  // remaining bare \perp
+  text = text.replace(/(?<!\$)(?<!\\)\\perp(?!\})/g, '$\\perp$');
+
+  // \sim (similarity) standalone
+  text = text.replace(/(?<!\$)(?<!\\)\\sim(?![a-z])/g, '$\\sim$');
+
+  // \cong (congruence) standalone
+  text = text.replace(/(?<!\$)(?<!\\)\\cong(?![a-z])/g, '$\\cong$');
+
+  // \overset{\frown}{AB} arc notation
+  text = text.replace(/(?<!\$)\\overset\{\\frown\}\{([A-Za-z]{2})\}/g, '$\\overset{\\frown}{$1}$');
+
+  // ── Step 4: Fix mismatched $ signs ───────────────────────────────────
+  // Pattern: word$\cmd  (missing opening $)
+  // e.g. "CF$\perp BE$" → "$CF \perp BE$"
+  // We catch: non-$ char immediately before $ that starts a LaTeX cmd
+  text = text.replace(/([A-Za-z0-9])\$\\([a-zA-Z]+)/g, '$$$$1 \\$2');
+
+  // ── Step 5: Fix plain-text math symbols written without $ ────────────
+  // "odot X" (missing backslash and dollar)
+  text = text.replace(/\bodot\s+([A-Z])/g, '$\\odot $1$');
+  // "perp" as plain word
   text = text.replace(/\bperp\b/g, '$\\perp$');
-  text = text.replace(/\bparallel([A-Z]{1,3})/g, '$\\parallel $1$');
-  text = text.replace(/\bangle([A-Z]{1,4})/g, '$\\angle $1$');
-  text = text.replace(/\btriangle([A-Z]{2,4})/g, '$\\triangle $1$');
-  text = text.replace(/\$\$([^$\n]+)\$\$/g, (_, inner) => `$$${inner.trim()}$$`);
+  // "parallel" as plain word before letters
+  text = text.replace(/\bparallel\s*([A-Z]{1,3})/g, '$\\parallel $1$');
+
+  // ── Step 6: Clean up doubled $$ that may have been introduced ────────
+  // $$ inside inline context (not at start of line = display math)
+  // Only collapse mid-line $$expr$$ that should be $expr$
+  text = text.replace(/(?<!^)\$\$([^$\n]{1,80})\$\$(?!\n)/gm, '$$$1$$');
+
+  // ── Step 7: Remove \left( \right) wrappers (KaTeX chokes on these) ───
+  text = text.replace(/\\left\(/g, '(');
+  text = text.replace(/\\right\)/g, ')');
+  text = text.replace(/\\left\[/g, '[');
+  text = text.replace(/\\right\]/g, ']');
+
   return text;
 }
 
@@ -218,7 +285,6 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
             <p className="text-slate-500 text-sm mt-2 leading-relaxed max-w-xl">{t.desc}</p>
           </div>
 
-          {/* Active curriculum badge */}
           {currInfo && (
             <div
               className="flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold border flex-shrink-0"
@@ -236,7 +302,6 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
         {/* Settings card */}
         <section className="p-8 dark-card rounded-3xl space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Difficulty */}
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-1.5 px-1">
                 <Settings2 className="w-3 h-3 text-[var(--color-brand-accent)]" />
@@ -253,7 +318,6 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
               </select>
             </div>
 
-            {/* Grade */}
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-1.5 px-1">
                 <RefreshCw className="w-3 h-3 text-[var(--color-brand-accent)]" />
@@ -270,7 +334,6 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
               </select>
             </div>
 
-            {/* Count */}
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-1.5 px-1">
                 <ListOrdered className="w-3 h-3 text-[var(--color-brand-accent)]" />
@@ -286,7 +349,6 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Requirement */}
             <div className="md:col-span-3 space-y-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-1.5 px-1">
                 <HelpCircle className="w-3 h-3 text-[var(--color-brand-accent)]" />
@@ -301,7 +363,6 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
               />
             </div>
 
-            {/* Buttons */}
             <div className="flex items-end gap-3">
               <button
                 onClick={handleGenerate}
@@ -360,7 +421,6 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
                   </ReactMarkdown>
                 </div>
 
-                {/* Inline guide */}
                 {isGuiding && concept && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
@@ -389,7 +449,6 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
                   </motion.div>
                 )}
 
-                {/* Action buttons */}
                 <div className="mt-16 flex flex-wrap gap-4 border-t border-[var(--color-brand-border)] pt-8">
                   <button
                     onClick={() => setIsGuiding(!isGuiding)}
@@ -417,7 +476,6 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
                 </div>
               </div>
 
-              {/* Tip banner */}
               <div className="bg-amber-900/10 p-8 rounded-3xl border border-amber-900/20 flex gap-6 backdrop-blur-sm">
                 <div className="w-12 h-12 rounded-2xl bg-amber-900/20 flex items-center justify-center flex-shrink-0">
                   <AlertCircle className="w-6 h-6 text-[var(--color-brand-accent)]" />
@@ -461,7 +519,6 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
           )}
         </AnimatePresence>
 
-        {/* Full-screen loading */}
         {loading && !exercises && (
           <div className="py-24 flex flex-col items-center justify-center space-y-6">
             <div className="w-16 h-16 border-[3px] border-slate-800 border-t-[var(--color-brand-accent)] rounded-full animate-spin" />
