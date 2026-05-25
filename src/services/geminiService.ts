@@ -258,6 +258,7 @@ STRICT PRINCIPLES:
    Pick the matching template and fill in numeric values and labels from the problem.
    Never omit a required side, line, point, or label that is explicitly present in the problem statement.
    Never label the value being asked for in the question. If the problem asks for CP, do NOT set label_cp to the computed answer; show "?" or omit that segment label. If only CD is given, label the whole CD segment, not CP/PD.
+   For water-depth chord problems, use circle_chord with water_depth and label_depth. Do NOT label derived OC or half-chord values unless they are explicitly given in the problem.
    If you are not confident that a diagram will be exact, prefer a simpler valid template over guessing geometry.
 
    Right triangle (直角三角形):
@@ -359,7 +360,7 @@ STRICT PRINCIPLES:
 
    Circle with chord and perpendicular (圆中弦与垂径定理):
    ${BT}math-diagram
-   {"template":"circle_chord","radius":5,"chord_half":4,"label_O":"O","label_A":"A","label_B":"B","label_C":"C","label_radius":"5","label_oc":"3","label_chord_half":"4"}
+   {"template":"circle_chord","radius":10,"water_depth":4,"label_O":"O","label_A":"A","label_B":"B","label_C":"C","label_radius":"10 cm","label_depth":"4 cm","label_chord":"AB"}
    ${BT}
 
    Circle with tangent from external point (圆外切线):

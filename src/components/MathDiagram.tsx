@@ -351,10 +351,12 @@ function validateDiagramData(template: string, data: any): string | null {
     }
     case 'circle_chord': {
       const radius = asFiniteNumber(data.radius);
+      const depth = asFiniteNumber(data.water_depth ?? data.depth);
       const chordHalf = asFiniteNumber(data.chord_half ?? (data.chord ? data.chord / 2 : null));
+      if (radius !== null && depth !== null && radius > 0 && depth >= 0 && depth <= radius * 2) return null;
       return radius !== null && chordHalf !== null && radius > 0 && chordHalf >= 0 && chordHalf <= radius
         ? null
-        : 'circle_chord requires a radius and a chord within the circle';
+        : 'circle_chord requires a radius and either a chord within the circle or a valid water_depth';
     }
     case 'circle_tangent': {
       const radius = asFiniteNumber(data.radius);
@@ -994,12 +996,16 @@ function Parallelogram({ data }: { data: any }) {
  */
 function CircleChord({ data }: { data: any }) {
   const r: number = data.radius ?? 5;
-  const chordHalf: number = data.chord_half ?? (data.chord ? data.chord / 2 : r * 0.6);
+  const waterDepth: number | null = data.water_depth ?? data.depth ?? null;
+  const ocFromDepth = waterDepth !== null ? Math.max(0, r - waterDepth) : null;
+  const chordHalf: number = data.chord_half ?? (data.chord ? data.chord / 2 : (
+    ocFromDepth !== null ? Math.sqrt(Math.max(0, r * r - ocFromDepth * ocFromDepth)) : r * 0.6
+  ));
   const showPerp: boolean = data.show_perpendicular !== false;
 
   // O at centre. Chord AB is horizontal, C is midpoint (foot of perpendicular from O).
-  // OC = sqrt(r² - (chord_half)²)
-  const oc = Math.sqrt(Math.max(0, r * r - chordHalf * chordHalf));
+  // For water-depth problems, OC is derived from the depth and should not be shown by default.
+  const oc = ocFromDepth ?? Math.sqrt(Math.max(0, r * r - chordHalf * chordHalf));
 
   const O: Pt  = { x: 0, y: 0 };
   const A: Pt  = { x: -chordHalf, y: oc };
@@ -1018,8 +1024,10 @@ function CircleChord({ data }: { data: any }) {
   const lB  = data.label_B  ?? 'B';
   const lC  = data.label_C  ?? (showPerp ? 'C' : '');
   const lOA = data.label_radius ?? String(r);
-  const lOC = data.label_oc ?? (Number.isInteger(oc) ? String(oc) : '');
-  const lAC = data.label_chord_half ?? (Number.isInteger(chordHalf) ? String(chordHalf) : '');
+  const lOC = data.label_oc !== undefined ? String(data.label_oc) : '';
+  const lAC = data.label_chord_half !== undefined ? String(data.label_chord_half) : '';
+  const lChord = data.label_chord !== undefined ? String(data.label_chord) : '';
+  const lDepth = data.label_depth !== undefined ? String(data.label_depth) : '';
 
   return (
     <g>
@@ -1054,6 +1062,8 @@ function CircleChord({ data }: { data: any }) {
       {lOA && <SegLabel a={sO} b={sA} label={lOA} color={GREY} />}
       {lOC && <SegLabel a={sO} b={sC} label={lOC} />}
       {lAC && <SegLabel a={sA} b={sC} label={lAC} color={GOLD} />}
+      {lChord && <SegLabel a={sA} b={sB} label={lChord} color={GOLD} />}
+      {lDepth && <SegLabel a={sc({ x: r * 0.82, y: -r })} b={sc({ x: r * 0.82, y: oc })} label={lDepth} color={GOLD} />}
     </g>
   );
 }
