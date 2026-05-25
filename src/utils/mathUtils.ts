@@ -33,10 +33,14 @@ function replaceLeakedCommands(
 ): string {
   for (const [command, unicode, latex] of LEAKED_MATH_COMMANDS) {
     const escaped = command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const spacedStartOrNonLetter = new RegExp(`(^|[^A-Za-z])(?:\\\\)?${escaped}\\s+(?=[A-Z0-9(])`, 'g');
+    const spacedAfterUpperOrDigit = new RegExp(`([A-Z0-9)])(?:\\\\)?${escaped}\\s+(?=[A-Z0-9(])`, 'g');
     const startOrNonLetter = new RegExp(`(^|[^A-Za-z])(?:\\\\)?${escaped}(?=[A-Z0-9(])`, 'g');
     const afterUpperOrDigit = new RegExp(`([A-Z0-9)])(?:\\\\)?${escaped}(?=[A-Z0-9(])`, 'g');
     const replacement = replacementFor(unicode, latex);
 
+    text = text.replace(spacedStartOrNonLetter, `$1${replacement}`);
+    text = text.replace(spacedAfterUpperOrDigit, `$1${replacement}`);
     text = text.replace(startOrNonLetter, `$1${replacement}`);
     text = text.replace(afterUpperOrDigit, `$1${replacement}`);
   }
@@ -92,6 +96,7 @@ function sanitizeProseFragment(text: string): string {
   // ordinary English words such as "angle" do not get rewritten.
   text = text.replace(/°(?:\\)?circ\b/g, '°');
   text = text.replace(/([0-9])(?:\\)?circ\b/g, '$1°');
+  text = text.replace(/\\overset\{\\frown\}\{([^}]*)\}/g, '弧$1');
 
   return replaceLeakedCommands(text, (unicode) => unicode);
 }
@@ -106,6 +111,8 @@ export function sanitizeMath(text: string): string {
   // Safe, whole-string normalization that should not change meaning.
   const normalized = text
     .normalize('NFKC')
+    .replace(/\\\[((?:.|\n)*?)\\\]/g, (_match, body) => `$$${body}$$`)
+    .replace(/\\\(((?:.|\n)*?)\\\)/g, (_match, body) => `$${body}$`)
     .replace(/[\u200B-\u200D\uFEFF]/g, '')
     .replace(/\uFFFD/g, '')
     .replace(/\u00A0/g, ' ');
