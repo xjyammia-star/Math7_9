@@ -19,6 +19,7 @@ import { generateExercises, solveExercises } from '../services/geminiService';
 import LearningAgent from './LearningAgent';
 import MathDiagram from './MathDiagram';
 import { sanitizeMath } from '../utils/mathUtils';
+import { extractEmbeddedDiagram } from '../utils/markdownDiagram';
 
 // ─── Curriculum labels ────────────────────────────────────────────────────
 const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string; flag: string; color: string }> = {
@@ -164,6 +165,16 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
           const m = text.match(/(\{[\s\S]*\})/);
           return <MathDiagram data={m ? JSON.parse(m[1]) : text.trim()} />;
         } catch (e) {}
+      }
+      const embeddedDiagram = extractEmbeddedDiagram(text);
+      if (embeddedDiagram) {
+        return (
+          <div className="mb-4 space-y-4">
+            {embeddedDiagram.leadingText && <p className="mb-0">{embeddedDiagram.leadingText}</p>}
+            <MathDiagram data={embeddedDiagram.diagramData} />
+            {embeddedDiagram.trailingText && <p className="mb-0">{embeddedDiagram.trailingText}</p>}
+          </div>
+        );
       }
       return <p className="mb-4">{children}</p>;
     },
