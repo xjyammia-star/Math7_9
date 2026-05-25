@@ -179,6 +179,12 @@ const CURRICULUM_STYLE: Record<Curriculum, { zh: string; en: string }> = {
   },
 };
 
+function buildLanguageLock(lang: Language): string {
+  return lang === "zh"
+    ? "LANGUAGE LOCK: 用户当前选择的界面语言是中文。无论学生上一条消息使用中文、英文或其他语言，你都必须只用中文回复。不要因为学生写了 English words 就切换到英文。"
+    : "LANGUAGE LOCK: The user's selected interface language is English. Reply only in English, regardless of whether the student's latest message uses Chinese or another language.";
+}
+
 function buildCurriculumInstruction(
   curriculum: Curriculum | null,
   lang: Language
@@ -477,12 +483,14 @@ EXERCISE GUIDANCE MODE:
 4. SUBSEQUENT TURNS: Affirm correct answers, hint at wrong ones, re-ask.
 5. NEVER give a full worked solution. Maximum one algebraic step per reply.
 6. LANGUAGE: Always reply in ${lang === "zh" ? "Chinese" : "English"}.
+${buildLanguageLock(lang)}
 7. LENGTH: 3-5 sentences + 1 question per reply.` + curriculumInstr;
 
   const userMsg =
     `The student is working on:\n"""\n${exercises}\n"""\n\n` +
     `Topic: ${concept.title[lang]}\n` +
     `Language: ${lang === "zh" ? "Chinese" : "English"}\n\n` +
+    `${buildLanguageLock(lang)}\n\n` +
     `Address THIS specific problem immediately. Identify the first concrete step and ask ONE question.`;
 
   return await safeGenerate([
@@ -507,6 +515,7 @@ RULES:
 - Ask exactly ONE follow-up question per reply.
 - Keep replies to 3-5 sentences.
 - Language: always ${lang === "zh" ? "Chinese" : "English"}.
+- ${buildLanguageLock(lang)}
 - The problems: """${exercises}"""` + curriculumInstr;
 
   const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
@@ -515,6 +524,8 @@ RULES:
   history.forEach(m => {
     messages.push({ role: m.role === "user" ? "user" : "assistant", content: m.content });
   });
+
+  messages.push({ role: "user", content: buildLanguageLock(lang) });
 
   if (history.length >= 3) {
     const reminder = lang === "zh"
@@ -873,6 +884,8 @@ export async function chatStep(
       content: m.content,
     });
   });
+
+  messages.push({ role: "user", content: buildLanguageLock(lang) });
 
   if (history.length >= 3) {
     const langReminder = lang === "zh"
