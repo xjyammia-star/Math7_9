@@ -275,6 +275,10 @@ function numberFromValueOrLabel(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function getSectorCount(data: any): number | null {
+  return asFiniteNumber(data.sector_count ?? data.piece_count ?? data.parts ?? data.equal_parts ?? data.slices);
+}
+
 function hasRequiredLabels(labels: unknown, count: number): boolean {
   return Array.isArray(labels) && labels.length >= count && labels.slice(0, count).every(label => typeof label === 'string' && label.trim() !== '');
 }
@@ -385,9 +389,14 @@ function validateDiagramData(template: string, data: any): string | null {
       const radius = asFiniteNumber(data.radius);
       const angle = asFiniteNumber(data.angle ?? data.angle_deg);
       const minutes = asFiniteNumber(data.minutes ?? data.time_minutes);
-      return radius !== null && radius > 0 && ((angle !== null && angle > 0 && angle <= 360) || (minutes !== null && minutes > 0 && minutes <= 60))
+      const sectorCount = getSectorCount(data);
+      return radius !== null && radius > 0 && (
+        (angle !== null && angle > 0 && angle <= 360) ||
+        (minutes !== null && minutes > 0 && minutes <= 60) ||
+        (sectorCount !== null && sectorCount > 0)
+      )
         ? null
-        : 'circle_sector requires a positive radius and a valid angle or minute span';
+        : 'circle_sector requires a positive radius and a valid angle, minute span, or sector_count';
     }
     case 'circle_tangent': {
       const radius = asFiniteNumber(data.radius);
@@ -1507,7 +1516,10 @@ function CircleDiameterPoints({ data }: { data: any }) {
 function CircleSector({ data }: { data: any }) {
   const r: number = data.radius ?? 5;
   const minutes: number | null = data.minutes ?? data.time_minutes ?? null;
-  const angleDeg: number = data.angle ?? data.angle_deg ?? (minutes !== null ? minutes * 6 : 60);
+  const sectorCount = getSectorCount(data);
+  const angleDeg: number = data.angle ?? data.angle_deg ?? (minutes !== null ? minutes * 6 : (
+    sectorCount !== null && sectorCount > 0 ? 360 / sectorCount : 60
+  ));
   const startDeg: number = data.start_angle ?? 90;
   const endDeg = startDeg - angleDeg;
 

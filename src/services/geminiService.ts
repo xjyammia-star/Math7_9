@@ -250,6 +250,7 @@ STRICT PRINCIPLES:
      * Circle problems (弦、切线、圆心、半径、弧长、扇形、直径) → use circle_chord, circle_sector, circle_tangent, circle_chord_tangent, circle_cyclic_quadrilateral, circle_diameter_points, or circle_intersecting_chords templates. NEVER use linear_function or quadratic_function for circle geometry.
      * Clock hand / minute hand sweeping an arc or sector (钟表分针、时针扫过、弧长、扇形面积) → ALWAYS use circle_sector, not circle_chord.
      * Two tangents PA/PB plus another tangent through point C on arc AB, intersecting PA/PB at D/E → use circle_tangent with show_arc_tangent:true and labels C,D,E.
+     * A circular cake/pizza divided into equal slices/sectors → use circle_sector with radius and sector_count. Do NOT omit sector_count, and do NOT use coordinate_points.
      * Cyclic quadrilateral / quadrilateral inscribed in a circle (圆内接四边形、四边形ABCD内接于⊙O) → ALWAYS use circle_cyclic_quadrilateral, not coordinate_points.
      * If the problem says AB is a diameter (AB是⊙O的直径), use circle_diameter_points, not circle_cyclic_quadrilateral. A and B must be opposite ends of the diameter through O.
      * Intersecting chords inside a circle (两弦相交于圆内一点, AP/PB/CP/PD) → ALWAYS use circle_intersecting_chords, not coordinate_points.
@@ -379,6 +380,11 @@ STRICT PRINCIPLES:
    Circle with tangent from external point (圆外切线):
    ${BT}math-diagram
    {"template":"circle_tangent","radius":5,"op_dist":13,"label_O":"O","label_P":"P","label_A":"A","label_B":"B"}
+   ${BT}
+
+   Circle sector from equal slices:
+   ${BT}math-diagram
+   {"template":"circle_sector","radius":10,"sector_count":8,"label_O":"O","label_radius":"10 cm","label_angle":"45°","label_arc":"弧长?","label_area":"面积?"}
    ${BT}
 
    Circle with two tangents and tangent through arc point C:
