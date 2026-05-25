@@ -1352,6 +1352,7 @@ function CircleChordTangent({ data }: { data: any }) {
   const r: number = data.radius ?? 5;
   const angleDeg: number = data.angle ?? data.angle_pab ?? 42;
   const theta = (90 - angleDeg) * Math.PI / 180;
+  const arcType = String(data.arc_type ?? data.c_arc ?? data.arc ?? '').toLowerCase();
 
   const O: Pt = { x: 0, y: 0 };
   const A: Pt = { x: -r, y: 0 };
@@ -1366,7 +1367,15 @@ function CircleChordTangent({ data }: { data: any }) {
     y: A.y + chordLen * Math.sin(theta),
   };
 
-  const cAngle = -55 * Math.PI / 180;
+  const angleA = Math.atan2(A.y, A.x);
+  const angleB = Math.atan2(B.y, B.x);
+  let minorSweep = angleB - angleA;
+  while (minorSweep < 0) minorSweep += 2 * Math.PI;
+  if (minorSweep > Math.PI) minorSweep -= 2 * Math.PI;
+  const wantsMinorArc = arcType.includes('minor') || arcType.includes('劣');
+  const cAngle = wantsMinorArc
+    ? angleA + minorSweep * 0.55
+    : angleA + minorSweep - Math.sign(minorSweep || 1) * Math.PI * 0.9;
   const C: Pt = { x: r * Math.cos(cAngle), y: r * Math.sin(cAngle) };
 
   const allPts = [O, A, B, C, P, Q];
