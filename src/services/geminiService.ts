@@ -1,5 +1,6 @@
 import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
+import { sanitizeMath } from "../utils/mathUtils";
 
 const ARK_BASE_URL =
   (import.meta as any).env?.VITE_DOUBAO_BASE_URL ||
@@ -58,6 +59,91 @@ async function safeGenerate(
     console.error("ARK API Error:", error);
     throw error;
   }
+}
+
+const RAW_MATH_LEAK_PATTERNS: RegExp[] = [
+  /(?:^|[^A-Za-z])(?:\\)?odot(?=[A-Z0-9(])/,
+  /(?:^|[^A-Za-z])(?:\\)?triangle(?=[A-Z0-9(])/,
+  /(?:^|[^A-Za-z])(?:\\)?angle(?=[A-Z0-9(])/,
+  /(?:^|[^A-Za-z])(?:\\)?perp(?=[A-Z0-9(])/,
+  /(?:^|[^A-Za-z])(?:\\)?parallel(?=[A-Z0-9(])/,
+  /(?:^|[^A-Za-z])(?:\\)?circ\b/,
+];
+
+const GEOMETRY_HINT_PATTERN =
+  /(?:如图|as shown|圆|切线|弦|半径|三角形|直角|相似|平行|垂直|梯形|长方形|正方形|坐标|中点|中线|odot|triangle|perp|parallel)/i;
+
+function hasRawMathLeak(text: string): boolean {
+  return RAW_MATH_LEAK_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+function hasMathDiagramBlock(text: string): boolean {
+  return text.includes('```math-diagram') || text.includes('"template"');
+}
+
+function needsDiagramRepair(text: string, conceptTitle: string, conceptDesc: string): boolean {
+  const source = `${conceptTitle}\n${conceptDesc}\n${text}`;
+  const geometryContext = GEOMETRY_HINT_PATTERN.test(source);
+  const explicitFigureCue =
+    /(?:如图|as shown|点[A-Z]|odot|triangle|perp|parallel|圆|切线|弦|半径)/i.test(text);
+
+  return geometryContext && explicitFigureCue && !hasMathDiagramBlock(text);
+}
+
+function detectOutputIssues(
+  text: string,
+  conceptTitle: string,
+  conceptDesc: string
+): string[] {
+  const issues: string[] = [];
+
+  if (hasRawMathLeak(text)) issues.push("raw_math_leaks");
+  if (needsDiagramRepair(text, conceptTitle, conceptDesc)) issues.push("missing_diagram_block");
+
+  return issues;
+}
+
+async function repairExerciseOutput(
+  rawText: string,
+  conceptTitle: string,
+  conceptDesc: string,
+  grade: Grade,
+  difficulty: Difficulty,
+  lang: Language,
+  issueList: string[]
+): Promise<string> {
+  const system = `You are repairing AI-generated middle-school math exercises.
+
+Rules:
+- Preserve the meaning, difficulty, and question count.
+- Do not solve the problems.
+- Only fix formatting and representation issues.
+- Replace leaked math commands in prose with proper math formatting or Unicode symbols.
+- If a geometry problem needs a figure, include exactly one matching fenced block with the math-diagram template and valid JSON.
+- Do not add new topics or remove required information.
+- Output only the corrected exercises.`;
+
+  const user = [
+    `Language: ${lang === "zh" ? "Chinese" : "English"}`,
+    `Grade: ${grade}`,
+    `Difficulty: ${difficulty}`,
+    `Concept title: ${conceptTitle}`,
+    `Concept description: ${conceptDesc}`,
+    `Detected issues: ${issueList.join(", ")}`,
+    `Original output to repair:`,
+    rawText,
+  ].join("\n");
+
+  const repaired = await safeGenerate(
+    [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+    false,
+    1600
+  );
+
+  return sanitizeMath(repaired || rawText);
 }
 
 const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string }> = {
@@ -551,14 +637,24 @@ export async function generateExercises(
     `Difficulty: ${difficulty}\n` +
     `Language: ${lang === "zh" ? "Chinese" : "English"}\n` +
     `Description: ${conceptDesc}\n` +
+    `Formatting rule: if any exercise needs a figure, include a matching fenced math-diagram block and keep all math commands properly wrapped in $...$.\n` +
     varietyInstr + `\n` +
     `CRITICAL: DO NOT include solutions. ONLY output the numbered questions.\n` +
     `Timestamp: ${Date.now()}`;
 
-  return await safeGenerate([
+  const raw = await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
   ], false, 2048);
+
+  const cleaned = sanitizeMath(raw);
+  const issues = detectOutputIssues(raw, conceptTitle, conceptDesc);
+
+  if (issues.length > 0) {
+    return await repairExerciseOutput(cleaned, conceptTitle, conceptDesc, grade, difficulty, lang, issues);
+  }
+
+  return cleaned;
 }
 
 export async function solveExercises(exercises: string, lang: Language) {
