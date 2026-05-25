@@ -9,7 +9,44 @@
  *   5. Clean up math commands that leak into plain text
  */
 
+const LEAKED_MATH_COMMANDS = [
+  ['odot', '⊙', '\\odot '],
+  ['triangle', '△', '\\triangle '],
+  ['angle', '∠', '\\angle '],
+  ['perp', '⊥', '\\perp '],
+  ['parallel', '∥', '\\parallel '],
+  ['cdot', '·', '\\cdot '],
+  ['times', '×', '\\times '],
+  ['div', '÷', '\\div '],
+  ['leq', '≤', '\\leq '],
+  ['geq', '≥', '\\geq '],
+  ['neq', '≠', '\\neq '],
+  ['approx', '≈', '\\approx '],
+  ['sim', '∼', '\\sim '],
+  ['pi', 'π', '\\pi '],
+  ['Rightarrow', '⇒', '\\Rightarrow '],
+] as const;
+
+function replaceLeakedCommands(
+  text: string,
+  replacementFor: (unicode: string, latex: string) => string
+): string {
+  for (const [command, unicode, latex] of LEAKED_MATH_COMMANDS) {
+    const escaped = command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const startOrNonLetter = new RegExp(`(^|[^A-Za-z])(?:\\\\)?${escaped}(?=[A-Z0-9(])`, 'g');
+    const afterUpperOrDigit = new RegExp(`([A-Z0-9)])(?:\\\\)?${escaped}(?=[A-Z0-9(])`, 'g');
+    const replacement = replacementFor(unicode, latex);
+
+    text = text.replace(startOrNonLetter, `$1${replacement}`);
+    text = text.replace(afterUpperOrDigit, `$1${replacement}`);
+  }
+
+  return text;
+}
+
 function sanitizeMathFragment(text: string): string {
+  text = replaceLeakedCommands(text, (_unicode, latex) => latex);
+
   text = text.replace(/×/g, '\\times');
   text = text.replace(/÷/g, '\\div');
   text = text.replace(/≤/g, '\\leq');
@@ -56,34 +93,11 @@ function sanitizeProseFragment(text: string): string {
   text = text.replace(/°(?:\\)?circ\b/g, '°');
   text = text.replace(/([0-9])(?:\\)?circ\b/g, '$1°');
 
-  const leakedCommands = [
-    ['odot', '⊙'],
-    ['triangle', '△'],
-    ['angle', '∠'],
-    ['perp', '⊥'],
-    ['parallel', '∥'],
-    ['cdot', '·'],
-    ['times', '×'],
-    ['div', '÷'],
-    ['leq', '≤'],
-    ['geq', '≥'],
-    ['neq', '≠'],
-    ['approx', '≈'],
-    ['sim', '∼'],
-    ['pi', 'π'],
-    ['Rightarrow', '⇒'],
-  ] as const;
+  return replaceLeakedCommands(text, (unicode) => unicode);
+}
 
-  for (const [command, replacement] of leakedCommands) {
-    const escaped = command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const startOrNonLetter = new RegExp(`(^|[^A-Za-z])(?:\\\\)?${escaped}(?=[A-Z0-9(])`, 'g');
-    const afterUpperOrDigit = new RegExp(`([A-Z0-9)])(?:\\\\)?${escaped}(?=[A-Z0-9(])`, 'g');
-
-    text = text.replace(startOrNonLetter, `$1${replacement}`);
-    text = text.replace(afterUpperOrDigit, `$1${replacement}`);
-  }
-
-  return text;
+function containsCjk(text: string): boolean {
+  return /[\u3400-\u9FFF]/.test(text);
 }
 
 export function sanitizeMath(text: string): string {
@@ -122,6 +136,12 @@ export function sanitizeMath(text: string): string {
     }
 
     const mathBody = normalized.slice(start, end);
+    if (containsCjk(mathBody)) {
+      out += sanitizeProseFragment(mathBody);
+      i = end + delimiter.length;
+      continue;
+    }
+
     out += delimiter + sanitizeMathFragment(mathBody) + delimiter;
     i = end + delimiter.length;
   }
