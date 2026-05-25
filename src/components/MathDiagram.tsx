@@ -214,6 +214,19 @@ function norm(v: Pt): Pt {
 function dist(a: Pt, b: Pt) { return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2); }
 function midPt(a: Pt, b: Pt): Pt { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
 
+function lineIntersection(p1: Pt, p2: Pt, p3: Pt, p4: Pt): Pt | null {
+  const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
+  const x3 = p3.x, y3 = p3.y, x4 = p4.x, y4 = p4.y;
+  const den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+  if (Math.abs(den) < 1e-9) return null;
+  const a = x1 * y2 - y1 * x2;
+  const b = x3 * y4 - y3 * x4;
+  return {
+    x: (a * (x3 - x4) - (x1 - x2) * b) / den,
+    y: (a * (y3 - y4) - (y1 - y2) * b) / den,
+  };
+}
+
 function circleFromThreePoints(a: Pt, b: Pt, c: Pt): { cx: number; cy: number; r: number } | null {
   const d = 2 * (a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y));
   if (Math.abs(d) < 1e-9) return null;
@@ -1150,7 +1163,8 @@ function CircleIntersectingChords({ data }: { data: any }) {
 /**
  * circle_tangent — circle with external point P, two tangents PA and PB.
  * Fields: radius, op_dist (distance OP), label_O, label_P, label_A, label_B,
- *         label_radius, label_pa (tangent length), show_chord (draw AB, default true)
+ *         label_radius, label_pa (tangent length), show_chord (draw AB, default true),
+ *         show_arc_tangent (draw tangent at arc point C intersecting PA/PB at D/E)
  */
 function CircleTangent({ data }: { data: any }) {
   const r: number   = data.radius   ?? 5;
@@ -1165,8 +1179,16 @@ function CircleTangent({ data }: { data: any }) {
   const P: Pt = { x: op, y: 0 };
   const A: Pt = { x: r * Math.cos(Math.PI / 2 - alpha), y:  r * Math.sin(Math.PI / 2 - alpha) };
   const B: Pt = { x: A.x, y: -A.y };
+  const showArcTangent: boolean = data.show_arc_tangent === true || data.show_tangent_at_C === true;
+  const cAngle = data.c_angle !== undefined ? data.c_angle * Math.PI / 180 : Math.PI;
+  const C: Pt = { x: r * Math.cos(cAngle), y: r * Math.sin(cAngle) };
+  const tangentDir: Pt = { x: -Math.sin(cAngle), y: Math.cos(cAngle) };
+  const t1: Pt = { x: C.x - tangentDir.x * op, y: C.y - tangentDir.y * op };
+  const t2: Pt = { x: C.x + tangentDir.x * op, y: C.y + tangentDir.y * op };
+  const D = showArcTangent ? lineIntersection(P, A, t1, t2) : null;
+  const E = showArcTangent ? lineIntersection(P, B, t1, t2) : null;
 
-  const allPts = [O, P, A, B];
+  const allPts = [O, P, A, B, ...(showArcTangent ? [C, D, E].filter(Boolean) as Pt[] : [])];
   const xs = allPts.map(p => p.x), ys = allPts.map(p => p.y);
   const pad = Math.max(op, r) * 0.28;
   const sc = makeScaler(Math.min(...xs) - pad, Math.max(...xs) + pad,
@@ -1179,6 +1201,9 @@ function CircleTangent({ data }: { data: any }) {
   const lP  = data.label_P  ?? 'P';
   const lA  = data.label_A  ?? 'A';
   const lB  = data.label_B  ?? 'B';
+  const lC  = data.label_C  ?? 'C';
+  const lD  = data.label_D  ?? 'D';
+  const lE  = data.label_E  ?? 'E';
   const lR  = data.label_radius ?? String(r);
   const lPA = data.label_pa ?? (Number.isInteger(pa) ? String(pa) : `${+pa.toFixed(2)}`);
   const lOP = data.label_op ?? String(op);
@@ -1207,6 +1232,21 @@ function CircleTangent({ data }: { data: any }) {
 
       {/* Chord AB */}
       {showChord && <Seg a={sA} b={sB} stroke={GREY} sw={1.5} dash="4,3" />}
+
+      {/* Tangent at C, meeting PA and PB at D and E */}
+      {showArcTangent && D && E && (() => {
+        const sC = sc(C), sD = sc(D), sE = sc(E);
+        return (
+          <>
+            <Seg a={sD} b={sE} stroke={GOLD} sw={2.2} />
+            <Seg a={sO} b={sC} stroke={GREY} sw={1.4} dash="4,3" />
+            <RightAngleMark v={sC} a={sO} b={sD} size={8} />
+            <Dot p={sC} label={lC} offset={{ x: -18, y: -10 }} />
+            <Dot p={sD} label={lD} offset={{ x: -18, y: -10 }} />
+            <Dot p={sE} label={lE} offset={{ x: -18, y: 14 }} />
+          </>
+        );
+      })()}
 
       {/* Labels */}
       <Dot p={sO} label={lO} offset={{ x: -16, y: 10 }} />

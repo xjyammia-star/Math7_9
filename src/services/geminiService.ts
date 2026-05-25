@@ -249,6 +249,7 @@ STRICT PRINCIPLES:
    - TEMPLATE SELECTION RULES (critical):
      * Circle problems (弦、切线、圆心、半径、弧长、扇形) → use circle_chord, circle_sector, circle_tangent, circle_chord_tangent, circle_cyclic_quadrilateral, or circle_intersecting_chords templates. NEVER use linear_function or quadratic_function for circle geometry.
      * Clock hand / minute hand sweeping an arc or sector (钟表分针、时针扫过、弧长、扇形面积) → ALWAYS use circle_sector, not circle_chord.
+     * Two tangents PA/PB plus another tangent through point C on arc AB, intersecting PA/PB at D/E → use circle_tangent with show_arc_tangent:true and labels C,D,E.
      * Cyclic quadrilateral / quadrilateral inscribed in a circle (圆内接四边形、四边形ABCD内接于⊙O) → ALWAYS use circle_cyclic_quadrilateral, not coordinate_points.
      * Intersecting chords inside a circle (两弦相交于圆内一点, AP/PB/CP/PD) → ALWAYS use circle_intersecting_chords, not coordinate_points.
      * Pure geometry (no coordinate grid in problem) → ALWAYS set axes:false. Use right_triangle / triangle / rectangle / coordinate_points with axes:false.
@@ -372,6 +373,11 @@ STRICT PRINCIPLES:
    Circle with tangent from external point (圆外切线):
    ${BT}math-diagram
    {"template":"circle_tangent","radius":5,"op_dist":13,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_radius":"5","label_pa":"12","label_op":"13"}
+   ${BT}
+
+   Circle with two tangents and tangent through arc point C:
+   ${BT}math-diagram
+   {"template":"circle_tangent","radius":5,"op_dist":13,"show_arc_tangent":true,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_pa":"12 cm"}
    ${BT}
 
    Intersecting chords inside a circle (圆内两弦相交):
