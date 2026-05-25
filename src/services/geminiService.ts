@@ -264,6 +264,8 @@ STRICT PRINCIPLES:
    For intersecting chords with a difference such as CP is 2 longer than PD / CP比PD长2, use cp_minus_pd and label_difference. Do NOT invent cd, label_cd, label_cp, or label_pd.
    For intersecting chords with a ratio such as CP:PD=2, use cp_pd_ratio and label_ratio. Do NOT invent cd, label_cd, label_cp, or label_pd.
    Never label derived tangent lengths such as PA, PB, OP, or radius unless those values are explicitly given in the problem statement.
+   In circle_tangent, radius/op_dist may be used as invisible layout values. Do NOT set label_radius or label_op unless the problem explicitly gives those values; if you must show them, also set show_radius_label:true or show_op_label:true.
+   If a tangent problem gives PA and angle APB, use tangent_length and angle_apb with label_pa and label_angle_apb; do NOT invent radius or OP labels.
    For water-depth chord problems, use circle_chord with water_depth and label_depth. water_depth means the vertical height from the lowest point of the circular pipe up to the water surface, NOT the distance from the centre. Do NOT label derived OC or half-chord values unless they are explicitly given in the problem.
    If you are not confident that a diagram will be exact, prefer a simpler valid template over guessing geometry.
 
@@ -381,7 +383,7 @@ STRICT PRINCIPLES:
 
    Circle with two tangents and tangent through arc point C:
    ${BT}math-diagram
-   {"template":"circle_tangent","radius":5,"op_dist":13,"show_arc_tangent":true,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E"}
+   {"template":"circle_tangent","tangent_length":12,"angle_apb":50,"show_arc_tangent":true,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_pa":"12 cm","label_angle_apb":"50°"}
    ${BT}
 
    Intersecting chords inside a circle (圆内两弦相交):

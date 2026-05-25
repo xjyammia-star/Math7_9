@@ -265,6 +265,16 @@ function asFiniteNumber(value: unknown): number | null {
   return null;
 }
 
+function numberFromValueOrLabel(value: unknown): number | null {
+  const direct = asFiniteNumber(value);
+  if (direct !== null) return direct;
+  if (typeof value !== 'string') return null;
+  const match = value.match(/-?\d+(?:\.\d+)?/);
+  if (!match) return null;
+  const parsed = Number(match[0]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function hasRequiredLabels(labels: unknown, count: number): boolean {
   return Array.isArray(labels) && labels.length >= count && labels.slice(0, count).every(label => typeof label === 'string' && label.trim() !== '');
 }
@@ -382,9 +392,14 @@ function validateDiagramData(template: string, data: any): string | null {
     case 'circle_tangent': {
       const radius = asFiniteNumber(data.radius);
       const op = asFiniteNumber(data.op_dist);
-      return radius !== null && op !== null && radius > 0 && op > radius
+      const tangentLength = numberFromValueOrLabel(data.tangent_length ?? data.pa_length ?? data.pa ?? data.PA ?? data.label_pa);
+      const angleApb = numberFromValueOrLabel(data.angle_apb ?? data.angle ?? data.label_angle_apb ?? data.label_angle);
+      return (
+        (radius !== null && op !== null && radius > 0 && op > radius) ||
+        (tangentLength !== null && angleApb !== null && tangentLength > 0 && angleApb > 0 && angleApb < 180)
+      )
         ? null
-        : 'circle_tangent requires op_dist to be larger than radius';
+        : 'circle_tangent requires op_dist to be larger than radius, or a tangent_length with angle_apb';
     }
     case 'circle_chord_tangent': {
       const radius = asFiniteNumber(data.radius ?? 5);
@@ -1203,8 +1218,23 @@ function CircleIntersectingChords({ data }: { data: any }) {
  *         show_arc_tangent (draw tangent at arc point C intersecting PA/PB at D/E)
  */
 function CircleTangent({ data }: { data: any }) {
-  const r: number   = data.radius   ?? 5;
-  const op: number  = data.op_dist  ?? 13;
+  const tangentLength = numberFromValueOrLabel(data.tangent_length ?? data.pa_length ?? data.pa ?? data.PA ?? data.label_pa);
+  const angleApbDeg = numberFromValueOrLabel(data.angle_apb ?? data.angle ?? data.label_angle_apb ?? data.label_angle);
+  const halfAngle = angleApbDeg !== null ? angleApbDeg * Math.PI / 360 : null;
+  const explicitRadius = asFiniteNumber(data.radius);
+  const explicitOp = asFiniteNumber(data.op_dist);
+  const r: number = explicitRadius ?? (
+    tangentLength !== null && halfAngle !== null
+      ? tangentLength * Math.tan(halfAngle)
+      : 5
+  );
+  const op: number = explicitOp ?? (
+    tangentLength !== null && halfAngle !== null
+      ? tangentLength / Math.cos(halfAngle)
+      : explicitRadius !== null && tangentLength !== null
+        ? Math.sqrt(explicitRadius * explicitRadius + tangentLength * tangentLength)
+        : 13
+  );
 
   // PA = sqrt(OP² - r²)
   const pa = Math.sqrt(Math.max(0, op * op - r * r));
@@ -1240,9 +1270,12 @@ function CircleTangent({ data }: { data: any }) {
   const lC  = data.label_C  ?? 'C';
   const lD  = data.label_D  ?? 'D';
   const lE  = data.label_E  ?? 'E';
-  const lR  = data.label_radius !== undefined ? String(data.label_radius) : '';
+  const showRadiusLabel = data.show_radius_label === true || data.radius_given === true;
+  const showOpLabel = data.show_op_label === true || data.op_given === true;
+  const lR  = showRadiusLabel && data.label_radius !== undefined ? String(data.label_radius) : '';
   const lPA = data.label_pa !== undefined ? String(data.label_pa) : '';
-  const lOP = data.label_op !== undefined ? String(data.label_op) : '';
+  const lOP = showOpLabel && data.label_op !== undefined ? String(data.label_op) : '';
+  const lAngleApb = data.label_angle_apb ?? data.label_angle ?? (angleApbDeg !== null ? `${angleApbDeg}°` : '');
   const showChord: boolean = data.show_chord !== false;
 
   return (
@@ -1268,6 +1301,7 @@ function CircleTangent({ data }: { data: any }) {
 
       {/* Chord AB */}
       {showChord && <Seg a={sA} b={sB} stroke={GREY} sw={1.5} dash="4,3" />}
+      {lAngleApb && <AngleMark v={sP} a={sA} b={sB} label={String(lAngleApb)} r={26} color={GOLD} />}
 
       {/* Tangent at C, meeting PA and PB at D and E */}
       {showArcTangent && D && E && (() => {
