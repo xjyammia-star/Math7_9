@@ -247,7 +247,8 @@ STRICT PRINCIPLES:
    - MANDATORY: If you say "如图" or "as shown", you MUST include a diagram block.
    - MANDATORY: If the problem names specific points (e.g. A, B, C, D, G, H) on geometric figures, you MUST include a diagram even if the answer is purely computational.
    - TEMPLATE SELECTION RULES (critical):
-     * Circle problems (弦、切线、圆心、半径) → use circle_chord, circle_tangent, circle_chord_tangent, or circle_intersecting_chords templates. NEVER use linear_function or quadratic_function for circle geometry.
+     * Circle problems (弦、切线、圆心、半径) → use circle_chord, circle_tangent, circle_chord_tangent, circle_cyclic_quadrilateral, or circle_intersecting_chords templates. NEVER use linear_function or quadratic_function for circle geometry.
+     * Cyclic quadrilateral / quadrilateral inscribed in a circle (圆内接四边形、四边形ABCD内接于⊙O) → ALWAYS use circle_cyclic_quadrilateral, not coordinate_points.
      * Intersecting chords inside a circle (两弦相交于圆内一点, AP/PB/CP/PD) → ALWAYS use circle_intersecting_chords, not coordinate_points.
      * Pure geometry (no coordinate grid in problem) → ALWAYS set axes:false. Use right_triangle / triangle / rectangle / coordinate_points with axes:false.
      * Only use axes:true when the problem explicitly mentions a coordinate system (坐标系/坐标轴/函数图象).
@@ -373,6 +374,11 @@ STRICT PRINCIPLES:
    Circle with tangent and chord (tangent-chord theorem):
    ${BT}math-diagram
    {"template":"circle_chord_tangent","radius":5,"angle":42,"label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"B","label_C":"C","label_angle":"42°"}
+   ${BT}
+
+   Cyclic quadrilateral / quadrilateral inscribed in a circle:
+   ${BT}math-diagram
+   {"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"label_O":"O","label_A":"2x+10°","label_B":"3x-5°","label_C":"3x°"}
    ${BT}
 
    DIAGRAM LABEL RULE: ALL "label" values must be plain Unicode text only.

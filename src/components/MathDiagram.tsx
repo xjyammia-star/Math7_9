@@ -370,6 +370,12 @@ function validateDiagramData(template: string, data: any): string | null {
         ? null
         : 'circle_chord_tangent requires a positive radius and optional angle between 0 and 90';
     }
+    case 'circle_cyclic_quadrilateral': {
+      const radius = asFiniteNumber(data.radius ?? 5);
+      return radius !== null && radius > 0
+        ? null
+        : 'circle_cyclic_quadrilateral requires a positive radius';
+    }
     case 'circle_intersecting_chords': {
       const ap = asFiniteNumber(data.ap);
       const pb = asFiniteNumber(data.pb);
@@ -1248,6 +1254,56 @@ function CircleChordTangent({ data }: { data: any }) {
   );
 }
 
+/**
+ * circle_cyclic_quadrilateral - quadrilateral ABCD inscribed in circle O.
+ * Fields: radius, labels, label_O, optional angle labels such as label_A.
+ */
+function CircleCyclicQuadrilateral({ data }: { data: any }) {
+  const r: number = data.radius ?? 5;
+  const labels: string[] = data.labels ?? ['A', 'B', 'C', 'D'];
+  const angleDegs: number[] = data.angles ?? [112, 58, -42, -148];
+
+  const O: Pt = { x: 0, y: 0 };
+  const pts = angleDegs.slice(0, 4).map((deg) => {
+    const rad = deg * Math.PI / 180;
+    return { x: r * Math.cos(rad), y: r * Math.sin(rad) };
+  });
+
+  const pad = r * 0.3;
+  const sc = makeScaler(-r - pad, r + pad, -r - pad, r + pad);
+  const sO = sc(O);
+  const sPts = pts.map(sc);
+  const pixelR = Math.abs(sc({ x: r, y: 0 }).x - sO.x);
+
+  const labelFor = (i: number) => labels[i] ?? ['A', 'B', 'C', 'D'][i];
+  const angleLabels = [
+    data.label_A,
+    data.label_B,
+    data.label_C,
+    data.label_D,
+  ];
+
+  return (
+    <g>
+      <circle cx={sO.x} cy={sO.y} r={pixelR}
+        fill="none" stroke={GREY} strokeWidth={2} strokeOpacity={0.65} />
+
+      <Poly pts={sPts} fill="none" stroke={GOLD} sw={2.4} />
+      <Dot p={sO} label={data.label_O ?? 'O'} offset={{ x: 8, y: 12 }} color={WHITE} />
+
+      {sPts.map((p, i) => (
+        <g key={labelFor(i)}>
+          <Dot p={p} label={labelFor(i)} offset={(data.label_offsets?.[i]) ?? { x: 8, y: -10 }} />
+          {angleLabels[i] && (
+            <text x={p.x + (i < 2 ? 16 : -18)} y={p.y + (i === 0 ? 16 : -12)}
+              fontSize={11} fontWeight="700" fill={GOLD}>{angleLabels[i]}</text>
+          )}
+        </g>
+      ))}
+    </g>
+  );
+}
+
 interface MathDiagramProps {
   data: any;
 }
@@ -1281,6 +1337,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'circle_chord':        content = <CircleChord data={parsed} />; break;
       case 'circle_tangent':      content = <CircleTangent data={parsed} />; break;
       case 'circle_chord_tangent': content = <CircleChordTangent data={parsed} />; break;
+      case 'circle_cyclic_quadrilateral': content = <CircleCyclicQuadrilateral data={parsed} />; break;
       case 'circle_intersecting_chords': content = <CircleIntersectingChords data={parsed} />; break;
       case 'linear_function':     content = <LinearFunction data={parsed} />; break;
       case 'quadratic_function':  content = <QuadraticFunction data={parsed} />; break;
