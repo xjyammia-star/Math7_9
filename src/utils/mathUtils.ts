@@ -1,11 +1,12 @@
 /**
- * mathUtils.ts - Shared LaTeX sanitization for KaTeX rendering.
+ * mathUtils.ts - Shared sanitization for AI-generated math text.
  *
  * Safe fixes only:
  *   1. Replace AI-invented or forbidden LaTeX command names with valid ones
  *   2. Fix double-backslash commands (\\cmd -> \cmd)
  *   3. Remove \left( \right) wrappers
  *   4. Normalize common Unicode math symbols inside math regions
+ *   5. Clean up math commands that leak into plain text
  */
 
 function sanitizeMathFragment(text: string): string {
@@ -48,6 +49,35 @@ function sanitizeMathFragment(text: string): string {
   return text;
 }
 
+function sanitizeProseFragment(text: string): string {
+  // These are the common math command leaks we have seen in prose.
+  // We only normalize them when they are glued to a symbol-like token so
+  // ordinary English words such as "angle" do not get rewritten.
+  const leakedCommands: Array<[RegExp, string]> = [
+    [/\b\\?odot(?=[A-Z0-9(])/g, '⊙'],
+    [/\b\\?triangle(?=[A-Z0-9(])/g, '△'],
+    [/\b\\?angle(?=[A-Z0-9(])/g, '∠'],
+    [/\b\\?perp(?=[A-Z0-9(])/g, '⊥'],
+    [/\b\\?parallel(?=[A-Z0-9(])/g, '∥'],
+    [/\b\\?cdot(?=[A-Z0-9(])/g, '·'],
+    [/\b\\?times(?=[A-Z0-9(])/g, '×'],
+    [/\b\\?div(?=[A-Z0-9(])/g, '÷'],
+    [/\b\\?leq(?=[A-Z0-9(])/g, '≤'],
+    [/\b\\?geq(?=[A-Z0-9(])/g, '≥'],
+    [/\b\\?neq(?=[A-Z0-9(])/g, '≠'],
+    [/\b\\?approx(?=[A-Z0-9(])/g, '≈'],
+    [/\b\\?sim(?=[A-Z0-9(])/g, '∼'],
+    [/\b\\?pi(?=[A-Z0-9(])/g, 'π'],
+    [/\b\\?Rightarrow(?=[A-Z0-9(])/g, '⇒'],
+  ];
+
+  for (const [pattern, replacement] of leakedCommands) {
+    text = text.replace(pattern, replacement);
+  }
+
+  return text;
+}
+
 export function sanitizeMath(text: string): string {
   if (!text) return '';
 
@@ -66,8 +96,10 @@ export function sanitizeMath(text: string): string {
     const ch = normalized[i];
 
     if (ch !== '$') {
-      out += ch;
-      i += 1;
+      const nextDollar = normalized.indexOf('$', i);
+      const proseEnd = nextDollar === -1 ? normalized.length : nextDollar;
+      out += sanitizeProseFragment(normalized.slice(i, proseEnd));
+      i = proseEnd;
       continue;
     }
 
@@ -77,7 +109,7 @@ export function sanitizeMath(text: string): string {
     const end = normalized.indexOf(delimiter, start);
 
     if (end === -1) {
-      out += normalized.slice(i);
+      out += sanitizeProseFragment(normalized.slice(i));
       break;
     }
 
