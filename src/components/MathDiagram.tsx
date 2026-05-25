@@ -1017,15 +1017,16 @@ function Parallelogram({ data }: { data: any }) {
 function CircleChord({ data }: { data: any }) {
   const r: number = data.radius ?? 5;
   const waterDepth: number | null = data.water_depth ?? data.depth ?? null;
-  const ocFromDepth = waterDepth !== null ? Math.max(0, r - waterDepth) : null;
+  // Water depth is measured upward from the pipe's lowest point, not down from the centre.
+  const chordYFromDepth = waterDepth !== null ? waterDepth - r : null;
   const chordHalf: number = data.chord_half ?? (data.chord ? data.chord / 2 : (
-    ocFromDepth !== null ? Math.sqrt(Math.max(0, r * r - ocFromDepth * ocFromDepth)) : r * 0.6
+    chordYFromDepth !== null ? Math.sqrt(Math.max(0, r * r - chordYFromDepth * chordYFromDepth)) : r * 0.6
   ));
   const showPerp: boolean = data.show_perpendicular !== false;
 
   // O at centre. Chord AB is horizontal, C is midpoint (foot of perpendicular from O).
   // For water-depth problems, OC is derived from the depth and should not be shown by default.
-  const oc = ocFromDepth ?? Math.sqrt(Math.max(0, r * r - chordHalf * chordHalf));
+  const oc = chordYFromDepth ?? Math.sqrt(Math.max(0, r * r - chordHalf * chordHalf));
 
   const O: Pt  = { x: 0, y: 0 };
   const A: Pt  = { x: -chordHalf, y: oc };

@@ -259,7 +259,7 @@ STRICT PRINCIPLES:
    Pick the matching template and fill in numeric values and labels from the problem.
    Never omit a required side, line, point, or label that is explicitly present in the problem statement.
    Never label the value being asked for in the question. If the problem asks for CP, do NOT set label_cp to the computed answer; show "?" or omit that segment label. If only CD is given, label the whole CD segment, not CP/PD.
-   For water-depth chord problems, use circle_chord with water_depth and label_depth. Do NOT label derived OC or half-chord values unless they are explicitly given in the problem.
+   For water-depth chord problems, use circle_chord with water_depth and label_depth. water_depth means the vertical height from the lowest point of the circular pipe up to the water surface, NOT the distance from the centre. Do NOT label derived OC or half-chord values unless they are explicitly given in the problem.
    If you are not confident that a diagram will be exact, prefer a simpler valid template over guessing geometry.
 
    Right triangle (直角三角形):
