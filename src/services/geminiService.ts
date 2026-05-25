@@ -13,14 +13,15 @@ const ARK_MODEL =
 async function safeGenerate(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
   jsonMode = false,
-  maxTokens = 800
+  maxTokens = 800,
+  temperature = 0.7
 ): Promise<string> {
   try {
     const body: Record<string, any> = {
       model: ARK_MODEL,
       messages,
       max_tokens: maxTokens,
-      temperature: 0.7,
+      temperature,
       top_p: 0.95,
     };
     if (jsonMode) {
@@ -605,9 +606,117 @@ const PROBLEM_TYPE_POOLS: Record<string, string[]> = {
   ],
 };
 
-function pickRandom<T>(arr: T[], n: number): T[] {
-  const shuffled = [...arr].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(n, arr.length));
+const GENERIC_PROBLEM_TYPES = [
+  "real-world application with a concrete context",
+  "reverse problem: give the result or condition, ask for a missing value",
+  "proof or reasoning problem that asks students to justify a conclusion",
+  "comparison or judgment problem with multiple possible statements",
+  "multi-step computation with an intermediate unknown",
+  "diagram-based geometry or modeling problem",
+  "error analysis: find and correct a mistaken solution or claim",
+  "parameter variation: ask how the answer changes when a condition changes",
+  "open-ended construction: create an example satisfying given constraints",
+  "table, graph, or coordinate representation problem",
+];
+
+const VARIETY_HISTORY_KEY = "math7-9:exercise-type-history:v1";
+const VARIETY_HISTORY_LIMIT = 8;
+
+type ExerciseTypeHistory = Record<string, string[]>;
+
+function getVarietyStorage(): Storage | null {
+  try {
+    return typeof window !== "undefined" ? window.localStorage : null;
+  } catch {
+    return null;
+  }
+}
+
+function readExerciseTypeHistoryMap(): ExerciseTypeHistory {
+  const storage = getVarietyStorage();
+  if (!storage) return {};
+
+  try {
+    const raw = storage.getItem(VARIETY_HISTORY_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function makeExerciseVarietyKey(
+  conceptTitle: string,
+  grade: Grade,
+  difficulty: Difficulty,
+  curriculum: Curriculum | null
+): string {
+  const normalizedTitle = conceptTitle.toLowerCase().replace(/\s+/g, " ").trim();
+  return `${curriculum ?? "general"}|${grade}|${difficulty}|${normalizedTitle}`;
+}
+
+function readRecentExerciseTypes(historyKey: string): string[] {
+  const historyMap = readExerciseTypeHistoryMap();
+  return Array.isArray(historyMap[historyKey]) ? historyMap[historyKey] : [];
+}
+
+function writeRecentExerciseTypes(historyKey: string, usedTypes: string[]) {
+  const storage = getVarietyStorage();
+  if (!storage || usedTypes.length === 0) return;
+
+  const historyMap = readExerciseTypeHistoryMap();
+  const previous = Array.isArray(historyMap[historyKey]) ? historyMap[historyKey] : [];
+  historyMap[historyKey] = [
+    ...usedTypes,
+    ...previous.filter((type) => !usedTypes.includes(type)),
+  ].slice(0, VARIETY_HISTORY_LIMIT);
+
+  try {
+    storage.setItem(VARIETY_HISTORY_KEY, JSON.stringify(historyMap));
+  } catch {
+    // If browser storage is unavailable or full, generation should still work.
+  }
+}
+
+function randomIndex(max: number): number {
+  if (max <= 0) return 0;
+
+  try {
+    const cryptoApi = globalThis.crypto;
+    if (cryptoApi?.getRandomValues) {
+      const values = new Uint32Array(1);
+      cryptoApi.getRandomValues(values);
+      return values[0] % max;
+    }
+  } catch {
+    // Fall back below.
+  }
+
+  return Math.floor(Math.random() * max);
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = randomIndex(i + 1);
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function pickDiverseExerciseTypes(
+  pool: string[],
+  count: number,
+  recentTypes: string[]
+): string[] {
+  const uniquePool = Array.from(new Set(pool.filter(Boolean)));
+  const targetCount = Math.max(1, Math.min(count, uniquePool.length));
+  const recentSet = new Set(recentTypes);
+  const freshTypes = shuffle(uniquePool.filter((type) => !recentSet.has(type)));
+  const fallbackTypes = shuffle(uniquePool.filter((type) => recentSet.has(type)));
+
+  return [...freshTypes, ...fallbackTypes].slice(0, targetCount);
 }
 
 function getTypePool(conceptTitle: string): string[] | null {
@@ -630,13 +739,31 @@ export async function generateExercises(
   const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
   const system = SYSTEM_PROMPT_BASE + curriculumInstr;
 
-  const pool = getTypePool(conceptTitle);
-  const pickedTypes = pool ? pickRandom(pool, Math.max(count, 3)) : null;
+  const pool = getTypePool(conceptTitle) ?? GENERIC_PROBLEM_TYPES;
+  const historyKey = makeExerciseVarietyKey(conceptTitle, grade, difficulty, curriculum);
+  const recentTypes = readRecentExerciseTypes(historyKey);
+  const pickedTypes = pickDiverseExerciseTypes(pool, count, recentTypes);
   const varietyInstr = pickedTypes
     ? (lang === "zh"
         ? `\n本次必须从以下题型中选取（每种最多用一次，禁止重复）：\n${pickedTypes.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}`
         : `\nFor this batch, use these problem types (each at most once):\n${pickedTypes.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}`)
     : `\nVARIETY: Rotate problem types. Never use the same scenario twice in one batch.`;
+  const recentTypesText = recentTypes.length > 0
+    ? recentTypes.map((type, i) => `  ${i + 1}. ${type}`).join("\n")
+    : "  None";
+  const selectedTypesText = pickedTypes.map((type, i) => `  ${i + 1}. ${type}`).join("\n");
+  const forcedVarietyInstr =
+    `\nPROBLEM TYPE CONTROL:\n` +
+    `System-selected problem type(s) for THIS generation. You MUST use them in order, one per exercise:\n` +
+    `${selectedTypesText}\n` +
+    `Recently used problem types for this exact concept/grade/difficulty. Avoid repeating them unless no alternative exists:\n` +
+    `${recentTypesText}\n` +
+    `Hard rules:\n` +
+    `- If generating 1 exercise, use ONLY type #1 above.\n` +
+    `- Do not merely change numbers from a previous problem.\n` +
+    `- The scenario, known conditions, target question, and reasoning path must be noticeably different.\n` +
+    `- Keep the requested knowledge point central; do not drift into unrelated topics.\n` +
+    (lang === "zh" ? `- Output in Chinese.\n` : "");
 
   const userMsg =
     `Task: Generate ${count} mathematics exercise(s) for "${conceptTitle}".\n` +
@@ -645,14 +772,16 @@ export async function generateExercises(
     `Language: ${lang === "zh" ? "Chinese" : "English"}\n` +
     `Description: ${conceptDesc}\n` +
     `Formatting rule: if any exercise needs a figure, include a matching fenced math-diagram block and keep all math commands properly wrapped in $...$.\n` +
-    varietyInstr + `\n` +
+    varietyInstr + forcedVarietyInstr + `\n` +
     `CRITICAL: DO NOT include solutions. ONLY output the numbered questions.\n` +
     `Timestamp: ${Date.now()}`;
 
   const raw = await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
-  ], false, 2048);
+  ], false, 2048, 0.95);
+
+  writeRecentExerciseTypes(historyKey, pickedTypes);
 
   const cleaned = sanitizeMath(raw);
   const issues = detectOutputIssues(raw, conceptTitle, conceptDesc);
