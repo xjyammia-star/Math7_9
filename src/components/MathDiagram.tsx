@@ -399,6 +399,12 @@ function validateDiagramData(template: string, data: any): string | null {
         ? null
         : 'circle_cyclic_quadrilateral requires a positive radius';
     }
+    case 'circle_diameter_points': {
+      const radius = asFiniteNumber(data.radius ?? 5);
+      return radius !== null && radius > 0
+        ? null
+        : 'circle_diameter_points requires a positive radius';
+    }
     case 'circle_intersecting_chords': {
       const ap = asFiniteNumber(data.ap);
       const pb = asFiniteNumber(data.pb);
@@ -1382,6 +1388,55 @@ function CircleCyclicQuadrilateral({ data }: { data: any }) {
 }
 
 /**
+ * circle_diameter_points - AB is a diameter, with C/D on the same arc side.
+ * Useful for problems that explicitly state AB is a diameter of circle O.
+ */
+function CircleDiameterPoints({ data }: { data: any }) {
+  const r: number = data.radius ?? 5;
+  const side = data.arc_side === 'below' ? -1 : 1;
+  const cDeg: number = data.c_angle ?? 38;
+  const dDeg: number = data.d_angle ?? 116;
+
+  const O: Pt = { x: 0, y: 0 };
+  const A: Pt = { x: -r, y: 0 };
+  const B: Pt = { x: r, y: 0 };
+  const pointOnArc = (deg: number): Pt => {
+    const rad = deg * Math.PI / 180;
+    return { x: r * Math.cos(rad), y: side * r * Math.sin(rad) };
+  };
+  const C = pointOnArc(cDeg);
+  const D = pointOnArc(dDeg);
+
+  const pad = r * 0.3;
+  const sc = makeScaler(-r - pad, r + pad, -r - pad, r + pad);
+  const sO = sc(O), sA = sc(A), sB = sc(B), sC = sc(C), sD = sc(D);
+  const pixelR = Math.abs(sc({ x: r, y: 0 }).x - sO.x);
+
+  return (
+    <g>
+      <circle cx={sO.x} cy={sO.y} r={pixelR}
+        fill="none" stroke={GREY} strokeWidth={2} strokeOpacity={0.65} />
+      <Seg a={sA} b={sB} stroke={GOLD} sw={2.6} />
+      <Seg a={sA} b={sC} stroke={GREY} sw={1.5} dash="4,3" />
+      <Seg a={sB} b={sC} stroke={GREY} sw={1.5} dash="4,3" />
+      <Seg a={sA} b={sD} stroke={GOLD} sw={2.2} />
+      <Seg a={sD} b={sC} stroke={GOLD} sw={2.2} />
+      <Seg a={sC} b={sB} stroke={GOLD} sw={2.2} />
+
+      <Dot p={sO} label={data.label_O ?? 'O'} offset={{ x: 8, y: 12 }} color={WHITE} />
+      <Dot p={sA} label={data.label_A ?? 'A'} offset={{ x: -20, y: 0 }} />
+      <Dot p={sB} label={data.label_B ?? 'B'} offset={{ x: 10, y: 0 }} />
+      <Dot p={sC} label={data.label_C ?? 'C'} offset={{ x: 10, y: 10 }} />
+      <Dot p={sD} label={data.label_D ?? 'D'} offset={{ x: 8, y: -12 }} />
+
+      {data.label_ab && <SegLabel a={sA} b={sB} label={String(data.label_ab)} color={GOLD} />}
+      {data.label_angle_bcd && <AngleMark v={sC} a={sB} b={sD} label={String(data.label_angle_bcd)} r={20} color={GOLD} />}
+      {data.label_angle_abd && <AngleMark v={sB} a={sA} b={sD} label={String(data.label_angle_abd)} r={20} color={GOLD} />}
+    </g>
+  );
+}
+
+/**
  * circle_sector - circular sector swept by a clock hand or central angle.
  * Fields: radius, angle/angle_deg or minutes/time_minutes, label_radius, label_angle.
  */
@@ -1475,6 +1530,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'circle_tangent':      content = <CircleTangent data={parsed} />; break;
       case 'circle_chord_tangent': content = <CircleChordTangent data={parsed} />; break;
       case 'circle_cyclic_quadrilateral': content = <CircleCyclicQuadrilateral data={parsed} />; break;
+      case 'circle_diameter_points': content = <CircleDiameterPoints data={parsed} />; break;
       case 'circle_intersecting_chords': content = <CircleIntersectingChords data={parsed} />; break;
       case 'linear_function':     content = <LinearFunction data={parsed} />; break;
       case 'quadratic_function':  content = <QuadraticFunction data={parsed} />; break;
