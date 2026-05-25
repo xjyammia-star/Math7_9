@@ -225,6 +225,158 @@ function triangleFromSides(a: number, b: number, c: number): [Pt, Pt, Pt] {
   ];
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function asFiniteNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const n = Number(value);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+function hasRequiredLabels(labels: unknown, count: number): boolean {
+  return Array.isArray(labels) && labels.length >= count && labels.slice(0, count).every(label => typeof label === 'string' && label.trim() !== '');
+}
+
+function validateDiagramData(template: string, data: any): string | null {
+  switch (template) {
+    case 'right_triangle': {
+      const a = asFiniteNumber(data.leg_h ?? data.legs?.[0] ?? data.a);
+      const b = asFiniteNumber(data.leg_v ?? data.legs?.[1] ?? data.b);
+      return a !== null && b !== null && a > 0 && b > 0 ? null : 'right_triangle requires two positive leg lengths';
+    }
+    case 'triangle': {
+      if (Array.isArray(data.points) && data.points.length >= 3) {
+        const badPoint = data.points.slice(0, 3).some((p: any) => asFiniteNumber(p?.x) === null || asFiniteNumber(p?.y) === null);
+        return badPoint ? 'triangle contains invalid point coordinates' : null;
+      }
+      const sides = data.sides ?? [data.a, data.b, data.c];
+      const nums = sides.map((v: unknown) => asFiniteNumber(v));
+      if (nums.some((n: number | null) => n === null)) return 'triangle requires three numeric sides';
+      const [a, b, c] = nums as number[];
+      return a + b > c && a + c > b && b + c > a ? null : 'triangle sides do not form a valid triangle';
+    }
+    case 'rectangle':
+      return asFiniteNumber(data.width ?? data.w) !== null && asFiniteNumber(data.height ?? data.h) !== null ? null : 'rectangle requires width and height';
+    case 'rectangle_fold': {
+      const w = asFiniteNumber(data.width);
+      const h = asFiniteNumber(data.height);
+      const validSides = ['AB', 'AD', 'BC', 'CD'];
+      const eSide = String(data.E_side ?? '');
+      const fSide = String(data.F_side ?? '');
+      const eRatio = asFiniteNumber(data.E_ratio);
+      const fRatio = asFiniteNumber(data.F_ratio);
+      if (w === null || h === null || w <= 0 || h <= 0) return 'rectangle_fold requires width and height';
+      if (!validSides.includes(eSide) || !validSides.includes(fSide)) return 'rectangle_fold requires valid E_side and F_side';
+      if (eRatio === null || fRatio === null) return 'rectangle_fold requires E_ratio and F_ratio';
+      return null;
+    }
+    case 'parallelogram': {
+      const base = asFiniteNumber(data.base);
+      const side = asFiniteNumber(data.side);
+      const angle = asFiniteNumber(data.angle);
+      return base !== null && side !== null && angle !== null && base > 0 && side > 0 && angle > 0 && angle < 180
+        ? null
+        : 'parallelogram requires positive base/side and angle between 0 and 180';
+    }
+    case 'ladder': {
+      const length = asFiniteNumber(data.length ?? data.ladder);
+      const foot = asFiniteNumber(data.foot_dist ?? data.foot);
+      return length !== null && foot !== null && length > 0 && foot > 0 && foot <= length
+        ? null
+        : 'ladder requires length and a valid foot distance';
+    }
+    case 'cylinder_unrolled': {
+      const circ = asFiniteNumber(data.circumference ?? data.radius);
+      const height = asFiniteNumber(data.height);
+      return circ !== null && height !== null && circ > 0 && height > 0
+        ? null
+        : 'cylinder_unrolled requires positive circumference and height';
+    }
+    case 'linear_function': {
+      const slope = asFiniteNumber(data.slope ?? data.k);
+      const xMin = asFiniteNumber(data.xmin);
+      const xMax = asFiniteNumber(data.xmax);
+      return slope !== null && xMin !== null && xMax !== null && xMin < xMax
+        ? null
+        : 'linear_function requires slope, xmin and xmax';
+    }
+    case 'quadratic_function': {
+      const a = asFiniteNumber(data.a);
+      const xMin = asFiniteNumber(data.xmin);
+      const xMax = asFiniteNumber(data.xmax);
+      return a !== null && a !== 0 && xMin !== null && xMax !== null && xMin < xMax
+        ? null
+        : 'quadratic_function requires non-zero a, xmin and xmax';
+    }
+    case 'number_line':
+    case 'numberline': {
+      const range = Array.isArray(data.range) ? data.range : null;
+      if (!range || range.length < 2) return 'number_line requires a range';
+      const lo = asFiniteNumber(range[0]);
+      const hi = asFiniteNumber(range[1]);
+      return lo !== null && hi !== null && lo < hi ? null : 'number_line range is invalid';
+    }
+    case 'coordinate_points': {
+      const points = Array.isArray(data.points) ? data.points : [];
+      if (points.length === 0) return 'coordinate_points requires at least one point';
+      const badPoint = points.some((p: any) => asFiniteNumber(p?.x) === null || asFiniteNumber(p?.y) === null);
+      return badPoint ? 'coordinate_points contains invalid point coordinates' : null;
+    }
+    case 'similar_triangles': {
+      const ratio = asFiniteNumber(data.ratio);
+      const sides = Array.isArray(data.sides) ? data.sides : [];
+      const nums = sides.map((v: unknown) => asFiniteNumber(v));
+      return ratio !== null && ratio > 0 && nums.length >= 3 && nums.every((n: number | null) => n !== null && n > 0)
+        ? null
+        : 'similar_triangles requires positive ratio and side lengths';
+    }
+    case 'circle_chord': {
+      const radius = asFiniteNumber(data.radius);
+      const chordHalf = asFiniteNumber(data.chord_half ?? (data.chord ? data.chord / 2 : null));
+      return radius !== null && chordHalf !== null && radius > 0 && chordHalf >= 0 && chordHalf <= radius
+        ? null
+        : 'circle_chord requires a radius and a chord within the circle';
+    }
+    case 'circle_tangent': {
+      const radius = asFiniteNumber(data.radius);
+      const op = asFiniteNumber(data.op_dist);
+      return radius !== null && op !== null && radius > 0 && op > radius
+        ? null
+        : 'circle_tangent requires op_dist to be larger than radius';
+    }
+    default:
+      return null;
+  }
+}
+
+function normalizeDiagramData(template: string, data: any): any {
+  if (template === 'rectangle' && !hasRequiredLabels(data.labels, 4)) {
+    return { ...data, labels: ['A', 'B', 'C', 'D'] };
+  }
+
+  if ((template === 'coordinate_points') && Array.isArray(data.segments)) {
+    const pointLabels = new Set(
+      (data.points ?? [])
+        .map((p: any) => p?.label)
+        .filter((label: unknown) => typeof label === 'string' && label.trim() !== '')
+    );
+
+    const segments = data.segments.filter((seg: any) => {
+      const pair = Array.isArray(seg) ? seg : [seg?.from, seg?.to];
+      return pair.length === 2 && pointLabels.has(pair[0]) && pointLabels.has(pair[1]);
+    });
+
+    return { ...data, segments };
+  }
+
+  return data;
+}
+
 // ─── Template renderers ──────────────────────────────────────────────────────
 
 /** right_triangle: legs a (horizontal) and b (vertical), right angle at B */
@@ -960,11 +1112,15 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
     }
   }
 
-  const template: string = parsed?.template ?? parsed?.type ?? '';
+  const template: string = String(parsed?.template ?? parsed?.type ?? '').trim();
+  parsed = normalizeDiagramData(template, parsed);
+  const validationError = validateDiagramData(template, parsed);
 
   let content: React.ReactNode;
   try {
-    switch (template) {
+    if (validationError) {
+      content = <DiagramError msg={validationError} />;
+    } else switch (template) {
       case 'right_triangle':      content = <RightTriangle data={parsed} />; break;
       case 'triangle':            content = <Triangle data={parsed} />; break;
       case 'rectangle':           content = <Rectangle data={parsed} />; break;

@@ -160,6 +160,8 @@ STRICT PRINCIPLES:
 3. DIAGRAM FORMAT — TEMPLATE SYSTEM (CRITICAL):
    Use ONLY the templates below. NEVER invent raw coordinates. The frontend calculates positions automatically.
    Pick the matching template and fill in numeric values and labels from the problem.
+   Never omit a required side, line, point, or label that is explicitly present in the problem statement.
+   If you are not confident that a diagram will be exact, prefer a simpler valid template over guessing geometry.
 
    Right triangle (直角三角形):
    ${BT}math-diagram

@@ -10,6 +10,16 @@ import { startFeynmanSession, chatStep, guideExercise, guideExerciseStep } from 
 import MathDiagram from './MathDiagram';
 import { sanitizeMath } from '../utils/mathUtils';
 
+interface LearningAgentProps {
+  concept: Concept;
+  lang: Language;
+  curriculum?: Curriculum | null;
+  initialMessage?: string;
+  initialContext?: string;
+  autoStart?: boolean;
+  mode?: 'learn' | 'guide';
+}
+
 const LearningAgent: React.FC<LearningAgentProps> = ({
   concept,
   lang,
