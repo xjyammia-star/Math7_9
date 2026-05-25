@@ -410,9 +410,16 @@ function validateDiagramData(template: string, data: any): string | null {
       const pb = asFiniteNumber(data.pb);
       const cp = asFiniteNumber(data.cp);
       const cd = asFiniteNumber(data.cd ?? data.CD ?? data.cd_total);
-      return ap !== null && pb !== null && ap > 0 && pb > 0 && ((cp !== null && cp > 0) || (cd !== null && cd > 0))
+      const cpPdDiff = asFiniteNumber(data.cp_minus_pd ?? data.cp_pd_diff ?? data.cp_gt_pd_by ?? data.difference);
+      const cpPdRatio = asFiniteNumber(data.cp_pd_ratio ?? data.ratio_cp_pd ?? data.cp_to_pd ?? data.ratio);
+      return ap !== null && pb !== null && ap > 0 && pb > 0 && (
+        (cp !== null && cp > 0) ||
+        (cd !== null && cd > 0) ||
+        (cpPdRatio !== null && cpPdRatio > 0) ||
+        cpPdDiff !== null
+      )
         ? null
-        : 'circle_intersecting_chords requires positive ap, pb and either cp or cd';
+        : 'circle_intersecting_chords requires positive ap, pb and either cp, cd, cp_pd_ratio, or cp_minus_pd';
     }
     default:
       return null;
@@ -1117,9 +1124,24 @@ function CircleIntersectingChords({ data }: { data: any }) {
   const ap: number = data.ap ?? data.AP ?? 4;
   const pb: number = data.pb ?? data.PB ?? 6;
   const cd: number | null = data.cd ?? data.CD ?? data.cd_total ?? null;
-  const cpRatio: number = data.cp_ratio ?? 0.35;
-  const cp: number = data.cp ?? data.CP ?? (cd ? cd * cpRatio : 3);
-  const pd: number = data.pd ?? data.PD ?? (cd ? Math.max(cd - cp, cp * 1.15) : (ap * pb / cp));
+  const explicitCp = asFiniteNumber(data.cp ?? data.CP);
+  const explicitPd = asFiniteNumber(data.pd ?? data.PD);
+  const ratioValue = asFiniteNumber(data.cp_pd_ratio ?? data.ratio_cp_pd ?? data.cp_to_pd ?? data.ratio);
+  const cpPdDiff = asFiniteNumber(data.cp_minus_pd ?? data.cp_pd_diff ?? data.cp_gt_pd_by ?? data.difference);
+  const ratioFromLegacyCpRatio = cd === null && explicitCp === null && explicitPd === null
+    ? asFiniteNumber(data.cp_ratio)
+    : null;
+  const cpPdRatio = ratioValue ?? ratioFromLegacyCpRatio;
+  const cdFraction: number = data.cp_ratio ?? 0.35;
+  const product = ap * pb;
+  const diffPd = cpPdDiff !== null
+    ? (-cpPdDiff + Math.sqrt(cpPdDiff * cpPdDiff + 4 * product)) / 2
+    : null;
+  const diffCp = cpPdDiff !== null && diffPd !== null ? diffPd + cpPdDiff : null;
+  const ratioCp = cpPdRatio !== null ? Math.sqrt(product * cpPdRatio) : null;
+  const ratioPd = cpPdRatio !== null ? Math.sqrt(product / cpPdRatio) : null;
+  const cp: number = explicitCp ?? diffCp ?? ratioCp ?? (cd ? cd * cdFraction : 3);
+  const pd: number = explicitPd ?? diffPd ?? ratioPd ?? (cd ? Math.max(cd - cp, cp * 1.15) : (ap * pb / cp));
   const angleDeg: number = data.angle ?? 62;
   const theta = angleDeg * Math.PI / 180;
 
@@ -1162,6 +1184,14 @@ function CircleIntersectingChords({ data }: { data: any }) {
       {(data.label_cp !== undefined) && <SegLabel a={sC} b={sP} label={String(data.label_cp)} color={GOLD} />}
       {(data.label_pd !== undefined) && <SegLabel a={sP} b={sD} label={String(data.label_pd)} color={GOLD} />}
       {((data.label_cd !== undefined) || cd) && <SegLabel a={sC} b={sD} label={String(data.label_cd ?? cd)} color={GOLD} />}
+      {(data.label_ratio !== undefined || cpPdRatio !== null) && (
+        <text x={(sC.x + sD.x) / 2 + 12} y={(sC.y + sD.y) / 2} fontSize={12}
+          fontWeight="700" fill={GOLD}>{String(data.label_ratio ?? `CP:PD=${cpPdRatio}`)}</text>
+      )}
+      {(data.label_difference !== undefined || cpPdDiff !== null) && (
+        <text x={(sC.x + sD.x) / 2 + 12} y={(sC.y + sD.y) / 2} fontSize={12}
+          fontWeight="700" fill={GOLD}>{String(data.label_difference ?? `CP-PD=${cpPdDiff}`)}</text>
+      )}
     </g>
   );
 }

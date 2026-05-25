@@ -121,7 +121,7 @@ Rules:
 - Only fix formatting and representation issues.
 - Replace leaked math commands in prose with proper math formatting or Unicode symbols.
 - If a geometry problem needs a figure, include exactly one matching fenced block with the math-diagram template and valid JSON.
-- For intersecting chords inside a circle, use template "circle_intersecting_chords" with ap, pb, cp and optional pd.
+- For intersecting chords inside a circle, use template "circle_intersecting_chords" with ap, pb and exactly the given CD/CP/PD relation.
 - Do not add new topics or remove required information.
 - Output only the corrected exercises.`;
 
@@ -261,6 +261,8 @@ STRICT PRINCIPLES:
    Pick the matching template and fill in numeric values and labels from the problem.
    Never omit a required side, line, point, or label that is explicitly present in the problem statement.
    Never label the value being asked for in the question. If the problem asks for CP, do NOT set label_cp to the computed answer; show "?" or omit that segment label. If only CD is given, label the whole CD segment, not CP/PD.
+   For intersecting chords with a difference such as CP is 2 longer than PD / CP比PD长2, use cp_minus_pd and label_difference. Do NOT invent cd, label_cd, label_cp, or label_pd.
+   For intersecting chords with a ratio such as CP:PD=2, use cp_pd_ratio and label_ratio. Do NOT invent cd, label_cd, label_cp, or label_pd.
    Never label derived tangent lengths such as PA, PB, OP, or radius unless those values are explicitly given in the problem statement.
    For water-depth chord problems, use circle_chord with water_depth and label_depth. water_depth means the vertical height from the lowest point of the circular pipe up to the water surface, NOT the distance from the centre. Do NOT label derived OC or half-chord values unless they are explicitly given in the problem.
    If you are not confident that a diagram will be exact, prefer a simpler valid template over guessing geometry.
@@ -385,6 +387,16 @@ STRICT PRINCIPLES:
    Intersecting chords inside a circle (圆内两弦相交):
    ${BT}math-diagram
    {"template":"circle_intersecting_chords","ap":6,"pb":4,"cd":11,"cp_ratio":0.35,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_P":"P","label_ap":"6","label_pb":"4","label_cd":"11"}
+   ${BT}
+
+   Intersecting chords with CP:PD ratio:
+   ${BT}math-diagram
+   {"template":"circle_intersecting_chords","ap":6,"pb":4,"cp_pd_ratio":2,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_P":"P","label_ap":"6","label_pb":"4","label_ratio":"CP:PD=2"}
+   ${BT}
+
+   Intersecting chords with CP-PD difference:
+   ${BT}math-diagram
+   {"template":"circle_intersecting_chords","ap":6,"pb":4,"cp_minus_pd":2,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_P":"P","label_ap":"6","label_pb":"4","label_difference":"CP比PD长2"}
    ${BT}
 
    Circle with tangent and chord (tangent-chord theorem):
