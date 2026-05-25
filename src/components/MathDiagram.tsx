@@ -358,6 +358,14 @@ function validateDiagramData(template: string, data: any): string | null {
         ? null
         : 'circle_chord requires a radius and either a chord within the circle or a valid water_depth';
     }
+    case 'circle_sector': {
+      const radius = asFiniteNumber(data.radius);
+      const angle = asFiniteNumber(data.angle ?? data.angle_deg);
+      const minutes = asFiniteNumber(data.minutes ?? data.time_minutes);
+      return radius !== null && radius > 0 && ((angle !== null && angle > 0 && angle <= 360) || (minutes !== null && minutes > 0 && minutes <= 60))
+        ? null
+        : 'circle_sector requires a positive radius and a valid angle or minute span';
+    }
     case 'circle_tangent': {
       const radius = asFiniteNumber(data.radius);
       const op = asFiniteNumber(data.op_dist);
@@ -393,6 +401,18 @@ function validateDiagramData(template: string, data: any): string | null {
 }
 
 function normalizeDiagramData(template: string, data: any): any {
+  if (
+    template === 'circle_chord' &&
+    data?.radius !== undefined &&
+    (data?.angle !== undefined || data?.angle_deg !== undefined || data?.minutes !== undefined || data?.time_minutes !== undefined) &&
+    data?.chord_half === undefined &&
+    data?.chord === undefined &&
+    data?.water_depth === undefined &&
+    data?.depth === undefined
+  ) {
+    return { ...data, template: 'circle_sector' };
+  }
+
   if (template === 'rectangle' && !hasRequiredLabels(data.labels, 4)) {
     return { ...data, labels: ['A', 'B', 'C', 'D'] };
   }
@@ -1319,6 +1339,64 @@ function CircleCyclicQuadrilateral({ data }: { data: any }) {
   );
 }
 
+/**
+ * circle_sector - circular sector swept by a clock hand or central angle.
+ * Fields: radius, angle/angle_deg or minutes/time_minutes, label_radius, label_angle.
+ */
+function CircleSector({ data }: { data: any }) {
+  const r: number = data.radius ?? 5;
+  const minutes: number | null = data.minutes ?? data.time_minutes ?? null;
+  const angleDeg: number = data.angle ?? data.angle_deg ?? (minutes !== null ? minutes * 6 : 60);
+  const startDeg: number = data.start_angle ?? 90;
+  const endDeg = startDeg - angleDeg;
+
+  const O: Pt = { x: 0, y: 0 };
+  const polar = (deg: number): Pt => {
+    const rad = deg * Math.PI / 180;
+    return { x: r * Math.cos(rad), y: r * Math.sin(rad) };
+  };
+  const A = polar(startDeg);
+  const B = polar(endDeg);
+
+  const pad = r * 0.28;
+  const sc = makeScaler(-r - pad, r + pad, -r - pad, r + pad);
+  const sO = sc(O), sA = sc(A), sB = sc(B);
+  const pixelR = Math.abs(sc({ x: r, y: 0 }).x - sO.x);
+  const largeArc = angleDeg > 180 ? 1 : 0;
+  const sectorPath = `M${sO.x},${sO.y} L${sA.x},${sA.y} A${pixelR},${pixelR} 0 ${largeArc} 1 ${sB.x},${sB.y} Z`;
+
+  const mid = polar(startDeg - angleDeg / 2);
+  const sMid = sc({ x: mid.x * 0.65, y: mid.y * 0.65 });
+  const lRadius = data.label_radius ?? `${r}`;
+  const lAngle = data.label_angle ?? `${angleDeg}°`;
+  const lArc = data.label_arc ?? '弧长?';
+  const lArea = data.label_area ?? (data.show_area_label === false ? '' : '扇形面积?');
+
+  return (
+    <g>
+      <circle cx={sO.x} cy={sO.y} r={pixelR}
+        fill="none" stroke={GREY} strokeWidth={2} strokeOpacity={0.55} />
+      <path d={sectorPath} fill={FILL} stroke={GOLD} strokeWidth={2.4} />
+      <Seg a={sO} b={sA} stroke={GOLD} sw={2.2} />
+      <Seg a={sO} b={sB} stroke={GOLD} sw={2.2} />
+      <AngleMark v={sO} a={sA} b={sB} label={lAngle} r={34} color={GOLD} />
+
+      <Dot p={sO} label={data.label_O ?? 'O'} offset={{ x: 8, y: 12 }} color={WHITE} />
+      <Dot p={sA} label={data.label_A ?? '起点'} offset={{ x: -28, y: -10 }} />
+      <Dot p={sB} label={data.label_B ?? '终点'} offset={{ x: 10, y: -10 }} />
+      {lRadius && <SegLabel a={sO} b={sA} label={lRadius} color={GREY} />}
+      {lArc && (
+        <text x={sMid.x} y={sMid.y - 22} fontSize={12} fontWeight="700"
+          textAnchor="middle" fill={GOLD}>{lArc}</text>
+      )}
+      {lArea && (
+        <text x={sMid.x} y={sMid.y + 2} fontSize={12} fontWeight="700"
+          textAnchor="middle" fill={GOLD}>{lArea}</text>
+      )}
+    </g>
+  );
+}
+
 interface MathDiagramProps {
   data: any;
 }
@@ -1333,8 +1411,9 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
     }
   }
 
-  const template: string = String(parsed?.template ?? parsed?.type ?? '').trim();
+  let template: string = String(parsed?.template ?? parsed?.type ?? '').trim();
   parsed = normalizeDiagramData(template, parsed);
+  template = String(parsed?.template ?? parsed?.type ?? template).trim();
   const validationError = validateDiagramData(template, parsed);
 
   let content: React.ReactNode;
@@ -1350,6 +1429,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'ladder':              content = <Ladder data={parsed} />; break;
       case 'cylinder_unrolled':   content = <CylinderUnrolled data={parsed} />; break;
       case 'circle_chord':        content = <CircleChord data={parsed} />; break;
+      case 'circle_sector':       content = <CircleSector data={parsed} />; break;
       case 'circle_tangent':      content = <CircleTangent data={parsed} />; break;
       case 'circle_chord_tangent': content = <CircleChordTangent data={parsed} />; break;
       case 'circle_cyclic_quadrilateral': content = <CircleCyclicQuadrilateral data={parsed} />; break;

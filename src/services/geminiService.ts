@@ -247,7 +247,8 @@ STRICT PRINCIPLES:
    - MANDATORY: If you say "如图" or "as shown", you MUST include a diagram block.
    - MANDATORY: If the problem names specific points (e.g. A, B, C, D, G, H) on geometric figures, you MUST include a diagram even if the answer is purely computational.
    - TEMPLATE SELECTION RULES (critical):
-     * Circle problems (弦、切线、圆心、半径) → use circle_chord, circle_tangent, circle_chord_tangent, circle_cyclic_quadrilateral, or circle_intersecting_chords templates. NEVER use linear_function or quadratic_function for circle geometry.
+     * Circle problems (弦、切线、圆心、半径、弧长、扇形) → use circle_chord, circle_sector, circle_tangent, circle_chord_tangent, circle_cyclic_quadrilateral, or circle_intersecting_chords templates. NEVER use linear_function or quadratic_function for circle geometry.
+     * Clock hand / minute hand sweeping an arc or sector (钟表分针、时针扫过、弧长、扇形面积) → ALWAYS use circle_sector, not circle_chord.
      * Cyclic quadrilateral / quadrilateral inscribed in a circle (圆内接四边形、四边形ABCD内接于⊙O) → ALWAYS use circle_cyclic_quadrilateral, not coordinate_points.
      * Intersecting chords inside a circle (两弦相交于圆内一点, AP/PB/CP/PD) → ALWAYS use circle_intersecting_chords, not coordinate_points.
      * Pure geometry (no coordinate grid in problem) → ALWAYS set axes:false. Use right_triangle / triangle / rectangle / coordinate_points with axes:false.
@@ -361,6 +362,11 @@ STRICT PRINCIPLES:
    Circle with chord and perpendicular (圆中弦与垂径定理):
    ${BT}math-diagram
    {"template":"circle_chord","radius":10,"water_depth":4,"label_O":"O","label_A":"A","label_B":"B","label_C":"C","label_radius":"10 cm","label_depth":"4 cm","label_chord":"AB"}
+   ${BT}
+
+   Circle sector / clock hand sweep (弧长、扇形面积、钟表分针扫过):
+   ${BT}math-diagram
+   {"template":"circle_sector","radius":15,"minutes":25,"label_O":"O","label_radius":"15 cm","label_angle":"150°","label_arc":"弧长?","label_area":"扇形面积?"}
    ${BT}
 
    Circle with tangent from external point (圆外切线):
