@@ -380,9 +380,10 @@ function validateDiagramData(template: string, data: any): string | null {
       const ap = asFiniteNumber(data.ap);
       const pb = asFiniteNumber(data.pb);
       const cp = asFiniteNumber(data.cp);
-      return ap !== null && pb !== null && cp !== null && ap > 0 && pb > 0 && cp > 0
+      const cd = asFiniteNumber(data.cd ?? data.CD ?? data.cd_total);
+      return ap !== null && pb !== null && ap > 0 && pb > 0 && ((cp !== null && cp > 0) || (cd !== null && cd > 0))
         ? null
-        : 'circle_intersecting_chords requires positive ap, pb and cp';
+        : 'circle_intersecting_chords requires positive ap, pb and either cp or cd';
     }
     default:
       return null;
@@ -1059,13 +1060,16 @@ function CircleChord({ data }: { data: any }) {
 
 /**
  * circle_intersecting_chords - two chords AB and CD intersecting at P inside a circle.
- * Fields: ap, pb, cp, optional pd. If pd is omitted, use AP*PB = CP*PD.
+ * Fields: ap, pb, optional cp/pd for layout, optional cd for total chord CD.
+ * Labels show only explicitly known values to avoid leaking answers.
  */
 function CircleIntersectingChords({ data }: { data: any }) {
   const ap: number = data.ap ?? data.AP ?? 4;
   const pb: number = data.pb ?? data.PB ?? 6;
-  const cp: number = data.cp ?? data.CP ?? 3;
-  const pd: number = data.pd ?? data.PD ?? (ap * pb / cp);
+  const cd: number | null = data.cd ?? data.CD ?? data.cd_total ?? null;
+  const cpRatio: number = data.cp_ratio ?? 0.35;
+  const cp: number = data.cp ?? data.CP ?? (cd ? cd * cpRatio : 3);
+  const pd: number = data.pd ?? data.PD ?? (cd ? Math.max(cd - cp, cp * 1.15) : (ap * pb / cp));
   const angleDeg: number = data.angle ?? 62;
   const theta = angleDeg * Math.PI / 180;
 
@@ -1105,8 +1109,9 @@ function CircleIntersectingChords({ data }: { data: any }) {
       <Dot p={sP} label={data.label_P ?? 'P'} offset={{ x: 8, y: -10 }} color={WHITE} />
       <SegLabel a={sA} b={sP} label={data.label_ap ?? String(ap)} color={GOLD} />
       <SegLabel a={sP} b={sB} label={data.label_pb ?? String(pb)} color={GOLD} />
-      <SegLabel a={sC} b={sP} label={data.label_cp ?? String(cp)} color={GOLD} />
-      <SegLabel a={sP} b={sD} label={data.label_pd ?? String(+pd.toFixed(2))} color={GOLD} />
+      {(data.label_cp !== undefined) && <SegLabel a={sC} b={sP} label={String(data.label_cp)} color={GOLD} />}
+      {(data.label_pd !== undefined) && <SegLabel a={sP} b={sD} label={String(data.label_pd)} color={GOLD} />}
+      {((data.label_cd !== undefined) || cd) && <SegLabel a={sC} b={sD} label={String(data.label_cd ?? cd)} color={GOLD} />}
     </g>
   );
 }

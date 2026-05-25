@@ -257,6 +257,7 @@ STRICT PRINCIPLES:
    Use ONLY the templates below. NEVER invent raw coordinates. The frontend calculates positions automatically.
    Pick the matching template and fill in numeric values and labels from the problem.
    Never omit a required side, line, point, or label that is explicitly present in the problem statement.
+   Never label the value being asked for in the question. If the problem asks for CP, do NOT set label_cp to the computed answer; show "?" or omit that segment label. If only CD is given, label the whole CD segment, not CP/PD.
    If you are not confident that a diagram will be exact, prefer a simpler valid template over guessing geometry.
 
    Right triangle (直角三角形):
@@ -368,7 +369,7 @@ STRICT PRINCIPLES:
 
    Intersecting chords inside a circle (圆内两弦相交):
    ${BT}math-diagram
-   {"template":"circle_intersecting_chords","ap":4,"pb":6,"cp":3,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_P":"P","label_ap":"4","label_pb":"6","label_cp":"3"}
+   {"template":"circle_intersecting_chords","ap":6,"pb":4,"cd":11,"cp_ratio":0.35,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_P":"P","label_ap":"6","label_pb":"4","label_cd":"11"}
    ${BT}
 
    Circle with tangent and chord (tangent-chord theorem):
