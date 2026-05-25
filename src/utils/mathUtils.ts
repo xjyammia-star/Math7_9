@@ -53,26 +53,31 @@ function sanitizeProseFragment(text: string): string {
   // These are the common math command leaks we have seen in prose.
   // We only normalize them when they are glued to a symbol-like token so
   // ordinary English words such as "angle" do not get rewritten.
-  const leakedCommands: Array<[RegExp, string]> = [
-    [/\b\\?odot(?=[A-Z0-9(])/g, '⊙'],
-    [/\b\\?triangle(?=[A-Z0-9(])/g, '△'],
-    [/\b\\?angle(?=[A-Z0-9(])/g, '∠'],
-    [/\b\\?perp(?=[A-Z0-9(])/g, '⊥'],
-    [/\b\\?parallel(?=[A-Z0-9(])/g, '∥'],
-    [/\b\\?cdot(?=[A-Z0-9(])/g, '·'],
-    [/\b\\?times(?=[A-Z0-9(])/g, '×'],
-    [/\b\\?div(?=[A-Z0-9(])/g, '÷'],
-    [/\b\\?leq(?=[A-Z0-9(])/g, '≤'],
-    [/\b\\?geq(?=[A-Z0-9(])/g, '≥'],
-    [/\b\\?neq(?=[A-Z0-9(])/g, '≠'],
-    [/\b\\?approx(?=[A-Z0-9(])/g, '≈'],
-    [/\b\\?sim(?=[A-Z0-9(])/g, '∼'],
-    [/\b\\?pi(?=[A-Z0-9(])/g, 'π'],
-    [/\b\\?Rightarrow(?=[A-Z0-9(])/g, '⇒'],
-  ];
+  const leakedCommands = [
+    ['odot', '⊙'],
+    ['triangle', '△'],
+    ['angle', '∠'],
+    ['perp', '⊥'],
+    ['parallel', '∥'],
+    ['cdot', '·'],
+    ['times', '×'],
+    ['div', '÷'],
+    ['leq', '≤'],
+    ['geq', '≥'],
+    ['neq', '≠'],
+    ['approx', '≈'],
+    ['sim', '∼'],
+    ['pi', 'π'],
+    ['Rightarrow', '⇒'],
+  ] as const;
 
-  for (const [pattern, replacement] of leakedCommands) {
-    text = text.replace(pattern, replacement);
+  for (const [command, replacement] of leakedCommands) {
+    const escaped = command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const startOrNonLetter = new RegExp(`(^|[^A-Za-z])\\\\?${escaped}(?=[A-Z0-9(])`, 'g');
+    const afterUpperOrDigit = new RegExp(`([A-Z0-9)])\\\\?${escaped}(?=[A-Z0-9(])`, 'g');
+
+    text = text.replace(startOrNonLetter, `$1${replacement}`);
+    text = text.replace(afterUpperOrDigit, `$1${replacement}`);
   }
 
   return text;
