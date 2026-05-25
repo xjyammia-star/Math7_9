@@ -12,6 +12,7 @@
  *   rectangle_fold        – rectangle with a fold line (EF) and reflected vertex
  *   parallelogram         – parallelogram with base, side, angle
  *   circle                – circle with optional radius label, tangent from external pt
+ *   circle_intersecting_chords – two chords intersecting inside a circle
  *   linear_function       – y = kx + b on a coordinate grid
  *   quadratic_function    – y = ax² + bx + c on a coordinate grid
  *   number_line           – horizontal number line with marked points / arrows
@@ -213,6 +214,19 @@ function norm(v: Pt): Pt {
 function dist(a: Pt, b: Pt) { return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2); }
 function midPt(a: Pt, b: Pt): Pt { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
 
+function circleFromThreePoints(a: Pt, b: Pt, c: Pt): { cx: number; cy: number; r: number } | null {
+  const d = 2 * (a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y));
+  if (Math.abs(d) < 1e-9) return null;
+
+  const a2 = a.x * a.x + a.y * a.y;
+  const b2 = b.x * b.x + b.y * b.y;
+  const c2 = c.x * c.x + c.y * c.y;
+  const cx = (a2 * (b.y - c.y) + b2 * (c.y - a.y) + c2 * (a.y - b.y)) / d;
+  const cy = (a2 * (c.x - b.x) + b2 * (a.x - c.x) + c2 * (b.x - a.x)) / d;
+
+  return { cx, cy, r: dist({ x: cx, y: cy }, a) };
+}
+
 /** Build a triangle from three side lengths using cosine rule. Returns [A, B, C] in math space. */
 function triangleFromSides(a: number, b: number, c: number): [Pt, Pt, Pt] {
   // B at origin, C at (a, 0), A computed via cosine rule
@@ -348,6 +362,14 @@ function validateDiagramData(template: string, data: any): string | null {
       return radius !== null && op !== null && radius > 0 && op > radius
         ? null
         : 'circle_tangent requires op_dist to be larger than radius';
+    }
+    case 'circle_intersecting_chords': {
+      const ap = asFiniteNumber(data.ap);
+      const pb = asFiniteNumber(data.pb);
+      const cp = asFiniteNumber(data.cp);
+      return ap !== null && pb !== null && cp !== null && ap > 0 && pb > 0 && cp > 0
+        ? null
+        : 'circle_intersecting_chords requires positive ap, pb and cp';
     }
     default:
       return null;
@@ -1023,6 +1045,60 @@ function CircleChord({ data }: { data: any }) {
 }
 
 /**
+ * circle_intersecting_chords - two chords AB and CD intersecting at P inside a circle.
+ * Fields: ap, pb, cp, optional pd. If pd is omitted, use AP*PB = CP*PD.
+ */
+function CircleIntersectingChords({ data }: { data: any }) {
+  const ap: number = data.ap ?? data.AP ?? 4;
+  const pb: number = data.pb ?? data.PB ?? 6;
+  const cp: number = data.cp ?? data.CP ?? 3;
+  const pd: number = data.pd ?? data.PD ?? (ap * pb / cp);
+  const angleDeg: number = data.angle ?? 62;
+  const theta = angleDeg * Math.PI / 180;
+
+  const P: Pt = { x: 0, y: 0 };
+  const A: Pt = { x: -ap, y: 0 };
+  const B: Pt = { x: pb, y: 0 };
+  const C: Pt = { x: -cp * Math.cos(theta), y: cp * Math.sin(theta) };
+  const D: Pt = { x: pd * Math.cos(theta), y: -pd * Math.sin(theta) };
+  const circle = circleFromThreePoints(A, B, C);
+
+  const xs = [A.x, B.x, C.x, D.x];
+  const ys = [A.y, B.y, C.y, D.y];
+  if (circle) {
+    xs.push(circle.cx - circle.r, circle.cx + circle.r);
+    ys.push(circle.cy - circle.r, circle.cy + circle.r);
+  }
+  const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+  const pad = span * 0.2 + 0.8;
+  const sc = makeScaler(Math.min(...xs) - pad, Math.max(...xs) + pad,
+    Math.min(...ys) - pad, Math.max(...ys) + pad);
+
+  const sP = sc(P), sA = sc(A), sB = sc(B), sC = sc(C), sD = sc(D);
+
+  return (
+    <g>
+      {circle && (() => {
+        const center = sc({ x: circle.cx, y: circle.cy });
+        const rPx = Math.abs(sc({ x: circle.cx + circle.r, y: circle.cy }).x - center.x);
+        return <circle cx={center.x} cy={center.y} r={rPx} fill="none" stroke={GREY} strokeWidth={2} strokeOpacity={0.6} />;
+      })()}
+      <Seg a={sA} b={sB} stroke={GOLD} sw={2.5} />
+      <Seg a={sC} b={sD} stroke={GOLD} sw={2.5} />
+      <Dot p={sA} label={data.label_A ?? 'A'} offset={{ x: -16, y: -10 }} />
+      <Dot p={sB} label={data.label_B ?? 'B'} offset={{ x: 10, y: -10 }} />
+      <Dot p={sC} label={data.label_C ?? 'C'} offset={{ x: -12, y: -12 }} />
+      <Dot p={sD} label={data.label_D ?? 'D'} offset={{ x: 8, y: 14 }} />
+      <Dot p={sP} label={data.label_P ?? 'P'} offset={{ x: 8, y: -10 }} color={WHITE} />
+      <SegLabel a={sA} b={sP} label={data.label_ap ?? String(ap)} color={GOLD} />
+      <SegLabel a={sP} b={sB} label={data.label_pb ?? String(pb)} color={GOLD} />
+      <SegLabel a={sC} b={sP} label={data.label_cp ?? String(cp)} color={GOLD} />
+      <SegLabel a={sP} b={sD} label={data.label_pd ?? String(+pd.toFixed(2))} color={GOLD} />
+    </g>
+  );
+}
+
+/**
  * circle_tangent — circle with external point P, two tangents PA and PB.
  * Fields: radius, op_dist (distance OP), label_O, label_P, label_A, label_B,
  *         label_radius, label_pa (tangent length), show_chord (draw AB, default true)
@@ -1130,6 +1206,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'cylinder_unrolled':   content = <CylinderUnrolled data={parsed} />; break;
       case 'circle_chord':        content = <CircleChord data={parsed} />; break;
       case 'circle_tangent':      content = <CircleTangent data={parsed} />; break;
+      case 'circle_intersecting_chords': content = <CircleIntersectingChords data={parsed} />; break;
       case 'linear_function':     content = <LinearFunction data={parsed} />; break;
       case 'quadratic_function':  content = <QuadraticFunction data={parsed} />; break;
       case 'number_line':
