@@ -363,6 +363,13 @@ function validateDiagramData(template: string, data: any): string | null {
         ? null
         : 'circle_tangent requires op_dist to be larger than radius';
     }
+    case 'circle_chord_tangent': {
+      const radius = asFiniteNumber(data.radius ?? 5);
+      const angle = asFiniteNumber(data.angle ?? data.angle_pab);
+      return radius !== null && radius > 0 && (angle === null || (angle > 0 && angle < 90))
+        ? null
+        : 'circle_chord_tangent requires a positive radius and optional angle between 0 and 90';
+    }
     case 'circle_intersecting_chords': {
       const ap = asFiniteNumber(data.ap);
       const pb = asFiniteNumber(data.pb);
@@ -1174,6 +1181,73 @@ function CircleTangent({ data }: { data: any }) {
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
+/**
+ * circle_chord_tangent - tangent line PQ at A, chord AB, and point C on the
+ * opposite arc side. Useful for tangent-chord / alternate segment theorem.
+ * Fields: radius, angle or angle_pab, label_O/P/Q/A/B/C, label_angle.
+ */
+function CircleChordTangent({ data }: { data: any }) {
+  const r: number = data.radius ?? 5;
+  const angleDeg: number = data.angle ?? data.angle_pab ?? 42;
+  const theta = (90 - angleDeg) * Math.PI / 180;
+
+  const O: Pt = { x: 0, y: 0 };
+  const A: Pt = { x: -r, y: 0 };
+  const tangentLen = r * 1.25;
+  const P: Pt = { x: -r, y: tangentLen };
+  const Q: Pt = { x: -r, y: -tangentLen };
+
+  // Ray from A into the circle; the second intersection with the circle is B.
+  const chordLen = 2 * r * Math.cos(theta);
+  const B: Pt = {
+    x: A.x + chordLen * Math.cos(theta),
+    y: A.y + chordLen * Math.sin(theta),
+  };
+
+  const cAngle = -55 * Math.PI / 180;
+  const C: Pt = { x: r * Math.cos(cAngle), y: r * Math.sin(cAngle) };
+
+  const allPts = [O, A, B, C, P, Q];
+  const xs = allPts.map(p => p.x), ys = allPts.map(p => p.y);
+  const pad = r * 0.3;
+  const sc = makeScaler(Math.min(...xs) - pad, Math.max(...xs) + pad,
+    Math.min(...ys) - pad, Math.max(...ys) + pad);
+
+  const sO = sc(O), sA = sc(A), sB = sc(B), sC = sc(C), sP = sc(P), sQ = sc(Q);
+  const pixelR = Math.abs(sc({ x: r, y: 0 }).x - sc({ x: 0, y: 0 }).x);
+
+  const lO = data.label_O ?? 'O';
+  const lP = data.label_P ?? 'P';
+  const lQ = data.label_Q ?? 'Q';
+  const lA = data.label_A ?? 'A';
+  const lB = data.label_B ?? 'B';
+  const lC = data.label_C ?? 'C';
+  const lAngle = data.label_angle ?? `${angleDeg}°`;
+
+  return (
+    <g>
+      <circle cx={sO.x} cy={sO.y} r={pixelR}
+        fill="none" stroke={GREY} strokeWidth={2} strokeOpacity={0.6} />
+
+      <Seg a={sP} b={sQ} stroke={GOLD} sw={2.5} />
+      <Seg a={sA} b={sB} stroke={GOLD} sw={2.5} />
+      <Seg a={sA} b={sC} stroke={GREY} sw={1.4} dash="4,3" />
+      <Seg a={sB} b={sC} stroke={GREY} sw={1.4} dash="4,3" />
+      <Seg a={sO} b={sA} stroke={GREY} sw={1.4} dash="4,3" />
+
+      <RightAngleMark v={sA} a={sO} b={sP} size={9} />
+      <AngleMark v={sA} a={sP} b={sB} label={lAngle} r={24} color={GOLD} />
+
+      <Dot p={sO} label={lO} offset={{ x: 8, y: 12 }} color={WHITE} />
+      <Dot p={sP} label={lP} offset={{ x: -18, y: -8 }} />
+      <Dot p={sQ} label={lQ} offset={{ x: -18, y: 14 }} />
+      <Dot p={sA} label={lA} offset={{ x: -20, y: 4 }} />
+      <Dot p={sB} label={lB} offset={{ x: 10, y: -10 }} />
+      <Dot p={sC} label={lC} offset={{ x: 10, y: 14 }} />
+    </g>
+  );
+}
+
 interface MathDiagramProps {
   data: any;
 }
@@ -1206,6 +1280,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'cylinder_unrolled':   content = <CylinderUnrolled data={parsed} />; break;
       case 'circle_chord':        content = <CircleChord data={parsed} />; break;
       case 'circle_tangent':      content = <CircleTangent data={parsed} />; break;
+      case 'circle_chord_tangent': content = <CircleChordTangent data={parsed} />; break;
       case 'circle_intersecting_chords': content = <CircleIntersectingChords data={parsed} />; break;
       case 'linear_function':     content = <LinearFunction data={parsed} />; break;
       case 'quadratic_function':  content = <QuadraticFunction data={parsed} />; break;

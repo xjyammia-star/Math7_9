@@ -241,7 +241,7 @@ STRICT PRINCIPLES:
    - MANDATORY: If you say "如图" or "as shown", you MUST include a diagram block.
    - MANDATORY: If the problem names specific points (e.g. A, B, C, D, G, H) on geometric figures, you MUST include a diagram even if the answer is purely computational.
    - TEMPLATE SELECTION RULES (critical):
-     * Circle problems (弦、切线、圆心、半径) → use circle_chord, circle_tangent, or circle_intersecting_chords templates. NEVER use linear_function or quadratic_function for circle geometry.
+     * Circle problems (弦、切线、圆心、半径) → use circle_chord, circle_tangent, circle_chord_tangent, or circle_intersecting_chords templates. NEVER use linear_function or quadratic_function for circle geometry.
      * Intersecting chords inside a circle (两弦相交于圆内一点, AP/PB/CP/PD) → ALWAYS use circle_intersecting_chords, not coordinate_points.
      * Pure geometry (no coordinate grid in problem) → ALWAYS set axes:false. Use right_triangle / triangle / rectangle / coordinate_points with axes:false.
      * Only use axes:true when the problem explicitly mentions a coordinate system (坐标系/坐标轴/函数图象).
@@ -362,6 +362,11 @@ STRICT PRINCIPLES:
    Intersecting chords inside a circle (圆内两弦相交):
    ${BT}math-diagram
    {"template":"circle_intersecting_chords","ap":4,"pb":6,"cp":3,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_P":"P","label_ap":"4","label_pb":"6","label_cp":"3"}
+   ${BT}
+
+   Circle with tangent and chord (tangent-chord theorem):
+   ${BT}math-diagram
+   {"template":"circle_chord_tangent","radius":5,"angle":42,"label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"B","label_C":"C","label_angle":"42°"}
    ${BT}
 
    DIAGRAM LABEL RULE: ALL "label" values must be plain Unicode text only.
