@@ -53,6 +53,9 @@ function sanitizeProseFragment(text: string): string {
   // These are the common math command leaks we have seen in prose.
   // We only normalize them when they are glued to a symbol-like token so
   // ordinary English words such as "angle" do not get rewritten.
+  text = text.replace(/°(?:\\)?circ\b/g, '°');
+  text = text.replace(/([0-9])(?:\\)?circ\b/g, '$1°');
+
   const leakedCommands = [
     ['odot', '⊙'],
     ['triangle', '△'],
@@ -73,8 +76,8 @@ function sanitizeProseFragment(text: string): string {
 
   for (const [command, replacement] of leakedCommands) {
     const escaped = command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const startOrNonLetter = new RegExp(`(^|[^A-Za-z])\\\\?${escaped}(?=[A-Z0-9(])`, 'g');
-    const afterUpperOrDigit = new RegExp(`([A-Z0-9)])\\\\?${escaped}(?=[A-Z0-9(])`, 'g');
+    const startOrNonLetter = new RegExp(`(^|[^A-Za-z])(?:\\\\)?${escaped}(?=[A-Z0-9(])`, 'g');
+    const afterUpperOrDigit = new RegExp(`([A-Z0-9)])(?:\\\\)?${escaped}(?=[A-Z0-9(])`, 'g');
 
     text = text.replace(startOrNonLetter, `$1${replacement}`);
     text = text.replace(afterUpperOrDigit, `$1${replacement}`);
