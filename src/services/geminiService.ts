@@ -260,6 +260,7 @@ STRICT PRINCIPLES:
    Pick the matching template and fill in numeric values and labels from the problem.
    Never omit a required side, line, point, or label that is explicitly present in the problem statement.
    Never label the value being asked for in the question. If the problem asks for CP, do NOT set label_cp to the computed answer; show "?" or omit that segment label. If only CD is given, label the whole CD segment, not CP/PD.
+   Never label derived tangent lengths such as PA, PB, OP, or radius unless those values are explicitly given in the problem statement.
    For water-depth chord problems, use circle_chord with water_depth and label_depth. water_depth means the vertical height from the lowest point of the circular pipe up to the water surface, NOT the distance from the centre. Do NOT label derived OC or half-chord values unless they are explicitly given in the problem.
    If you are not confident that a diagram will be exact, prefer a simpler valid template over guessing geometry.
 
@@ -372,12 +373,12 @@ STRICT PRINCIPLES:
 
    Circle with tangent from external point (圆外切线):
    ${BT}math-diagram
-   {"template":"circle_tangent","radius":5,"op_dist":13,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_radius":"5","label_pa":"12","label_op":"13"}
+   {"template":"circle_tangent","radius":5,"op_dist":13,"label_O":"O","label_P":"P","label_A":"A","label_B":"B"}
    ${BT}
 
    Circle with two tangents and tangent through arc point C:
    ${BT}math-diagram
-   {"template":"circle_tangent","radius":5,"op_dist":13,"show_arc_tangent":true,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_pa":"12 cm"}
+   {"template":"circle_tangent","radius":5,"op_dist":13,"show_arc_tangent":true,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E"}
    ${BT}
 
    Intersecting chords inside a circle (圆内两弦相交):

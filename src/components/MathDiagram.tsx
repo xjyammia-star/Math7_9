@@ -1204,9 +1204,9 @@ function CircleTangent({ data }: { data: any }) {
   const lC  = data.label_C  ?? 'C';
   const lD  = data.label_D  ?? 'D';
   const lE  = data.label_E  ?? 'E';
-  const lR  = data.label_radius ?? String(r);
-  const lPA = data.label_pa ?? (Number.isInteger(pa) ? String(pa) : `${+pa.toFixed(2)}`);
-  const lOP = data.label_op ?? String(op);
+  const lR  = data.label_radius !== undefined ? String(data.label_radius) : '';
+  const lPA = data.label_pa !== undefined ? String(data.label_pa) : '';
+  const lOP = data.label_op !== undefined ? String(data.label_op) : '';
   const showChord: boolean = data.show_chord !== false;
 
   return (
@@ -1215,9 +1215,9 @@ function CircleTangent({ data }: { data: any }) {
       <circle cx={sO.x} cy={sO.y} r={pixelR}
         fill="none" stroke={GREY} strokeWidth={2} strokeOpacity={0.6} />
 
-      {/* Tangent lines PA and PB */}
-      <Seg a={sP} b={sA} stroke={GOLD} sw={2.5} />
-      <Seg a={sP} b={sB} stroke={GOLD} sw={2.5} />
+      {/* Tangent lines through A and B. Extend them to D/E when those points exist. */}
+      <Seg a={sP} b={showArcTangent && D ? sc(D) : sA} stroke={GOLD} sw={2.5} />
+      <Seg a={sP} b={showArcTangent && E ? sc(E) : sB} stroke={GOLD} sw={2.5} />
 
       {/* Radii OA and OB (dashed) */}
       <Seg a={sO} b={sA} stroke={GREY} sw={1.5} dash="4,3" />
@@ -1238,6 +1238,7 @@ function CircleTangent({ data }: { data: any }) {
         const sC = sc(C), sD = sc(D), sE = sc(E);
         return (
           <>
+            <Poly pts={[sP, sD, sE]} fill="rgba(245,158,11,0.04)" stroke="none" />
             <Seg a={sD} b={sE} stroke={GOLD} sw={2.2} />
             <Seg a={sO} b={sC} stroke={GREY} sw={1.4} dash="4,3" />
             <RightAngleMark v={sC} a={sO} b={sD} size={8} />
