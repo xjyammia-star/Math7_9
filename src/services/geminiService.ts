@@ -84,7 +84,7 @@ function hasMathDiagramBlock(text: string): boolean {
 }
 
 function needsDiagramRepair(text: string, conceptTitle: string, conceptDesc: string, diagramPolicy: string): boolean {
-  if (diagramPolicy === "must_not_draw") return false;
+  if (diagramPolicy !== "must_draw") return false;
 
   const source = `${conceptTitle}\n${conceptDesc}\n${text}`;
   const geometryContext = GEOMETRY_HINT_PATTERN.test(source);
@@ -163,6 +163,101 @@ function limitGeneratedExercises(text: string, count: number): string {
   return kept.slice(0, count).join('\n\n');
 }
 
+function normalizeDiagramPolicy(value: unknown, fallback: string): string {
+  const policy = String(value ?? '').trim();
+  if (policy === 'must_not_draw' || policy === 'must_draw' || policy === 'prefer_draw' || policy === 'maybe_draw') {
+    return policy;
+  }
+  return fallback;
+}
+
+async function analyzeDiagramPolicy(
+  conceptTitle: string,
+  conceptDesc: string,
+  grade: Grade,
+  difficulty: Difficulty,
+  lang: Language
+): Promise<{ policy: string; reason: string; selfCheck: string; selfCheckOk: boolean; confidence: number }> {
+  const system = `You are classifying whether a math exercise should include a diagram.
+
+Return only valid JSON with this shape:
+{
+  "policy": "must_not_draw" | "maybe_draw" | "prefer_draw" | "must_draw",
+  "reason": "short Chinese or English explanation",
+  "selfCheck": "brief check of whether the decision conflicts with the question",
+  "selfCheckOk": true or false,
+  "confidence": 0 to 1
+}
+
+Decision guidance:
+- must_not_draw: the question is purely verbal, conceptual, or computational, and a diagram would not help.
+- maybe_draw: a diagram is possible but the benefit is limited or the wording is ambiguous.
+- prefer_draw: the problem involves standard geometry or coordinate objects and a clear diagram would help.
+- must_draw: the prompt explicitly relies on a diagram or the question would be unclear without one.
+- Prefer the most informative safe diagram when the information is sufficient to draw a standard figure.
+- Do not invent missing constraints.`;
+
+  const user = [
+    `Language: ${lang === "zh" ? "Chinese" : "English"}`,
+    `Grade: ${grade}`,
+    `Difficulty: ${difficulty}`,
+    `Concept title: ${conceptTitle}`,
+    `Concept description: ${conceptDesc}`,
+    `Task: Judge whether this exercise should include a diagram, and self-check the decision.`,
+  ].join('\n');
+
+  const raw = await safeGenerate(
+    [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    true,
+    384,
+    0.1
+  );
+
+  try {
+    const parsed = JSON.parse(raw);
+    const policy = normalizeDiagramPolicy(parsed?.policy, 'maybe_draw');
+    const reason = String(parsed?.reason ?? '').trim() || 'No explanation provided.';
+    const selfCheck = String(parsed?.selfCheck ?? '').trim() || 'No self-check provided.';
+    const selfCheckOk = Boolean(parsed?.selfCheckOk);
+    const confidenceRaw = Number(parsed?.confidence);
+    const confidence = Number.isFinite(confidenceRaw) ? Math.max(0, Math.min(1, confidenceRaw)) : 0.5;
+
+    return { policy, reason, selfCheck, selfCheckOk, confidence };
+  } catch {
+    return {
+      policy: 'maybe_draw',
+      reason: 'Failed to parse semantic diagram policy output.',
+      selfCheck: 'Fallback to conservative policy because the JSON output was invalid.',
+      selfCheckOk: false,
+      confidence: 0.25,
+    };
+  }
+}
+
+function reconcileDiagramPolicy(
+  rulePolicy: string,
+  semanticPolicy: string,
+  selfCheckOk: boolean
+): string {
+  if (rulePolicy === 'must_not_draw') return 'must_not_draw';
+  if (rulePolicy === 'must_draw') return 'must_draw';
+
+  if (!selfCheckOk) {
+    if (semanticPolicy === 'must_draw') return 'prefer_draw';
+    if (semanticPolicy === 'prefer_draw') return 'maybe_draw';
+    return 'must_not_draw';
+  }
+
+  if (semanticPolicy === 'must_draw' || semanticPolicy === 'prefer_draw' || semanticPolicy === 'maybe_draw') {
+    return semanticPolicy;
+  }
+
+  return rulePolicy;
+}
+
 async function repairExerciseOutput(
   rawText: string,
   conceptTitle: string,
@@ -183,7 +278,8 @@ Rules:
 - Replace leaked math commands in prose with proper math formatting or Unicode symbols.
 - Diagram policy for this task: ${diagramPolicy}.
 - If diagram policy is must_not_draw, do not include any diagram, figure, math-diagram block, template JSON, or visual payload.
-- If a geometry problem needs a figure, include exactly one matching fenced block with the math-diagram template and valid JSON.
+- If diagram policy is must_draw, include exactly one matching fenced block with the math-diagram template and valid JSON when the problem genuinely depends on a figure.
+- If diagram policy is prefer_draw, include a diagram only when it can be drawn cleanly and it clearly helps the question.
 - For intersecting chords inside a circle, use template "circle_intersecting_chords" with ap, pb and exactly the given CD/CP/PD relation.
 - Do not add new topics or remove required information.
 - Output only the corrected exercises.`;
@@ -873,7 +969,13 @@ export async function generateExercises(
 ) {
   const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
   const system = SYSTEM_PROMPT_BASE + curriculumInstr;
-  const diagramPolicy = classifyDiagramNeed({ conceptTitle, conceptDesc });
+  const ruleDiagramPolicy = classifyDiagramNeed({ conceptTitle, conceptDesc });
+  const semanticDiagramPolicy = await analyzeDiagramPolicy(conceptTitle, conceptDesc, grade, difficulty, lang);
+  const diagramPolicy = reconcileDiagramPolicy(
+    ruleDiagramPolicy,
+    semanticDiagramPolicy.policy,
+    semanticDiagramPolicy.selfCheckOk
+  );
 
   const pool = getTypePool(conceptTitle) ?? GENERIC_PROBLEM_TYPES;
   const historyKey = makeExerciseVarietyKey(conceptTitle, grade, difficulty, curriculum);
@@ -911,8 +1013,10 @@ export async function generateExercises(
     (diagramPolicy === "must_not_draw"
       ? `Hard constraint: do not include any diagram, figure, math-diagram block, template JSON, or visual payload.\n`
       : diagramPolicy === "must_draw"
-        ? `Hard constraint: if and only if the question truly needs a figure, include exactly one valid math-diagram block using a known template.\n`
-        : `Hard constraint: only include a diagram if it is genuinely necessary, and only use known math-diagram templates.\n`) +
+        ? `Hard constraint: include exactly one valid math-diagram block whenever a clean standard diagram can be drawn from the given information.\n`
+        : diagramPolicy === "prefer_draw"
+          ? `Preference: include a clean standard diagram whenever it can be drawn reliably from the given information and it will help explain the question.\n`
+          : `Preference: include a diagram only if it is genuinely helpful and can be drawn reliably from the given information.\n`) +
     `Hard constraint: output exactly ${count} exercise(s) and nothing extra.\n` +
     `Formatting rule: if any exercise needs a figure, include a matching fenced math-diagram block and keep all math commands properly wrapped in $...$.\n` +
     varietyInstr + forcedVarietyInstr + `\n` +
