@@ -718,6 +718,7 @@ export async function startFeynmanSession(
     `Module: ${concept.title[lang]} (${concept.module})\n` +
     `Student Input: "${problemText}"\n` +
     `Language: ${lang === "zh" ? "Chinese" : "English"}\n\n` +
+    `Formatting rule: keep explanations in plain language. If you use a formula, keep only the formula inside $...$ and keep the surrounding explanation outside math mode. Never wrap whole sentences in $...$.\n` +
     `YOUR OPENING MOVE — RUNG 1 ONLY:\n` +
     `- Start with a 1-2 sentence warm, relatable real-life hook.\n` +
     `- Then ask ONE simple question answerable from pure common sense.\n` +
@@ -750,8 +751,9 @@ EXERCISE GUIDANCE MODE:
 4. SUBSEQUENT TURNS: Affirm correct answers, hint at wrong ones, re-ask.
 5. NEVER give a full worked solution. Maximum one algebraic step per reply.
 6. LANGUAGE: Always reply in ${lang === "zh" ? "Chinese" : "English"}.
+7. FORMATTING: Keep math expressions short and isolated. Never put whole sentences, clauses, or sentence fragments inside $...$.
 ${buildLanguageLock(lang)}
-7. LENGTH: 3-5 sentences + 1 question per reply.` + curriculumInstr;
+8. LENGTH: 3-5 sentences + 1 question per reply.` + curriculumInstr;
 
   const userMsg =
     `The student is working on:\n"""\n${exercises}\n"""\n\n` +
@@ -782,6 +784,7 @@ RULES:
 - Ask exactly ONE follow-up question per reply.
 - Keep replies to 3-5 sentences.
 - Language: always ${lang === "zh" ? "Chinese" : "English"}.
+- Formatting: if you use math, keep only the formula in $...$. Never place whole sentences inside math mode.
 - ${buildLanguageLock(lang)}
 - The problems: """${exercises}"""` + curriculumInstr;
 

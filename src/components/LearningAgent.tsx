@@ -10,6 +10,7 @@ import { startFeynmanSession, chatStep, guideExercise, guideExerciseStep } from 
 import MathDiagram from './MathDiagram';
 import { sanitizeMath } from '../utils/mathUtils';
 import { extractEmbeddedDiagram } from '../utils/markdownDiagram';
+import { normalizeTutorPlainText, shouldRenderTutorContentWithMath } from '../utils/tutorMarkdown';
 
 interface LearningAgentProps {
   concept: Concept;
@@ -164,6 +165,22 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
     }
   };
 
+  const renderTutorContent = (content: string) => {
+    const sanitized = sanitizeMath(content);
+    const useMathMode = shouldRenderTutorContentWithMath(sanitized);
+    const displayText = useMathMode ? sanitized : normalizeTutorPlainText(sanitized);
+
+    return (
+      <ReactMarkdown
+        remarkPlugins={useMathMode ? [remarkMath] : []}
+        rehypePlugins={useMathMode ? [rehypeKatex] : []}
+        components={mdComponents}
+      >
+        {displayText}
+      </ReactMarkdown>
+    );
+  };
+
   // ── Not started ──────────────────────────────────────────────────────
   if (!isStarted) {
     return (
@@ -250,13 +267,7 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
             }`}>
               {msg.role === 'user' ? msg.content : (
                 <div className="markdown-body prose prose-invert prose-sm max-w-none prose-p:leading-relaxed">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkMath]}
-                    rehypePlugins={[rehypeKatex]}
-                    components={mdComponents}
-                  >
-                    {sanitizeMath(msg.content)}
-                  </ReactMarkdown>
+                  {renderTutorContent(msg.content)}
                 </div>
               )}
             </div>
