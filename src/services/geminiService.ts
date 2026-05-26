@@ -1,5 +1,6 @@
 import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
+import { classifyDiagramNeed, stripDiagramArtifacts } from "../utils/diagramPolicy";
 import { sanitizeMath } from "../utils/mathUtils";
 
 const ARK_BASE_URL =
@@ -82,7 +83,9 @@ function hasMathDiagramBlock(text: string): boolean {
   return text.includes('```math-diagram') || text.includes('"template"');
 }
 
-function needsDiagramRepair(text: string, conceptTitle: string, conceptDesc: string): boolean {
+function needsDiagramRepair(text: string, conceptTitle: string, conceptDesc: string, diagramPolicy: string): boolean {
+  if (diagramPolicy === "must_not_draw") return false;
+
   const source = `${conceptTitle}\n${conceptDesc}\n${text}`;
   const geometryContext = GEOMETRY_HINT_PATTERN.test(source);
   const explicitFigureCue =
@@ -94,12 +97,13 @@ function needsDiagramRepair(text: string, conceptTitle: string, conceptDesc: str
 function detectOutputIssues(
   text: string,
   conceptTitle: string,
-  conceptDesc: string
+  conceptDesc: string,
+  diagramPolicy: string
 ): string[] {
   const issues: string[] = [];
 
   if (hasRawMathLeak(text)) issues.push("raw_math_leaks");
-  if (needsDiagramRepair(text, conceptTitle, conceptDesc)) issues.push("missing_diagram_block");
+  if (needsDiagramRepair(text, conceptTitle, conceptDesc, diagramPolicy)) issues.push("missing_diagram_block");
 
   return issues;
 }
@@ -167,7 +171,8 @@ async function repairExerciseOutput(
   difficulty: Difficulty,
   lang: Language,
   issueList: string[],
-  count: number
+  count: number,
+  diagramPolicy: string
 ): Promise<string> {
   const system = `You are repairing AI-generated middle-school math exercises.
 
@@ -176,6 +181,8 @@ Rules:
 - Do not solve the problems.
 - Only fix formatting and representation issues.
 - Replace leaked math commands in prose with proper math formatting or Unicode symbols.
+- Diagram policy for this task: ${diagramPolicy}.
+- If diagram policy is must_not_draw, do not include any diagram, figure, math-diagram block, template JSON, or visual payload.
 - If a geometry problem needs a figure, include exactly one matching fenced block with the math-diagram template and valid JSON.
 - For intersecting chords inside a circle, use template "circle_intersecting_chords" with ap, pb and exactly the given CD/CP/PD relation.
 - Do not add new topics or remove required information.
@@ -186,6 +193,7 @@ Rules:
     `Grade: ${grade}`,
     `Difficulty: ${difficulty}`,
     `Requested exercise count: ${count}`,
+    `Diagram policy: ${diagramPolicy}`,
     `Concept title: ${conceptTitle}`,
     `Concept description: ${conceptDesc}`,
     `Detected issues: ${issueList.join(", ")}`,
@@ -865,6 +873,7 @@ export async function generateExercises(
 ) {
   const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
   const system = SYSTEM_PROMPT_BASE + curriculumInstr;
+  const diagramPolicy = classifyDiagramNeed({ conceptTitle, conceptDesc });
 
   const pool = getTypePool(conceptTitle) ?? GENERIC_PROBLEM_TYPES;
   const historyKey = makeExerciseVarietyKey(conceptTitle, grade, difficulty, curriculum);
@@ -898,6 +907,12 @@ export async function generateExercises(
     `Difficulty: ${difficulty}\n` +
     `Language: ${lang === "zh" ? "Chinese" : "English"}\n` +
     `Description: ${conceptDesc}\n` +
+    `Diagram policy: ${diagramPolicy}\n` +
+    (diagramPolicy === "must_not_draw"
+      ? `Hard constraint: do not include any diagram, figure, math-diagram block, template JSON, or visual payload.\n`
+      : diagramPolicy === "must_draw"
+        ? `Hard constraint: if and only if the question truly needs a figure, include exactly one valid math-diagram block using a known template.\n`
+        : `Hard constraint: only include a diagram if it is genuinely necessary, and only use known math-diagram templates.\n`) +
     `Hard constraint: output exactly ${count} exercise(s) and nothing extra.\n` +
     `Formatting rule: if any exercise needs a figure, include a matching fenced math-diagram block and keep all math commands properly wrapped in $...$.\n` +
     varietyInstr + forcedVarietyInstr + `\n` +
@@ -911,11 +926,28 @@ export async function generateExercises(
 
   writeRecentExerciseTypes(historyKey, pickedTypes);
 
-  const cleaned = limitGeneratedExercises(sanitizeMath(raw), count);
-  const issues = detectOutputIssues(raw, conceptTitle, conceptDesc);
+  let cleaned = sanitizeMath(raw);
+  if (diagramPolicy === "must_not_draw") {
+    cleaned = stripDiagramArtifacts(cleaned);
+  }
+  cleaned = limitGeneratedExercises(cleaned, count);
+  const issues = detectOutputIssues(raw, conceptTitle, conceptDesc, diagramPolicy);
 
   if (issues.length > 0) {
-    return await repairExerciseOutput(cleaned, conceptTitle, conceptDesc, grade, difficulty, lang, issues, count);
+    const repaired = await repairExerciseOutput(
+      cleaned,
+      conceptTitle,
+      conceptDesc,
+      grade,
+      difficulty,
+      lang,
+      issues,
+      count,
+      diagramPolicy
+    );
+    return diagramPolicy === "must_not_draw"
+      ? limitGeneratedExercises(stripDiagramArtifacts(repaired), count)
+      : repaired;
   }
 
   return cleaned;
