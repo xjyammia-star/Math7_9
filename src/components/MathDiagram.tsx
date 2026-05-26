@@ -397,8 +397,8 @@ function validateDiagramData(template: string, data: any): string | null {
     }
     case 'circle_sector': {
       const radius = asFiniteNumber(data.radius);
-      const angle = asFiniteNumber(data.angle ?? data.angle_deg);
-      const minutes = asFiniteNumber(data.minutes ?? data.time_minutes);
+      const angle = numberFromValueOrLabel(data.angle ?? data.angle_deg ?? data.label_angle);
+      const minutes = numberFromValueOrLabel(data.minutes ?? data.time_minutes ?? data.label_minutes);
       const sectorCount = getSectorCount(data);
       return radius !== null && radius > 0 && (
         (angle !== null && angle > 0 && angle <= 360) ||
@@ -1608,9 +1608,9 @@ function CircleDiameterPoints({ data }: { data: any }) {
  */
 function CircleSector({ data }: { data: any }) {
   const r: number = data.radius ?? 5;
-  const minutes: number | null = data.minutes ?? data.time_minutes ?? null;
+  const minutes: number | null = numberFromValueOrLabel(data.minutes ?? data.time_minutes ?? data.label_minutes);
   const sectorCount = getSectorCount(data);
-  const angleDeg: number = data.angle ?? data.angle_deg ?? (minutes !== null ? minutes * 6 : (
+  const angleDeg: number = numberFromValueOrLabel(data.angle ?? data.angle_deg ?? data.label_angle) ?? (minutes !== null ? minutes * 6 : (
     sectorCount !== null && sectorCount > 0 ? 360 / sectorCount : 60
   ));
   const startDeg: number = data.start_angle ?? 90;
