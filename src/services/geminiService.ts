@@ -163,6 +163,58 @@ function limitGeneratedExercises(text: string, count: number): string {
   return kept.slice(0, count).join('\n\n');
 }
 
+function isMarkdownTableSeparator(line: string): boolean {
+  return /^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$/.test(line);
+}
+
+function isMarkdownTableRow(line: string): boolean {
+  const trimmed = line.trim();
+  return trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.includes('|');
+}
+
+function tableRowToBullet(line: string): string | null {
+  const cells = line
+    .trim()
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split('|')
+    .map((cell) => cell.trim())
+    .filter(Boolean);
+
+  if (cells.length === 0) return null;
+  if (cells.length === 1) return `- ${cells[0]}`;
+
+  const [label, ...rest] = cells;
+  return `- ${label}: ${rest.join(', ')}`;
+}
+
+function normalizeMarkdownTables(text: string): string {
+  const lines = String(text ?? '').replace(/\r\n/g, '\n').split('\n');
+  const output: string[] = [];
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (!isMarkdownTableRow(line)) {
+      output.push(line);
+      continue;
+    }
+
+    const tableLines: string[] = [];
+    while (i < lines.length && (isMarkdownTableRow(lines[i]) || isMarkdownTableSeparator(lines[i]) || lines[i].trim() === '')) {
+      if (isMarkdownTableRow(lines[i])) tableLines.push(lines[i]);
+      i += 1;
+    }
+    i -= 1;
+
+    for (const tableLine of tableLines) {
+      const bullet = tableRowToBullet(tableLine);
+      if (bullet) output.push(bullet);
+    }
+  }
+
+  return output.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 function normalizeDiagramPolicy(value: unknown, fallback: string): string {
   const policy = String(value ?? '').trim();
   if (policy === 'must_not_draw' || policy === 'must_draw' || policy === 'prefer_draw' || policy === 'maybe_draw') {
@@ -1019,6 +1071,7 @@ export async function generateExercises(
           : `Preference: include a diagram only if it is genuinely helpful and can be drawn reliably from the given information.\n`) +
     `Hard constraint: output exactly ${count} exercise(s) and nothing extra.\n` +
     `Formatting rule: if any exercise needs a figure, include a matching fenced math-diagram block and keep all math commands properly wrapped in $...$.\n` +
+    `Formatting rule: never use Markdown tables or pipe-separated rows in the question text. If a problem lists coordinates, vertices, or known values, rewrite them as clear sentences or bullet points so they remain readable in this renderer.\n` +
     varietyInstr + forcedVarietyInstr + `\n` +
     `CRITICAL: DO NOT include solutions. ONLY output the numbered questions.\n` +
     `Timestamp: ${Date.now()}`;
@@ -1031,6 +1084,7 @@ export async function generateExercises(
   writeRecentExerciseTypes(historyKey, pickedTypes);
 
   let cleaned = sanitizeMath(raw);
+  cleaned = normalizeMarkdownTables(cleaned);
   if (diagramPolicy === "must_not_draw") {
     cleaned = stripDiagramArtifacts(cleaned);
   }
@@ -1050,7 +1104,7 @@ export async function generateExercises(
       diagramPolicy
     );
     return diagramPolicy === "must_not_draw"
-      ? limitGeneratedExercises(stripDiagramArtifacts(repaired), count)
+      ? limitGeneratedExercises(stripDiagramArtifacts(normalizeMarkdownTables(repaired)), count)
       : repaired;
   }
 
