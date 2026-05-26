@@ -18,6 +18,7 @@
  *   number_line           – horizontal number line with marked points / arrows
  *   coordinate_points     – free points + segments on a grid
  *   cylinder_unrolled     – unrolled lateral surface (for shortest-path problems)
+ *   rectangular_prism_net – cuboid net with length/width/height labels
  *   ladder                – ladder-against-wall right triangle
  *   similar_triangles     – two similar triangles side by side
  */
@@ -337,6 +338,15 @@ function validateDiagramData(template: string, data: any): string | null {
       return circ !== null && height !== null && circ > 0 && height > 0
         ? null
         : 'cylinder_unrolled requires positive circumference and height';
+    }
+    case 'rectangular_prism_net': {
+      const length = asFiniteNumber(data.length ?? data.l ?? data.a);
+      const width = asFiniteNumber(data.width ?? data.w ?? data.b);
+      const height = asFiniteNumber(data.height ?? data.h ?? data.c);
+      return length !== null && width !== null && height !== null &&
+        length > 0 && width > 0 && height > 0
+        ? null
+        : 'rectangular_prism_net requires positive length, width and height';
     }
     case 'linear_function': {
       const slope = asFiniteNumber(data.slope ?? data.k);
@@ -794,6 +804,80 @@ function CylinderUnrolled({ data }: { data: any }) {
       <SegLabel a={A} b={B} label={lH} />
       <SegLabel a={B} b={C} label={lC} />
       {lPath && <SegLabel a={A} b={C} label={lPath} color={GOLD} />}
+    </g>
+  );
+}
+
+/** rectangular_prism_net: cuboid net with six faces and three edge lengths */
+function RectangularPrismNet({ data }: { data: any }) {
+  const length: number = data.length ?? data.l ?? data.a ?? 8;
+  const width: number = data.width ?? data.w ?? data.b ?? 5;
+  const height: number = data.height ?? data.h ?? data.c ?? 4;
+
+  const lLabel = data.label_length ?? data.label_l ?? data.label_a ?? String(length);
+  const wLabel = data.label_width ?? data.label_w ?? data.label_b ?? String(width);
+  const hLabel = data.label_height ?? data.label_h ?? data.label_c ?? String(height);
+
+  const left = -width;
+  const right = length + width;
+  const bottom = -width;
+  const top = height + width + height;
+  const pad = Math.max(length, width, height) * 0.35;
+  const sc = makeScaler(left - pad, right + pad, bottom - pad, top + pad);
+
+  const rect = (x: number, y: number, w: number, h: number) => ([
+    sc({ x, y }),
+    sc({ x: x + w, y }),
+    sc({ x: x + w, y: y + h }),
+    sc({ x, y: y + h }),
+  ]);
+
+  const front = { x: 0, y: 0, w: length, h: height };
+  const topFace = { x: 0, y: height, w: length, h: width };
+  const back = { x: 0, y: height + width, w: length, h: height };
+  const bottomFace = { x: 0, y: -width, w: length, h: width };
+  const leftFace = { x: -width, y: 0, w: width, h: height };
+  const rightFace = { x: length, y: 0, w: width, h: height };
+
+  const faceStyles = [
+    { face: front, fill: FILL, stroke: GOLD, sw: 2.4 },
+    { face: topFace, fill: FILL2, stroke: GREY, sw: 2 },
+    { face: back, fill: FILL2, stroke: GREY, sw: 2 },
+    { face: bottomFace, fill: FILL2, stroke: GREY, sw: 2 },
+    { face: leftFace, fill: FILL2, stroke: GREY, sw: 2 },
+    { face: rightFace, fill: FILL2, stroke: GREY, sw: 2 },
+  ];
+
+  return (
+    <g>
+      {faceStyles.map(({ face, fill, stroke, sw }, index) => (
+        <Poly
+          key={index}
+          pts={rect(face.x, face.y, face.w, face.h)}
+          fill={fill}
+          stroke={stroke}
+          sw={sw}
+        />
+      ))}
+
+      {/* Fold lines */}
+      <Seg a={sc({ x: 0, y: 0 })} b={sc({ x: length, y: 0 })} stroke={GREY} sw={1.6} dash="5,4" />
+      <Seg a={sc({ x: 0, y: height })} b={sc({ x: length, y: height })} stroke={GREY} sw={1.6} dash="5,4" />
+      <Seg a={sc({ x: 0, y: height + width })} b={sc({ x: length, y: height + width })} stroke={GREY} sw={1.6} dash="5,4" />
+      <Seg a={sc({ x: 0, y: 0 })} b={sc({ x: 0, y: height })} stroke={GREY} sw={1.6} dash="5,4" />
+      <Seg a={sc({ x: length, y: 0 })} b={sc({ x: length, y: height })} stroke={GREY} sw={1.6} dash="5,4" />
+
+      {/* Dimension labels */}
+      <SegLabel a={sc({ x: 0, y: height })} b={sc({ x: length, y: height })} label={String(lLabel)} color={GOLD} />
+      <SegLabel a={sc({ x: 0, y: 0 })} b={sc({ x: 0, y: height })} label={String(hLabel)} color={GOLD} />
+      <SegLabel a={sc({ x: 0, y: height })} b={sc({ x: 0, y: height + width })} label={String(wLabel)} color={GOLD} />
+
+      <text x={sc({ x: length / 2, y: height / 2 }).x} y={sc({ x: length / 2, y: height / 2 }).y}
+        fontSize={12} fontWeight="700" textAnchor="middle" fill={WHITE}>前</text>
+      <text x={sc({ x: length / 2, y: height + width / 2 }).x} y={sc({ x: length / 2, y: height + width / 2 }).y}
+        fontSize={12} fontWeight="700" textAnchor="middle" fill={GREY}>上</text>
+      <text x={sc({ x: length / 2, y: height + width + height / 2 }).x} y={sc({ x: length / 2, y: height + width + height / 2 }).y}
+        fontSize={12} fontWeight="700" textAnchor="middle" fill={GREY}>后</text>
     </g>
   );
 }
@@ -1610,6 +1694,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'parallelogram':       content = <Parallelogram data={parsed} />; break;
       case 'ladder':              content = <Ladder data={parsed} />; break;
       case 'cylinder_unrolled':   content = <CylinderUnrolled data={parsed} />; break;
+      case 'rectangular_prism_net': content = <RectangularPrismNet data={parsed} />; break;
       case 'circle_chord':        content = <CircleChord data={parsed} />; break;
       case 'circle_sector':       content = <CircleSector data={parsed} />; break;
       case 'circle_tangent':      content = <CircleTangent data={parsed} />; break;
