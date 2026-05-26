@@ -104,6 +104,61 @@ function detectOutputIssues(
   return issues;
 }
 
+function looksLikeExerciseStart(block: string): boolean {
+  const firstLine = block.split('\n').find((line) => line.trim().length > 0)?.trim() ?? '';
+  if (!firstLine) return false;
+
+  return (
+    /^\d+[.)、：:]\s+/.test(firstLine) ||
+    /^[（(]?\d+[）)]\s+/.test(firstLine) ||
+    /^[一二三四五六七八九十]+[.)、：:]\s+/.test(firstLine) ||
+    /^(?:已知|一个|一条|一辆|一棵|一只|将|作|设|若|求|证明|判断|根据|如图|下图|观察|完成|回答|请)\b/.test(firstLine)
+  );
+}
+
+function limitGeneratedExercises(text: string, count: number): string {
+  const normalized = String(text ?? '').replace(/\r\n/g, '\n').trim();
+  if (!normalized) return normalized;
+
+  const blocks = normalized.split(/\n{2,}/);
+  const kept: string[] = [];
+  let current = '';
+  let currentHasEnded = false;
+
+  const flushCurrent = () => {
+    const trimmed = current.trim();
+    if (trimmed) kept.push(trimmed);
+    current = '';
+    currentHasEnded = false;
+  };
+
+  for (const rawBlock of blocks) {
+    const block = rawBlock.trim();
+    if (!block) continue;
+
+    if (!current) {
+      current = block;
+      currentHasEnded = /[。！？?!]$/.test(block);
+      continue;
+    }
+
+    const isNewExercise = looksLikeExerciseStart(block) && currentHasEnded;
+    if (isNewExercise) {
+      flushCurrent();
+      if (kept.length >= count) break;
+      current = block;
+      currentHasEnded = /[。！？?!]$/.test(block);
+      continue;
+    }
+
+    current += '\n\n' + block;
+    currentHasEnded = currentHasEnded || /[。！？?!]$/.test(block);
+  }
+
+  flushCurrent();
+  return kept.slice(0, count).join('\n\n');
+}
+
 async function repairExerciseOutput(
   rawText: string,
   conceptTitle: string,
@@ -111,7 +166,8 @@ async function repairExerciseOutput(
   grade: Grade,
   difficulty: Difficulty,
   lang: Language,
-  issueList: string[]
+  issueList: string[],
+  count: number
 ): Promise<string> {
   const system = `You are repairing AI-generated middle-school math exercises.
 
@@ -129,6 +185,7 @@ Rules:
     `Language: ${lang === "zh" ? "Chinese" : "English"}`,
     `Grade: ${grade}`,
     `Difficulty: ${difficulty}`,
+    `Requested exercise count: ${count}`,
     `Concept title: ${conceptTitle}`,
     `Concept description: ${conceptDesc}`,
     `Detected issues: ${issueList.join(", ")}`,
@@ -145,7 +202,7 @@ Rules:
     1600
   );
 
-  return sanitizeMath(repaired || rawText);
+  return limitGeneratedExercises(sanitizeMath(repaired || rawText), count);
 }
 
 const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string }> = {
@@ -841,6 +898,7 @@ export async function generateExercises(
     `Difficulty: ${difficulty}\n` +
     `Language: ${lang === "zh" ? "Chinese" : "English"}\n` +
     `Description: ${conceptDesc}\n` +
+    `Hard constraint: output exactly ${count} exercise(s) and nothing extra.\n` +
     `Formatting rule: if any exercise needs a figure, include a matching fenced math-diagram block and keep all math commands properly wrapped in $...$.\n` +
     varietyInstr + forcedVarietyInstr + `\n` +
     `CRITICAL: DO NOT include solutions. ONLY output the numbered questions.\n` +
@@ -853,11 +911,11 @@ export async function generateExercises(
 
   writeRecentExerciseTypes(historyKey, pickedTypes);
 
-  const cleaned = sanitizeMath(raw);
+  const cleaned = limitGeneratedExercises(sanitizeMath(raw), count);
   const issues = detectOutputIssues(raw, conceptTitle, conceptDesc);
 
   if (issues.length > 0) {
-    return await repairExerciseOutput(cleaned, conceptTitle, conceptDesc, grade, difficulty, lang, issues);
+    return await repairExerciseOutput(cleaned, conceptTitle, conceptDesc, grade, difficulty, lang, issues, count);
   }
 
   return cleaned;
