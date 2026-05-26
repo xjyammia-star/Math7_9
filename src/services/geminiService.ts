@@ -255,6 +255,7 @@ STRICT PRINCIPLES:
      * Cyclic quadrilateral / quadrilateral inscribed in a circle (圆内接四边形、四边形ABCD内接于⊙O) → ALWAYS use circle_cyclic_quadrilateral, not coordinate_points.
      * If the problem says AB is a diameter (AB是⊙O的直径), use circle_diameter_points, not circle_cyclic_quadrilateral. A and B must be opposite ends of the diameter through O.
      * Intersecting chords inside a circle (两弦相交于圆内一点, AP/PB/CP/PD) → ALWAYS use circle_intersecting_chords, not coordinate_points.
+     * Rectangular prism / cuboid nets (展开图) → use rectangular_prism_net. Do NOT invent raw coordinates for solid nets.
      * Pure geometry (no coordinate grid in problem) → ALWAYS set axes:false. Use right_triangle / triangle / rectangle / coordinate_points with axes:false.
      * Only use axes:true when the problem explicitly mentions a coordinate system (坐标系/坐标轴/函数图象).
 
@@ -326,6 +327,11 @@ STRICT PRINCIPLES:
    Cylinder unrolled / shortest path (圆柱展开/最短路径):
    ${BT}math-diagram
    {"template":"cylinder_unrolled","circumference":6.28,"height":8,"label_circ":"2πr","label_height":"8"}
+   ${BT}
+
+   Rectangular prism net / cuboid展开图:
+   ${BT}math-diagram
+   {"template":"rectangular_prism_net","length":8,"width":5,"height":4,"label_length":"8 cm","label_width":"5 cm","label_height":"4 cm"}
    ${BT}
 
    Linear function (一次函数):
