@@ -81,6 +81,15 @@ function hasAnyNumericLabel(text, keys) {
   return keys.some((key) => hasNumericAngleValue(text, key));
 }
 
+function extractCentralAngles(text) {
+  const source = String(text ?? "");
+  const angles = new Set();
+  for (const match of source.matchAll(/∠\s*([A-Z])O([A-Z])/g)) {
+    angles.add(`${match[1].toUpperCase()}O${match[2].toUpperCase()}`);
+  }
+  return [...angles];
+}
+
 export function needsCircleDiameterRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
   if (diagramPolicy === "must_not_draw") return false;
 
@@ -111,7 +120,8 @@ export function needsQuestionAnswerLeakRepair({ conceptTitle = "", conceptDesc =
 
   const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
   const { angles: askedAngles, labels: askedLabels, quantities } = extractAskedTargets(source);
-  if (askedAngles.length === 0 && askedLabels.length === 0 && quantities.length === 0) return false;
+  const centralAngles = extractCentralAngles(source);
+  if (askedAngles.length === 0 && askedLabels.length === 0 && quantities.length === 0 && centralAngles.length === 0) return false;
   if (!hasMathDiagramBlock(generatedText)) return false;
 
   for (const angle of askedAngles) {
@@ -148,6 +158,33 @@ export function needsQuestionAnswerLeakRepair({ conceptTitle = "", conceptDesc =
   for (const quantity of quantities) {
     const candidateKeys = quantityKeyMap[quantity] ?? [];
     if (candidateKeys.length > 0 && hasAnyNumericLabel(generatedText, candidateKeys)) {
+      return true;
+    }
+  }
+
+  for (const angle of centralAngles) {
+    const key = `angle_${angle.toLowerCase()}`;
+    const hasLabel = new RegExp(`"label_${key}"\\s*:\\s*`, "i").test(String(generatedText ?? ""));
+    const showOC = /"show_oc"\s*:\s*true/i.test(String(generatedText ?? ""));
+    if (!hasLabel || !showOC) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function needsCentralAngleRayRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
+  if (diagramPolicy === "must_not_draw") return false;
+
+  const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
+  const centralAngles = extractCentralAngles(source);
+  if (centralAngles.length === 0) return false;
+  if (!hasMathDiagramBlock(generatedText)) return false;
+
+  for (const angle of centralAngles) {
+    const showOC = /"show_oc"\s*:\s*true/i.test(String(generatedText ?? ""));
+    if (!showOC) {
       return true;
     }
   }

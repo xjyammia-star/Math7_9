@@ -1562,6 +1562,7 @@ function CircleDiameterPoints({ data }: { data: any }) {
   const side = data.arc_side === 'below' ? -1 : 1;
   const cDeg: number = data.c_angle ?? 38;
   const dDeg: number = data.d_angle ?? 116;
+  const showOC: boolean = data.show_oc === true || data.label_oc !== undefined || data.label_angle_aoc !== undefined;
 
   const O: Pt = { x: 0, y: 0 };
   const A: Pt = { x: -r, y: 0 };
@@ -1586,6 +1587,7 @@ function CircleDiameterPoints({ data }: { data: any }) {
       <Seg a={sB} b={sD} stroke={GOLD} sw={2.2} />
       <Seg a={sA} b={sC} stroke={GREY} sw={1.5} dash="4,3" />
       <Seg a={sB} b={sC} stroke={GREY} sw={1.5} dash="4,3" />
+      {showOC && <Seg a={sO} b={sC} stroke={GREY} sw={1.5} dash="4,3" />}
       <Seg a={sA} b={sD} stroke={GOLD} sw={2.2} />
       <Seg a={sD} b={sC} stroke={GOLD} sw={2.2} />
       <Seg a={sC} b={sB} stroke={GOLD} sw={2.2} />
@@ -1599,6 +1601,8 @@ function CircleDiameterPoints({ data }: { data: any }) {
       {data.label_ab && <SegLabel a={sA} b={sB} label={String(data.label_ab)} color={GOLD} />}
       {data.label_angle_bcd && <AngleMark v={sC} a={sB} b={sD} label={String(data.label_angle_bcd)} r={20} color={GOLD} />}
       {data.label_angle_abd && <AngleMark v={sB} a={sA} b={sD} label={String(data.label_angle_abd)} r={20} color={GOLD} />}
+      {data.label_angle_aoc && <AngleMark v={sO} a={sA} b={sC} label={String(data.label_angle_aoc)} r={24} color={GOLD} />}
+      {data.label_oc !== undefined && <SegLabel a={sO} b={sC} label={String(data.label_oc)} color={GREY} />}
     </g>
   );
 }

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { needsCircleDiameterRepair, needsQuestionAnswerLeakRepair, needsTargetAngleLeakRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
+import { needsCentralAngleRayRepair, needsCircleDiameterRepair, needsQuestionAnswerLeakRepair, needsTargetAngleLeakRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
 
 assert.equal(
   needsCircleDiameterRepair({
@@ -108,3 +108,25 @@ assert.equal(
 );
 
 console.log('generic question-answer leak test passed');
+
+assert.equal(
+  needsCentralAngleRayRepair({
+    conceptTitle: '圆心角',
+    conceptDesc: '如图，AB是⊙O的直径，点C和点D都在⊙O上，且两点都在AB的同侧。已知∠ABD = 28°，∠BCD = 34°，求圆心角∠AOC的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_diameter_points","radius":5,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_angle_abd":"28°","label_angle_bcd":"34°"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsCentralAngleRayRepair({
+    conceptTitle: '圆心角',
+    conceptDesc: '如图，AB是⊙O的直径，点C和点D都在⊙O上，且两点都在AB的同侧。已知∠ABD = 28°，∠BCD = 34°，求圆心角∠AOC的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_diameter_points","radius":5,"show_oc":true,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_angle_abd":"28°","label_angle_bcd":"34°","label_angle_aoc":"?"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+console.log('central-angle ray test passed');

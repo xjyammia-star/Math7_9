@@ -1,7 +1,7 @@
 import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 import { classifyDiagramNeed, stripDiagramArtifacts } from "../utils/diagramPolicy";
-import { needsCircleDiameterRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
+import { needsCentralAngleRayRepair, needsCircleDiameterRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
 import { sanitizeMath } from "../utils/mathUtils";
 
 const ARK_BASE_URL =
@@ -113,6 +113,9 @@ function detectOutputIssues(
   }
   if (needsQuestionAnswerLeakRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("question_answer_leak");
+  }
+  if (needsCentralAngleRayRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
+    issues.push("missing_central_angle_ray");
   }
 
   return issues;
@@ -347,6 +350,7 @@ Rules:
 - For tangent-chord theorem problems with a tangent at A and chord AC, such as ∠BAC, use template "circle_chord_tangent" with arc_type "minor" when D lies on the minor arc AC. Keep the tangent point at A and map the chord endpoint/arc point labels consistently. Do not use circle_tangent for this pattern.
 - For the same tangent-chord pattern, use label_A="A", label_B="C", and label_C="D". Do not relabel the tangent-line helper points as A/B; the visible tangent point must remain A.
 - If the question asks for a specific unknown value, do not print that unknown as a numeric label in the diagram. Use "?" or omit the label, and only annotate the given conditions.
+- If the question asks for a central angle like ∠AOC, show the OC ray explicitly (for example with show_oc:true) so the two angle sides are visible. Do not leave the angle floating without its rays.
 - In any geometry diagram, if you label an angle such as ∠ABD, make sure the two rays/segments that define that angle are actually drawn in the figure.
 - Do not add new topics or remove required information.
 - Output only the corrected exercises.`;
@@ -656,6 +660,8 @@ STRICT PRINCIPLES:
    ${BT}math-diagram
    {"template":"circle_diameter_points","radius":5,"label_O":"O","label_A":"A","label_B":"B","label_C":"C","label_D":"D","arc_side":"above","label_angle_abd":"32°","label_angle_bcd":"21°"}
    ${BT}
+
+   If the question asks for a central angle such as ∠AOC, add "show_oc":true and use "label_angle_aoc":"?" (or omit the label) so the OC ray is visible without giving away the answer.
 
    DIAGRAM LABEL RULE: ALL "label" values must be plain Unicode text only.
    NO LaTeX, NO dollar signs, NO backslashes inside labels.
