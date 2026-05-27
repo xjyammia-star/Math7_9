@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { needsCircleDiameterRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
+import { needsCircleDiameterRepair, needsTargetAngleLeakRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
 
 assert.equal(
   needsCircleDiameterRepair({
@@ -64,3 +64,25 @@ assert.equal(
 );
 
 console.log('tangent-chord consistency test passed');
+
+assert.equal(
+  needsTargetAngleLeakRepair({
+    conceptTitle: '切线与圆',
+    conceptDesc: '如图，直线PQ与⊙O相切于A，AB是⊙O的一条弦，C在⊙O的优弧AB上。已知∠ACB = 35°，求∠PAB的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_chord_tangent","radius":5,"angle":35,"arc_type":"minor","label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"C","label_C":"D","label_angle":"35°"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsTargetAngleLeakRepair({
+    conceptTitle: '切线与圆',
+    conceptDesc: '如图，直线PQ与⊙O相切于A，AB是⊙O的一条弦，C在⊙O的优弧AB上。已知∠ACB = 35°，求∠PAB的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_chord_tangent","radius":5,"angle":"?","arc_type":"minor","label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"C","label_C":"D","label_angle_apb":"?"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+console.log('target-angle leak test passed');

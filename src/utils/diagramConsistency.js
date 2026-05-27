@@ -33,6 +33,24 @@ function hasExpectedTangentChordLabelMap(text) {
     /"label_C"\s*:\s*"D"/i.test(source);
 }
 
+function extractAskedAngles(text) {
+  const source = String(text ?? "");
+  const angles = new Set();
+  for (const match of source.matchAll(/(?:求出|求得|求)\s*∠\s*([A-Z]{3})/g)) {
+    angles.add(match[1].toUpperCase());
+  }
+  return [...angles];
+}
+
+function hasNumericAngleValue(text, key) {
+  const source = String(text ?? "");
+  const patterns = [
+    new RegExp(`"label_${key}"\\s*:\\s*"(?!\\?)[^"]*\\d[^"]*"`, "i"),
+    new RegExp(`"label_${key}"\\s*:\\s*(?!\\?)[^,}\\]]*\\d`, "i"),
+  ];
+  return patterns.some((pattern) => pattern.test(source));
+}
+
 export function needsCircleDiameterRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
   if (diagramPolicy === "must_not_draw") return false;
 
@@ -52,5 +70,29 @@ export function needsTangentChordRepair({ conceptTitle = "", conceptDesc = "", g
 
   if (!/"template"\s*:\s*"circle_chord_tangent"/i.test(String(generatedText ?? ""))) return true;
   return !hasExpectedTangentChordLabelMap(generatedText);
+}
+
+export function needsTargetAngleLeakRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
+  if (diagramPolicy === "must_not_draw") return false;
+
+  const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
+  const askedAngles = extractAskedAngles(source);
+  if (askedAngles.length === 0) return false;
+  if (!hasMathDiagramBlock(generatedText)) return false;
+
+  for (const angle of askedAngles) {
+    if (angle === "PAB" || angle === "BAP") {
+      if (/"template"\s*:\s*"circle_chord_tangent"/i.test(String(generatedText ?? "")) && hasNumericAngleValue(generatedText, "angle")) {
+        return true;
+      }
+    }
+
+    const key = `angle_${angle.toLowerCase()}`;
+    if (hasNumericAngleValue(generatedText, key)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
