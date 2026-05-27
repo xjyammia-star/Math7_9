@@ -350,7 +350,7 @@ Rules:
 - For tangent-chord theorem problems with a tangent at A and chord AC, such as ∠BAC, use template "circle_chord_tangent" with arc_type "minor" when D lies on the minor arc AC. Keep the tangent point at A and map the chord endpoint/arc point labels consistently. Do not use circle_tangent for this pattern.
 - For the same tangent-chord pattern, use label_A="A", label_B="C", and label_C="D". Do not relabel the tangent-line helper points as A/B; the visible tangent point must remain A.
 - If the question asks for a specific unknown value, do not print that unknown as a numeric label in the diagram. Use "?" or omit the label, and only annotate the given conditions.
-- If the question asks for a central angle like ∠AOC, show the OC ray explicitly (for example with show_oc:true) so the two angle sides are visible. Do not leave the angle floating without its rays.
+- If the question asks for a central angle like ∠AOC, show both rays explicitly. Use show_oc:true on templates that can expose OC directly (such as circle_diameter_points, circle_tangent, or circle_chord_tangent), use show_center_rays:true on circle_cyclic_quadrilateral, and keep circle_chord perpendicular helper lines visible when the central ray is needed. Do not leave the angle floating without its rays.
 - In any geometry diagram, if you label an angle such as ∠ABD, make sure the two rays/segments that define that angle are actually drawn in the figure.
 - Do not add new topics or remove required information.
 - Output only the corrected exercises.`;
@@ -621,6 +621,11 @@ STRICT PRINCIPLES:
    {"template":"circle_tangent","radius":5,"op_dist":13,"label_O":"O","label_P":"P","label_A":"A","label_B":"B"}
    ${BT}
 
+   Circle with tangent from external point and a central helper ray:
+   ${BT}math-diagram
+   {"template":"circle_tangent","radius":5,"op_dist":13,"show_oc":true,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_C":"C","label_angle_aoc":"?"}
+   ${BT}
+
    Circle sector from equal slices:
    ${BT}math-diagram
    {"template":"circle_sector","radius":10,"sector_count":8,"label_O":"O","label_radius":"10 cm","label_angle":"45°","label_arc":"弧长?","label_area":"面积?"}
@@ -662,6 +667,8 @@ STRICT PRINCIPLES:
    ${BT}
 
    If the question asks for a central angle such as ∠AOC, add "show_oc":true and use "label_angle_aoc":"?" (or omit the label) so the OC ray is visible without giving away the answer.
+
+   For cyclic quadrilateral figures that need a central-angle helper, use "show_center_rays":true and the same "label_angle_aoc":"?" pattern so the center rays are explicitly drawn.
 
    DIAGRAM LABEL RULE: ALL "label" values must be plain Unicode text only.
    NO LaTeX, NO dollar signs, NO backslashes inside labels.

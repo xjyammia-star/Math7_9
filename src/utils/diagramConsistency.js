@@ -120,8 +120,7 @@ export function needsQuestionAnswerLeakRepair({ conceptTitle = "", conceptDesc =
 
   const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
   const { angles: askedAngles, labels: askedLabels, quantities } = extractAskedTargets(source);
-  const centralAngles = extractCentralAngles(source);
-  if (askedAngles.length === 0 && askedLabels.length === 0 && quantities.length === 0 && centralAngles.length === 0) return false;
+  if (askedAngles.length === 0 && askedLabels.length === 0 && quantities.length === 0) return false;
   if (!hasMathDiagramBlock(generatedText)) return false;
 
   for (const angle of askedAngles) {
@@ -162,15 +161,6 @@ export function needsQuestionAnswerLeakRepair({ conceptTitle = "", conceptDesc =
     }
   }
 
-  for (const angle of centralAngles) {
-    const key = `angle_${angle.toLowerCase()}`;
-    const hasLabel = new RegExp(`"label_${key}"\\s*:\\s*`, "i").test(String(generatedText ?? ""));
-    const showOC = /"show_oc"\s*:\s*true/i.test(String(generatedText ?? ""));
-    if (!hasLabel || !showOC) {
-      return true;
-    }
-  }
-
   return false;
 }
 
@@ -182,9 +172,54 @@ export function needsCentralAngleRayRepair({ conceptTitle = "", conceptDesc = ""
   if (centralAngles.length === 0) return false;
   if (!hasMathDiagramBlock(generatedText)) return false;
 
+  const templateMatch = String(generatedText ?? "").match(/"template"\s*:\s*"([^"]+)"/i);
+  const template = String(templateMatch?.[1] ?? "");
+  const sourceText = String(generatedText ?? "");
+  const hasShowOC = /"show_oc"\s*:\s*true/i.test(sourceText) ||
+    /"show_center_rays"\s*:\s*true/i.test(sourceText) ||
+    /"show_radii"\s*:\s*true/i.test(sourceText) ||
+    /"label_angle_aoc"\s*:/i.test(sourceText) ||
+    /"label_oc"\s*:/i.test(sourceText);
+  const hasShowArcTangent = /"show_arc_tangent"\s*:\s*true/i.test(sourceText) || /"show_tangent_at_C"\s*:\s*true/i.test(sourceText);
+  const hasPerpHidden = /"show_perpendicular"\s*:\s*false/i.test(sourceText);
+  const hasPerpShown = /"show_perpendicular"\s*:\s*true/i.test(sourceText) || !hasPerpHidden;
+
   for (const angle of centralAngles) {
-    const showOC = /"show_oc"\s*:\s*true/i.test(String(generatedText ?? ""));
-    if (!showOC) {
+    const [, first = "", third = ""] = angle.match(/^([A-Z])O([A-Z])$/i) ?? [];
+    const needsC = first === "C" || third === "C";
+
+    if (template === "circle_sector") {
+      continue;
+    }
+
+    if (template === "circle_chord") {
+      if (!(hasPerpShown || hasShowOC)) return true;
+      continue;
+    }
+
+    if (template === "circle_diameter_points") {
+      if ((first === "D" || third === "D")) return true;
+      if (needsC && !hasShowOC) {
+        return true;
+      }
+      continue;
+    }
+
+    if (template === "circle_tangent" || template === "circle_chord_tangent") {
+      if (needsC && !(hasShowOC || hasShowArcTangent)) {
+        return true;
+      }
+      continue;
+    }
+
+    if (template === "circle_cyclic_quadrilateral") {
+      if (!(hasShowOC || /"label_angle_aoc"\s*:\s*/i.test(sourceText))) {
+        return true;
+      }
+      continue;
+    }
+
+    if (template) {
       return true;
     }
   }

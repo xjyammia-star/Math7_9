@@ -1161,6 +1161,7 @@ function CircleChord({ data }: { data: any }) {
   // O at centre. Chord AB is horizontal, C is midpoint (foot of perpendicular from O).
   // For water-depth problems, OC is derived from the depth and should not be shown by default.
   const oc = chordYFromDepth ?? Math.sqrt(Math.max(0, r * r - chordHalf * chordHalf));
+  const showOC: boolean = showPerp || data.show_oc === true || data.label_oc !== undefined || data.label_angle_aoc !== undefined;
 
   const O: Pt  = { x: 0, y: 0 };
   const A: Pt  = { x: -chordHalf, y: oc };
@@ -1199,11 +1200,11 @@ function CircleChord({ data }: { data: any }) {
       {/* Radius OB */}
       <Seg a={sO} b={sB} stroke={GREY} sw={1.5} dash="4,3" />
 
-      {/* Perpendicular OC */}
-      {showPerp && (
+      {/* Perpendicular / optional OC helper */}
+      {showOC && (
         <>
           <Seg a={sO} b={sC} stroke={GOLD} sw={2} dash="5,4" />
-          <RightAngleMark v={sC} a={sA} b={sO} size={9} />
+          {showPerp && <RightAngleMark v={sC} a={sA} b={sO} size={9} />}
         </>
       )}
 
@@ -1219,6 +1220,7 @@ function CircleChord({ data }: { data: any }) {
       {lAC && <SegLabel a={sA} b={sC} label={lAC} color={GOLD} />}
       {lChord && <SegLabel a={sA} b={sB} label={lChord} color={GOLD} />}
       {lDepth && <SegLabel a={sc({ x: r * 0.82, y: -r })} b={sc({ x: r * 0.82, y: oc })} label={lDepth} color={GOLD} />}
+      {data.label_angle_aoc && <AngleMark v={sO} a={sA} b={sC} label={String(data.label_angle_aoc)} r={22} color={GOLD} />}
     </g>
   );
 }
@@ -1344,16 +1346,17 @@ function CircleTangent({ data }: { data: any }) {
   const tangentDir: Pt = { x: -Math.sin(cAngle), y: Math.cos(cAngle) };
   const t1: Pt = { x: C.x - tangentDir.x * op, y: C.y - tangentDir.y * op };
   const t2: Pt = { x: C.x + tangentDir.x * op, y: C.y + tangentDir.y * op };
+  const showOC: boolean = data.show_oc === true || data.label_oc !== undefined || data.label_angle_aoc !== undefined || data.show_arc_tangent === true || data.show_tangent_at_C === true;
   const D = showArcTangent ? lineIntersection(P, A, t1, t2) : null;
   const E = showArcTangent ? lineIntersection(P, B, t1, t2) : null;
 
-  const allPts = [O, P, A, B, ...(showArcTangent ? [C, D, E].filter(Boolean) as Pt[] : [])];
+  const allPts = [O, P, A, B, ...(showOC || showArcTangent ? [C] : []), ...(showArcTangent ? [D, E].filter(Boolean) as Pt[] : [])];
   const xs = allPts.map(p => p.x), ys = allPts.map(p => p.y);
   const pad = Math.max(op, r) * 0.28;
   const sc = makeScaler(Math.min(...xs) - pad, Math.max(...xs) + pad,
     Math.min(...ys) - pad, Math.max(...ys) + pad);
 
-  const sO = sc(O), sP = sc(P), sA = sc(A), sB = sc(B);
+  const sO = sc(O), sP = sc(P), sA = sc(A), sB = sc(B), sC = sc(C);
   const pixelR = Math.abs(sc({ x: r, y: 0 }).x - sc({ x: 0, y: 0 }).x);
 
   const lO  = data.label_O  ?? 'O';
@@ -1387,6 +1390,7 @@ function CircleTangent({ data }: { data: any }) {
 
       {/* OP line (dashed) */}
       <Seg a={sO} b={sP} stroke={GREY} sw={1.2} dash="4,3" />
+      {showOC && <Seg a={sO} b={sC} stroke={GREY} sw={1.4} dash="4,3" />}
 
       {/* Right angles at tangent points */}
       <RightAngleMark v={sA} a={sO} b={sP} size={9} />
@@ -1405,7 +1409,6 @@ function CircleTangent({ data }: { data: any }) {
             <Seg a={sD} b={sE} stroke={GOLD} sw={2.2} />
             <Seg a={sO} b={sC} stroke={GREY} sw={1.4} dash="4,3" />
             <RightAngleMark v={sC} a={sO} b={sD} size={8} />
-            <Dot p={sC} label={lC} offset={{ x: -18, y: -10 }} />
             <Dot p={sD} label={lD} offset={{ x: -18, y: -10 }} />
             <Dot p={sE} label={lE} offset={{ x: -18, y: 14 }} />
           </>
@@ -1417,10 +1420,13 @@ function CircleTangent({ data }: { data: any }) {
       <Dot p={sP} label={lP} offset={{ x: 10,  y: 0 }} />
       <Dot p={sA} label={lA} offset={{ x: -8,  y: -14 }} />
       <Dot p={sB} label={lB} offset={{ x: -8,  y: 12 }} />
+      {showOC && <Dot p={sC} label={lC} offset={{ x: 10, y: -10 }} />}
 
       {lR  && <SegLabel a={sO} b={sA} label={lR} color={GREY} />}
       {lPA && <SegLabel a={sP} b={sA} label={lPA} color={GOLD} />}
       {lOP && <SegLabel a={sO} b={sP} label={lOP} />}
+      {showOC && data.label_oc !== undefined && <SegLabel a={sO} b={sC} label={String(data.label_oc)} color={GREY} />}
+      {data.label_angle_aoc && <AngleMark v={sO} a={sA} b={sC} label={String(data.label_angle_aoc)} r={24} color={GOLD} />}
     </g>
   );
 }
@@ -1437,6 +1443,7 @@ function CircleChordTangent({ data }: { data: any }) {
   const angleDeg: number = data.angle ?? data.angle_pab ?? 42;
   const theta = (90 - angleDeg) * Math.PI / 180;
   const arcType = String(data.arc_type ?? data.c_arc ?? data.arc ?? '').toLowerCase();
+  const showOC: boolean = data.show_oc === true || data.label_oc !== undefined || data.label_angle_aoc !== undefined || data.show_arc_tangent === true || data.show_tangent_at_C === true;
 
   const O: Pt = { x: 0, y: 0 };
   const A: Pt = { x: -r, y: 0 };
@@ -1489,6 +1496,7 @@ function CircleChordTangent({ data }: { data: any }) {
       <Seg a={sA} b={sC} stroke={GREY} sw={1.4} dash="4,3" />
       <Seg a={sB} b={sC} stroke={GREY} sw={1.4} dash="4,3" />
       <Seg a={sO} b={sA} stroke={GREY} sw={1.4} dash="4,3" />
+      {showOC && <Seg a={sO} b={sC} stroke={GREY} sw={1.4} dash="4,3" />}
 
       <RightAngleMark v={sA} a={sO} b={sP} size={9} />
       <AngleMark v={sA} a={sP} b={sB} label={lAngle} r={24} color={GOLD} />
@@ -1499,6 +1507,8 @@ function CircleChordTangent({ data }: { data: any }) {
       <Dot p={sA} label={lA} offset={{ x: -20, y: 4 }} />
       <Dot p={sB} label={lB} offset={{ x: 10, y: -10 }} />
       <Dot p={sC} label={lC} offset={{ x: 10, y: 14 }} />
+      {showOC && data.label_oc !== undefined && <SegLabel a={sO} b={sC} label={String(data.label_oc)} color={GREY} />}
+      {data.label_angle_aoc && <AngleMark v={sO} a={sA} b={sC} label={String(data.label_angle_aoc)} r={24} color={GOLD} />}
     </g>
   );
 }
@@ -1511,6 +1521,7 @@ function CircleCyclicQuadrilateral({ data }: { data: any }) {
   const r: number = data.radius ?? 5;
   const labels: string[] = data.labels ?? ['A', 'B', 'C', 'D'];
   const angleDegs: number[] = data.angles ?? [112, 58, -42, -148];
+  const showCenterRays: boolean = data.show_center_rays === true || data.show_radii === true || data.label_angle_aoc !== undefined || data.label_oc !== undefined;
 
   const O: Pt = { x: 0, y: 0 };
   const pts = angleDegs.slice(0, 4).map((deg) => {
@@ -1538,6 +1549,14 @@ function CircleCyclicQuadrilateral({ data }: { data: any }) {
         fill="none" stroke={GREY} strokeWidth={2} strokeOpacity={0.65} />
 
       <Poly pts={sPts} fill="none" stroke={GOLD} sw={2.4} />
+      {showCenterRays && (
+        <>
+          <Seg a={sO} b={sPts[0]} stroke={GREY} sw={1.4} dash="4,3" />
+          <Seg a={sO} b={sPts[1]} stroke={GREY} sw={1.4} dash="4,3" />
+          <Seg a={sO} b={sPts[2]} stroke={GREY} sw={1.4} dash="4,3" />
+          <Seg a={sO} b={sPts[3]} stroke={GREY} sw={1.4} dash="4,3" />
+        </>
+      )}
       <Dot p={sO} label={data.label_O ?? 'O'} offset={{ x: 8, y: 12 }} color={WHITE} />
 
       {sPts.map((p, i) => (
@@ -1549,6 +1568,8 @@ function CircleCyclicQuadrilateral({ data }: { data: any }) {
           )}
         </g>
       ))}
+      {data.label_angle_aoc && <AngleMark v={sO} a={sPts[0]} b={sPts[2]} label={String(data.label_angle_aoc)} r={24} color={GOLD} />}
+      {showCenterRays && data.label_oc !== undefined && <SegLabel a={sO} b={sPts[2]} label={String(data.label_oc)} color={GREY} />}
     </g>
   );
 }

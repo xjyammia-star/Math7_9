@@ -130,3 +130,65 @@ assert.equal(
 );
 
 console.log('central-angle ray test passed');
+
+assert.equal(
+  needsCentralAngleRayRepair({
+    conceptTitle: 'ๅๅผฆ',
+    conceptDesc: 'ๅฆๅพ๏ผABๆฏโO็ๅผฆ๏ผ็นCๅ๜๏ผๅทฒ็ฅโ AOC็ๅบฆๆ•ฐใ€',
+    generatedText: '```math-diagram\n{"template":"circle_chord","radius":10,"label_O":"O","label_A":"A","label_B":"B","label_C":"C","label_angle_aoc":"?"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+assert.equal(
+  needsCentralAngleRayRepair({
+    conceptTitle: 'ๅๅค–ๅ็บฟ',
+    conceptDesc: 'ๅฆๅพ๏ผ็นAๅผงๅค–็ๅ็บฟๅค–ๆ€ๅๅ๏งๅ๜๏ผๅทฒ็ฅโ AOC็ๅบฆๆ•ฐใ€',
+    generatedText: '```math-diagram\n{"template":"circle_tangent","radius":5,"op_dist":13,"show_oc":true,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_C":"C","label_angle_aoc":"?"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+assert.equal(
+  needsCentralAngleRayRepair({
+    conceptTitle: 'ๅผฆๅผงๅค–',
+    conceptDesc: 'ๅฆๅพ๏ผ็นAๅผงๅค–็็็บฟ๏ผๅทฒ็ฅโ AOC็ๅบฆๆ•ฐใ€',
+    generatedText: '```math-diagram\n{"template":"circle_chord_tangent","radius":5,"angle":42,"arc_type":"minor","show_oc":true,"label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"B","label_C":"C","label_angle_aoc":"?"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+assert.equal(
+  needsCentralAngleRayRepair({
+    conceptTitle: 'ๅๅ…ๅ่พน',
+    conceptDesc: 'ๅฆๅพ๏ผๅๅ…่พนๅฝขABCDๅ…โO๏ผๅทฒ็ฅโ AOC็ๅบฆๆ•ฐใ€',
+    generatedText: '```math-diagram\n{"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"show_center_rays":true,"label_O":"O","label_A":"2x+10°","label_B":"3x-5°","label_C":"3x°","label_angle_aoc":"?"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+assert.equal(
+  needsCentralAngleRayRepair({
+    conceptTitle: '扇形',
+    conceptDesc: '如图，圆心角∠AOB对应一个扇形，求扇形面积。',
+    generatedText: '```math-diagram\n{"template":"circle_sector","radius":10,"label_O":"O","label_A":"A","label_B":"B","label_angle":"45°"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+assert.equal(
+  needsCentralAngleRayRepair({
+    conceptTitle: '圆心角',
+    conceptDesc: '如图，求圆心角∠AOC的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"label_angle_aoc":"?"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+console.log('central-angle template coverage test passed');
