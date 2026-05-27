@@ -360,8 +360,8 @@ Rules:
 - For intersecting chords inside a circle, use template "circle_intersecting_chords" with ap, pb and exactly the given CD/CP/PD relation.
 - For problems that place exactly three named points A, B, C on the same circle and ask about angles such as ∠AOB, ∠ACB, or their relationship/sum, use template "circle_three_points". Do not use circle_chord for this pattern.
 - For diameter problems that ask for angles like ∠ABD or ∠BCD, use template "circle_diameter_points" so the diameter endpoints and the relevant chord/angle relationships are drawn explicitly. Do not replace BD with AC or any other diagonal.
-- For tangent-chord theorem problems with a tangent at A and a chord from A to B, such as ∠PAB or ∠ADB, use template "circle_chord_tangent" instead of "circle_tangent". If the problem names the arc point D, keep the visible arc point labeled with D by setting label_C="D" (or label_D="D" if needed for compatibility). Keep the tangent point at A and never omit D from the figure.
-- For the same tangent-chord pattern, map the chord endpoint labels to the actual chord in the statement. For example, if the problem says A,B is a chord, use label_A="A" and label_B="B"; if the problem says A,C is a chord, use label_B="C". Do not relabel the tangent-line helper points as A/B; the visible tangent point must remain A.
+- For tangent-chord theorem problems with a tangent at A and a chord from A to B, such as ∠PAB or ∠ADB, use template "circle_chord_tangent" instead of "circle_tangent". If the problem names one named arc point D only, keep that point visible with label_D and the matching arc-point flag. If the problem names both C and D on the circle (for example C on the minor arc AB and D on the major arc AB), use template "circle_tangent_chord_dual_points" so both points are visible.
+- For the same tangent-chord pattern, map the chord endpoint labels to the actual chord in the statement. Keep the tangent point at A. Do not relabel the tangent-line helper points as A/B; the visible tangent point must remain A.
 - If the question asks for a specific unknown value, do not print that unknown as a numeric label in the diagram. Use "?" or omit the label, and only annotate the given conditions.
 - If the question asks for a central angle like ∠AOC, show both rays explicitly. Use show_oc:true on templates that can expose OC directly (such as circle_diameter_points, circle_tangent, or circle_chord_tangent), use show_center_rays:true on circle_cyclic_quadrilateral, and keep circle_chord perpendicular helper lines visible when the central ray is needed. Do not leave the angle floating without its rays.
 - In any geometry diagram, if you label an angle such as ∠ABD, make sure the two rays/segments that define that angle are actually drawn in the figure.
@@ -496,7 +496,7 @@ STRICT PRINCIPLES:
      * Clock hand / minute hand sweeping an arc or sector (钟表分针、时针扫过、弧长、扇形面积) → ALWAYS use circle_sector, not circle_chord.
      * Two tangents PA/PB plus another tangent through point C on arc AB, intersecting PA/PB at D/E -> use circle_tangent with show_arc_tangent:true and labels C,D,E. If C is on the major arc AB, set c_arc_type:"major"; only use c_arc_type:"minor" when the problem explicitly says minor arc.
      * A circular cake/pizza divided into equal slices/sectors → use circle_sector with radius and sector_count. Do NOT omit sector_count, and do NOT use coordinate_points.
-     * Tangent-chord theorem with a named point on the arc (such as D on the minor arc AB or C on the minor arc AC) → use circle_chord_tangent with arc_type:"minor". If the named arc point lies on the major arc / 优弧, use arc_type:"major". Match label_B to the chord endpoint named in the statement, and keep the arc point visible as D or C accordingly.
+     * Tangent-chord theorem with one named point on the arc (such as D on the minor arc AB or C on the minor arc AC) → use circle_chord_tangent with arc_type:"minor". If the named arc point lies on the major arc / 优弧, use arc_type:"major". If the problem explicitly names both C and D on the circle, use circle_tangent_chord_dual_points so both arc points are drawn.
      * Cyclic quadrilateral / quadrilateral inscribed in a circle (圆内接四边形、四边形ABCD内接于⊙O) → ALWAYS use circle_cyclic_quadrilateral, not coordinate_points.
      * If the problem says AB is a diameter (AB是⊙O的直径), use circle_diameter_points, not circle_cyclic_quadrilateral. A and B must be opposite ends of the diameter through O.
      * Intersecting chords inside a circle (两弦相交于圆内一点, AP/PB/CP/PD) → ALWAYS use circle_intersecting_chords, not coordinate_points.
@@ -672,6 +672,11 @@ STRICT PRINCIPLES:
    Circle with tangent and chord (tangent-chord theorem):
    ${BT}math-diagram
    {"template":"circle_chord_tangent","radius":5,"angle":42,"arc_type":"minor","label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"B","label_C":"D","label_angle_apb":"42°","label_angle_adb":"?"}
+   ${BT}
+
+   Circle with tangent, chord, and two named arc points C/D:
+   ${BT}math-diagram
+   {"template":"circle_tangent_chord_dual_points","radius":5,"angle":42,"arc_type":"minor","d_arc_type":"major","label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_angle_apb":"42°"}
    ${BT}
 
    Cyclic quadrilateral / quadrilateral inscribed in a circle:

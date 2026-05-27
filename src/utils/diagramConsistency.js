@@ -42,6 +42,11 @@ function hasTangentChordArcPointDCue(text) {
   return /(?:点\s*D|D\s*在|point\s*D|D\s+on\s+the\s+(?:minor|major)?\s*arc|D\s*lies\s*on\s+the\s+(?:minor|major)?\s*arc|∠\s*ADB|angle\s*ADB)/i.test(source);
 }
 
+function hasDualTangentChordArcPointsCue(text) {
+  const source = String(text ?? "");
+  return /(?:C\s*在[^。\n]{0,18}(?:劣弧|minor arc)[^。\n]{0,18}AB|D\s*在[^。\n]{0,18}(?:优弧|major arc)[^。\n]{0,18}AB|C\s*在[^。\n]{0,18}(?:优弧|major arc)[^。\n]{0,18}AB|D\s*在[^。\n]{0,18}(?:劣弧|minor arc)[^。\n]{0,18}AB)/i.test(source);
+}
+
 function hasExpectedTangentChordLabels(text, source) {
   const generated = String(text ?? "");
   const sourceText = String(source ?? "");
@@ -54,6 +59,14 @@ function hasExpectedTangentChordLabels(text, source) {
   }
 
   return true;
+}
+
+function hasExpectedDualTangentChordLabels(text) {
+  const source = String(text ?? "");
+  return /"label_A"\s*:\s*"A"/i.test(source) &&
+    /"label_B"\s*:\s*"B"/i.test(source) &&
+    /"label_C"\s*:\s*"C"/i.test(source) &&
+    /"label_D"\s*:\s*"D"/i.test(source);
 }
 
 function hasCircleThreePointsCue(text) {
@@ -134,6 +147,11 @@ export function needsTangentChordRepair({ conceptTitle = "", conceptDesc = "", g
   const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
   if (!hasTangentChordCue(source) || !hasTangentChordAngleCue(source)) return false;
   if (!hasMathDiagramBlock(generatedText)) return false;
+
+  if (hasDualTangentChordArcPointsCue(source)) {
+    if (!/"template"\s*:\s*"circle_tangent_chord_dual_points"/i.test(String(generatedText ?? ""))) return true;
+    return !hasExpectedDualTangentChordLabels(generatedText);
+  }
 
   if (!/"template"\s*:\s*"circle_chord_tangent"/i.test(String(generatedText ?? ""))) return true;
   return !hasExpectedTangentChordLabels(generatedText, source);
