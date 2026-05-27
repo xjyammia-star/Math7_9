@@ -2,6 +2,10 @@ function normalizeText(text) {
   return String(text ?? "").replace(/\s+/g, " ").trim();
 }
 
+function escapeRegExp(value) {
+  return String(value ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function hasMathDiagramBlock(text) {
   return /```math-diagram[\s\S]*?```/i.test(String(text ?? "")) || /"template"\s*:\s*"/i.test(String(text ?? ""));
 }
@@ -122,6 +126,62 @@ function hasAnyNumericLabel(text, keys) {
   return keys.some((key) => hasNumericAngleValue(text, key));
 }
 
+function getAngleAliases(angle) {
+  const normalized = String(angle ?? "").toUpperCase();
+  if (!/^[A-Z]{3}$/.test(normalized)) {
+    return [normalized.toLowerCase()].filter(Boolean);
+  }
+
+  const [first, vertex, last] = normalized;
+  const aliases = [
+    `${first}${vertex}${last}`,
+    `${last}${vertex}${first}`,
+    `${vertex}${first}${last}`,
+    `${vertex}${last}${first}`,
+  ].map((value) => value.toLowerCase());
+  return [...new Set(aliases)];
+}
+
+function hasNumericAngleLeakForAngle(text, angle) {
+  const keys = [];
+  for (const alias of getAngleAliases(angle)) {
+    keys.push(`angle_${alias}`, `label_angle_${alias}`);
+  }
+  keys.push("angle", "label_angle");
+  return hasAnyNumericLabel(text, keys);
+}
+
+function replaceNumericFieldWithQuestion(text, key) {
+  const source = String(text ?? "");
+  const escapedKey = escapeRegExp(key);
+  const quotedPattern = new RegExp(`("${escapedKey}"\\s*:\\s*")([^"]*\\d[^"]*?)(")`, "ig");
+  const unquotedPattern = new RegExp(`("${escapedKey}"\\s*:\\s*)(-?\\d+(?:\\.\\d+)?(?:°|º|cm|mm|m|km|%)?)`, "ig");
+
+  return source
+    .replace(quotedPattern, (_match, prefix, _value, suffix) => `${prefix}?${suffix}`)
+    .replace(unquotedPattern, (_match, prefix) => `${prefix}"?"`);
+}
+
+function replaceNumericFieldWithQuestionStrict(text, key) {
+  const source = String(text ?? "");
+  const escapedKey = escapeRegExp(key);
+  const pattern = new RegExp(`("${escapedKey}"\\s*:\\s*)(?:"[^"]*\\d[^"]*"|-?\\d+(?:\\.\\d+)?(?:°|º|cm|mm|m|km|%)?)`, "ig");
+  return source.replace(pattern, (_match, prefix) => `${prefix}"?"`);
+}
+
+function replaceFieldValueWithQuestion(text, key) {
+  const source = String(text ?? "");
+  const escapedKey = escapeRegExp(key);
+  const quotedPattern = new RegExp(`("${escapedKey}"\\s*:\\s*)"(.*?)"`, "ig");
+  const numericPattern = new RegExp(`("${escapedKey}"\\s*:\\s*)(-?\\d+(?:\\.\\d+)?(?:°|º|cm|mm|m|km|%)?)`, "ig");
+
+  return source
+    .replace(quotedPattern, (_match, prefix, value) => {
+      return /\d/.test(String(value)) ? `${prefix}"?"` : _match;
+    })
+    .replace(numericPattern, (_match, prefix) => `${prefix}"?"`);
+}
+
 function extractCentralAngles(text) {
   const source = String(text ?? "");
   const angles = new Set();
@@ -170,12 +230,7 @@ export function needsQuestionAnswerLeakRepair({ conceptTitle = "", conceptDesc =
   if (!hasMathDiagramBlock(generatedText)) return false;
 
   for (const angle of askedAngles) {
-    const angleKeys = [`angle_${angle.toLowerCase()}`];
-    if (angle === "PAB" || angle === "BAP") {
-      angleKeys.push("angle", "angle_apb", "angle_pab", "angle_pba", "angle_bap");
-    }
-
-    if (hasAnyNumericLabel(generatedText, angleKeys)) {
+    if (hasNumericAngleLeakForAngle(generatedText, angle)) {
       return true;
     }
   }
@@ -208,6 +263,108 @@ export function needsQuestionAnswerLeakRepair({ conceptTitle = "", conceptDesc =
   }
 
   return false;
+}
+
+export function maskQuestionAnswerLeaks({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
+  if (diagramPolicy === "must_not_draw") return String(generatedText ?? "");
+
+  const source = normalizeText([conceptTitle, conceptDesc].filter(Boolean).join("\n"));
+  const { angles: askedAngles, labels: askedLabels, quantities } = extractAskedTargets(source);
+  const angleKeys = new Set();
+  const labelKeys = new Set();
+  const quantityKeys = new Set();
+
+  for (const angle of askedAngles) {
+    for (const alias of getAngleAliases(angle)) {
+      angleKeys.add(`angle_${alias}`);
+      angleKeys.add(`label_angle_${alias}`);
+    }
+    angleKeys.add("angle");
+    angleKeys.add("label_angle");
+  }
+
+  for (const label of askedLabels) {
+    const key = label.toLowerCase();
+    const reversed = label.length === 2 ? `${label[1]}${label[0]}`.toLowerCase() : "";
+    labelKeys.add(key);
+    if (reversed) labelKeys.add(reversed);
+  }
+
+  const quantityKeyMap = {
+    area: ["area"],
+    radius: ["radius"],
+    diameter: ["ab", "diameter"],
+    arc: ["arc"],
+    perimeter: ["perimeter", "circ"],
+    height: ["height", "h"],
+    width: ["width", "w"],
+    length: ["length", "l"],
+  };
+
+  for (const quantity of quantities) {
+    for (const candidateKey of quantityKeyMap[quantity] ?? []) {
+      quantityKeys.add(candidateKey);
+    }
+  }
+
+  const shouldMaskValue = (value) => typeof value === "string"
+    ? /\d/.test(value)
+    : typeof value === "number" && Number.isFinite(value);
+
+  const applyMasksToObject = (obj) => {
+    if (!obj || typeof obj !== "object") return obj;
+    for (const key of angleKeys) {
+      if (Object.prototype.hasOwnProperty.call(obj, key) && shouldMaskValue(obj[key])) {
+        obj[key] = "?";
+      }
+    }
+    for (const key of labelKeys) {
+      if (Object.prototype.hasOwnProperty.call(obj, key) && shouldMaskValue(obj[key])) {
+        obj[key] = "?";
+      }
+    }
+    for (const key of quantityKeys) {
+      if (Object.prototype.hasOwnProperty.call(obj, key) && shouldMaskValue(obj[key])) {
+        obj[key] = "?";
+      }
+    }
+    return obj;
+  };
+
+  const maskDiagramBlock = (block) => {
+    const trimmed = String(block ?? "").trim();
+    const jsonText = trimmed
+      .replace(/^```math-diagram\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim();
+    if (!jsonText) return trimmed;
+
+    try {
+      const parsed = JSON.parse(jsonText);
+      const masked = applyMasksToObject(parsed);
+      return `\`\`\`math-diagram\n${JSON.stringify(masked)}\n\`\`\``;
+    } catch {
+      let fallback = trimmed;
+      for (const key of [...angleKeys, ...labelKeys, ...quantityKeys]) {
+        fallback = replaceFieldValueWithQuestion(fallback, key);
+      }
+      return fallback;
+    }
+  };
+
+  const original = String(generatedText ?? "");
+  if (!/```math-diagram[\s\S]*?```/i.test(original)) {
+    let fallback = original;
+    for (const key of [...angleKeys, ...labelKeys, ...quantityKeys]) {
+      fallback = replaceFieldValueWithQuestion(fallback, key);
+    }
+    return fallback;
+  }
+
+  const masked = original.replace(/```math-diagram[\s\S]*?```/gi, (block) => maskDiagramBlock(block));
+  return masked
+    .replace(/("(?:label_)?angle_[^"]+"\s*:\s*")([^"]*\d[^"]*?)(")/ig, (_match, prefix, _value, suffix) => `${prefix}?${suffix}`)
+    .replace(/("(?:label_)?angle"\s*:\s*")([^"]*\d[^"]*?)(")/ig, (_match, prefix, _value, suffix) => `${prefix}?${suffix}`);
 }
 
 export function needsCentralAngleRayRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {

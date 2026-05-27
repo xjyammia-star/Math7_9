@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTargetAngleLeakRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
+import { maskQuestionAnswerLeaks, needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTargetAngleLeakRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
 
 assert.equal(
   needsCircleDiameterRepair({
@@ -156,6 +156,27 @@ assert.equal(
 );
 
 console.log('target-angle leak test passed');
+
+const maskedAngleLeak = maskQuestionAnswerLeaks({
+  conceptTitle: 'tangent-chord theorem',
+  conceptDesc: 'Line PQ is tangent to circle O at A. AB is a chord. Given ∠PAB = 42°, find ∠ACB.',
+  generatedText: '```math-diagram\n{"template":"circle_chord_tangent","radius":5,"angle":42,"arc_type":"minor","label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"C","label_C":"D","label_angle_apb":"42°","label_angle_adb":"?"}\n```',
+  diagramPolicy: 'must_draw',
+});
+
+assert.equal(maskedAngleLeak.includes('"label_angle_apb":"?"'), true);
+assert.equal(maskedAngleLeak.includes('"label_angle_adb":"?"'), true);
+
+const maskedGenericAngleLeak = maskQuestionAnswerLeaks({
+  conceptTitle: 'geometry',
+  conceptDesc: 'In the figure, ∠ABC = 40°. Find ∠ACB.',
+  generatedText: '```math-diagram\n{"template":"circle_three_points","radius":5,"labels":["A","B","C"],"label_angle_cba":"40°"}\n```',
+  diagramPolicy: 'must_draw',
+});
+
+assert.equal(maskedGenericAngleLeak.includes('"label_angle_cba":"?"'), true);
+
+console.log('angle masking test passed');
 
 assert.equal(
   needsQuestionAnswerLeakRepair({

@@ -1,7 +1,7 @@
 import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 import { classifyDiagramNeed, stripDiagramArtifacts } from "../utils/diagramPolicy";
-import { needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
+import { maskQuestionAnswerLeaks, needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
 import { sanitizeMath } from "../utils/mathUtils";
 
 const ARK_BASE_URL =
@@ -355,6 +355,7 @@ Rules:
 - Diagram policy for this task: ${diagramPolicy}.
 - If diagram policy is must_not_draw, do not include any diagram, figure, math-diagram block, template JSON, or visual payload.
 - If diagram policy is must_draw, include exactly one matching fenced block with the math-diagram template and valid JSON when the problem genuinely depends on a figure.
+- Hard rule: if the question asks for an unknown quantity, that quantity must not appear as a numeric label anywhere in the final diagram JSON. Use "?" or omit it, even if the model previously wrote a number.
 - Never leave diagram JSON outside a fenced math-diagram block. Raw objects like {"template":"..."} in prose are invalid and must be wrapped or removed.
 - If diagram policy is prefer_draw, include a diagram only when it can be drawn cleanly and it clearly helps the question.
 - For intersecting chords inside a circle, use template "circle_intersecting_chords" with ap, pb and exactly the given CD/CP/PD relation.
@@ -390,7 +391,35 @@ Rules:
     1600
   );
 
-  return limitGeneratedExercises(sanitizeMath(repaired || rawText), count);
+  let repairedText = limitGeneratedExercises(sanitizeMath(repaired || rawText), count);
+  repairedText = maskQuestionAnswerLeaks({
+    conceptTitle,
+    conceptDesc,
+    generatedText: repairedText,
+    diagramPolicy,
+  });
+
+  const remainingIssues = detectOutputIssues(repairedText, conceptTitle, conceptDesc, diagramPolicy);
+  if (remainingIssues.length > 0) {
+    const strongerSystem = `${system}\n- The previous repair attempt still violated hard diagram rules. Fix the listed issues exactly and do not repeat the same template or answer leak mistakes.`;
+    const secondRepair = await safeGenerate(
+      [
+        { role: "system", content: strongerSystem },
+        { role: "user", content: `${user}\n\nRemaining issues after repair: ${remainingIssues.join(", ")}` },
+      ],
+      false,
+      1600
+    );
+    repairedText = limitGeneratedExercises(sanitizeMath(secondRepair || repairedText), count);
+    repairedText = maskQuestionAnswerLeaks({
+      conceptTitle,
+      conceptDesc,
+      generatedText: repairedText,
+      diagramPolicy,
+    });
+  }
+
+  return repairedText;
 }
 
 const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string }> = {
@@ -1143,6 +1172,12 @@ export async function generateExercises(
     cleaned = stripDiagramArtifacts(cleaned);
   }
   cleaned = limitGeneratedExercises(cleaned, count);
+  cleaned = maskQuestionAnswerLeaks({
+    conceptTitle,
+    conceptDesc,
+    generatedText: cleaned,
+    diagramPolicy,
+  });
   const issues = detectOutputIssues(raw, conceptTitle, conceptDesc, diagramPolicy);
 
   if (issues.length > 0) {
