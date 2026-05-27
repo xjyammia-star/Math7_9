@@ -341,7 +341,7 @@ Rules:
 - If diagram policy is prefer_draw, include a diagram only when it can be drawn cleanly and it clearly helps the question.
 - For intersecting chords inside a circle, use template "circle_intersecting_chords" with ap, pb and exactly the given CD/CP/PD relation.
 - For diameter problems that ask for angles like ∠ABD or ∠BCD, use template "circle_diameter_points" so the diameter endpoints and the relevant chord/angle relationships are drawn explicitly. Do not replace BD with AC or any other diagonal.
-- For tangent-chord theorem problems with a tangent at A and chord AC, such as ∠BAC, use template "circle_chord_tangent" with `arc_type:"minor"` when D lies on the minor arc AC. Keep the tangent point at A and map the chord endpoint/arc point labels consistently. Do not use circle_tangent for this pattern.
+- For tangent-chord theorem problems with a tangent at A and chord AC, such as ∠BAC, use template "circle_chord_tangent" with arc_type "minor" when D lies on the minor arc AC. Keep the tangent point at A and map the chord endpoint/arc point labels consistently. Do not use circle_tangent for this pattern.
 - For the same tangent-chord pattern, use label_A="A", label_B="C", and label_C="D". Do not relabel the tangent-line helper points as A/B; the visible tangent point must remain A.
 - In any geometry diagram, if you label an angle such as ∠ABD, make sure the two rays/segments that define that angle are actually drawn in the figure.
 - Do not add new topics or remove required information.
