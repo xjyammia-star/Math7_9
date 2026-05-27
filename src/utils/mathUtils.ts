@@ -94,6 +94,7 @@ function sanitizeProseFragment(text: string): string {
   // These are the common math command leaks we have seen in prose.
   // We only normalize them when they are glued to a symbol-like token so
   // ordinary English words such as "angle" do not get rewritten.
+  text = text.replace(/(?:\\)?triangle\s*([A-Z]{2,4})(?=\b|[^A-Za-z])/g, '\u25B3$1');
   text = text.replace(/°(?:\\)?circ\b/g, '°');
   text = text.replace(/([0-9])(?:\\)?circ\b/g, '$1°');
   text = text.replace(/\\overset\{\\frown\}\{([^}]*)\}/g, '弧$1');

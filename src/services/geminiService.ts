@@ -481,7 +481,7 @@ STRICT PRINCIPLES:
    - TEMPLATE SELECTION RULES (critical):
      * Circle problems (弦、切线、圆心、半径、弧长、扇形、直径) → use circle_chord, circle_sector, circle_tangent, circle_chord_tangent, circle_cyclic_quadrilateral, circle_diameter_points, or circle_intersecting_chords templates. NEVER use linear_function or quadratic_function for circle geometry.
      * Clock hand / minute hand sweeping an arc or sector (钟表分针、时针扫过、弧长、扇形面积) → ALWAYS use circle_sector, not circle_chord.
-     * Two tangents PA/PB plus another tangent through point C on arc AB, intersecting PA/PB at D/E → use circle_tangent with show_arc_tangent:true and labels C,D,E.
+     * Two tangents PA/PB plus another tangent through point C on arc AB, intersecting PA/PB at D/E -> use circle_tangent with show_arc_tangent:true and labels C,D,E. If C is on the major arc AB, set c_arc_type:"major"; only use c_arc_type:"minor" when the problem explicitly says minor arc.
      * A circular cake/pizza divided into equal slices/sectors → use circle_sector with radius and sector_count. Do NOT omit sector_count, and do NOT use coordinate_points.
      * Tangent-chord theorem with C on minor arc AB / 劣弧AB → use circle_chord_tangent with arc_type:"minor". If C is on major arc / 优弧AB, use arc_type:"major".
      * Cyclic quadrilateral / quadrilateral inscribed in a circle (圆内接四边形、四边形ABCD内接于⊙O) → ALWAYS use circle_cyclic_quadrilateral, not coordinate_points.
@@ -633,7 +633,7 @@ STRICT PRINCIPLES:
 
    Circle with two tangents and tangent through arc point C:
    ${BT}math-diagram
-   {"template":"circle_tangent","tangent_length":12,"angle_apb":50,"show_arc_tangent":true,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_pa":"12 cm","label_angle_apb":"50°"}
+   {"template":"circle_tangent","tangent_length":12,"angle_apb":50,"show_arc_tangent":true,"c_arc_type":"major","label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_pa":"12 cm","label_angle_apb":"50°"}
    ${BT}
 
    Intersecting chords inside a circle (圆内两弦相交):

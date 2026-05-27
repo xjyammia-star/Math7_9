@@ -1341,7 +1341,10 @@ function CircleTangent({ data }: { data: any }) {
   const A: Pt = { x: r * Math.cos(Math.PI / 2 - alpha), y:  r * Math.sin(Math.PI / 2 - alpha) };
   const B: Pt = { x: A.x, y: -A.y };
   const showArcTangent: boolean = data.show_arc_tangent === true || data.show_tangent_at_C === true;
-  const cAngle = data.c_angle !== undefined ? data.c_angle * Math.PI / 180 : Math.PI;
+  const cArcType = String(data.c_arc_type ?? data.cArcType ?? '').toLowerCase();
+  const cAngleMinor = data.c_angle !== undefined ? data.c_angle * Math.PI / 180 : (Math.atan2(B.y, B.x) - Math.atan2(A.y, A.x) + 2 * Math.PI) % (2 * Math.PI) * 0.55;
+  const cAngleMajor = data.c_angle !== undefined ? data.c_angle * Math.PI / 180 : Math.PI;
+  const cAngle = cArcType.includes('minor') ? cAngleMinor : cArcType.includes('major') ? cAngleMajor : cAngleMajor;
   const C: Pt = { x: r * Math.cos(cAngle), y: r * Math.sin(cAngle) };
   const tangentDir: Pt = { x: -Math.sin(cAngle), y: Math.cos(cAngle) };
   const t1: Pt = { x: C.x - tangentDir.x * op, y: C.y - tangentDir.y * op };
