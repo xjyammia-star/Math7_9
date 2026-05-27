@@ -172,7 +172,7 @@ export function needsQuestionAnswerLeakRepair({ conceptTitle = "", conceptDesc =
   for (const angle of askedAngles) {
     const angleKeys = [`angle_${angle.toLowerCase()}`];
     if (angle === "PAB" || angle === "BAP") {
-      angleKeys.push("angle");
+      angleKeys.push("angle", "angle_apb", "angle_pab", "angle_pba", "angle_bap");
     }
 
     if (hasAnyNumericLabel(generatedText, angleKeys)) {

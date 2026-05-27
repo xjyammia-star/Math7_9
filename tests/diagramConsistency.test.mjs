@@ -135,6 +135,26 @@ assert.equal(
   false
 );
 
+assert.equal(
+  needsQuestionAnswerLeakRepair({
+    conceptTitle: 'tangent-chord theorem',
+    conceptDesc: '如图，直线PA与⊙O相切于点A，弦AB将⊙O分成两段弧，点C在优弧AB上，连接AC、BC。已知∠ACB = 40°，求∠PAB的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_tangent_chord_dual_points","radius":5,"angle":42,"arc_type":"minor","d_arc_type":"major","label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_angle_apb":"42°"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsQuestionAnswerLeakRepair({
+    conceptTitle: 'tangent-chord theorem',
+    conceptDesc: '如图，直线PA与⊙O相切于点A，弦AB将⊙O分成两段弧，点C在优弧AB上，连接AC、BC。已知∠ACB = 40°，求∠PAB的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_tangent_chord_dual_points","radius":5,"angle":"?","arc_type":"minor","d_arc_type":"major","label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_angle_apb":"?"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
 console.log('target-angle leak test passed');
 
 assert.equal(
