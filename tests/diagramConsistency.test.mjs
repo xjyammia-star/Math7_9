@@ -66,6 +66,26 @@ assert.equal(
 assert.equal(
   needsTangentChordRepair({
     conceptTitle: 'tangent-chord theorem',
+    conceptDesc: 'ๅฆๅพ๏ผPAๅโOไบ็นA๏ผABไธบโO็ๅผฆ๏ผCๅจๅฃๅผงABไธ๏ผDๅจไผๅผงABไธ๏ผ่ฟๆฅADใ€BDใ€BCใ€ACใ€ๅทฒ็ฅโ PAB = 48ยฐ๏ผโ CBD = 20ยฐ๏ผๆฑโ ACB็ๅบฆๆ•ฐใ€',
+    generatedText: '```math-diagram\n{"template":"circle_tangent_chord_dual_points","radius":5,"angle":48,"arc_type":"major","d_arc_type":"minor","label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_angle_apb":"48ยฐ"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsTangentChordRepair({
+    conceptTitle: 'tangent-chord theorem',
+    conceptDesc: 'ๅฆๅพ๏ผPAๅโOไบ็นA๏ผABไธบโO็ๅผฆ๏ผCๅจๅฃๅผงABไธ๏ผDๅจไผๅผงABไธ๏ผ่ฟๆฅADใ€BDใ€BCใ€ACใ€ๅทฒ็ฅโ PAB = 48ยฐ๏ผโ CBD = 20ยฐ๏ผๆฑโ ACB็ๅบฆๆ•ฐใ€',
+    generatedText: '```math-diagram\n{"template":"circle_tangent_chord_dual_points","radius":5,"angle":48,"arc_type":"minor","d_arc_type":"major","label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_angle_apb":"48ยฐ"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsTangentChordRepair({
+    conceptTitle: 'tangent-chord theorem',
     conceptDesc: '如图，PA切⊙O于点A，AB为⊙O的弦，C在劣弧AB上，D在优弧AB上，连接AD、BD、BC、AC。已知∠PAB = 48°，∠CBD = 20°，求∠ACB的度数。',
     generatedText: '```math-diagram\n{"template":"circle_chord_tangent","radius":5,"angle":48,"arc_type":"minor","label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"B","label_C":"C","label_angle_apb":"48°"}\n```',
     diagramPolicy: 'must_draw',

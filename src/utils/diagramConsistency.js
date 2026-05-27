@@ -56,6 +56,29 @@ function hasDualTangentChordArcPointsCue(text) {
   return /(?:C\s*在[^。\n]{0,18}(?:劣弧|minor arc)[^。\n]{0,18}AB|D\s*在[^。\n]{0,18}(?:优弧|major arc)[^。\n]{0,18}AB|C\s*在[^。\n]{0,18}(?:优弧|major arc)[^。\n]{0,18}AB|D\s*在[^。\n]{0,18}(?:劣弧|minor arc)[^。\n]{0,18}AB)/i.test(source);
 }
 
+function inferNamedArcType(text, point) {
+  const source = String(text ?? "");
+  const p = escapeRegExp(String(point ?? "").trim());
+  if (!p) return null;
+
+  const minorPatterns = [
+    new RegExp(`${p}[^\n。]{0,24}(?:劣弧|minor arc)[^\n。]{0,24}(?:AB|AC)`, 'i'),
+    new RegExp(`(?:劣弧|minor arc)[^\n。]{0,24}(?:AB|AC)[^\n。]{0,24}${p}`, 'i'),
+    new RegExp(`${p}[^\n。]{0,24}on the minor arc[^\n。]{0,24}(?:AB|AC)`, 'i'),
+    new RegExp(`on the minor arc[^\n。]{0,24}(?:AB|AC)[^\n。]{0,24}${p}`, 'i'),
+  ];
+  const majorPatterns = [
+    new RegExp(`${p}[^\n。]{0,24}(?:优弧|major arc)[^\n。]{0,24}(?:AB|AC)`, 'i'),
+    new RegExp(`(?:优弧|major arc)[^\n。]{0,24}(?:AB|AC)[^\n。]{0,24}${p}`, 'i'),
+    new RegExp(`${p}[^\n。]{0,24}on the major arc[^\n。]{0,24}(?:AB|AC)`, 'i'),
+    new RegExp(`on the major arc[^\n。]{0,24}(?:AB|AC)[^\n。]{0,24}${p}`, 'i'),
+  ];
+
+  if (minorPatterns.some((pattern) => pattern.test(source))) return 'minor';
+  if (majorPatterns.some((pattern) => pattern.test(source))) return 'major';
+  return null;
+}
+
 function hasExpectedTangentChordLabels(text, source) {
   const generated = String(text ?? "");
   const sourceText = String(source ?? "");
@@ -76,6 +99,36 @@ function hasExpectedDualTangentChordLabels(text) {
     /"label_B"\s*:\s*"B"/i.test(source) &&
     /"label_C"\s*:\s*"C"/i.test(source) &&
     /"label_D"\s*:\s*"D"/i.test(source);
+}
+
+function inferArcTypeCueForPoint(text, point) {
+  const source = normalizeText(String(text ?? ""));
+  const p = escapeRegExp(String(point ?? "").trim());
+  if (!p) return null;
+
+  const fragments = source
+    .split(/[。.!?；;，,]/)
+    .map((fragment) => fragment.trim())
+    .filter(Boolean);
+
+  for (const fragment of fragments) {
+    if (!new RegExp(`(?:^|[^A-Z])${p}(?:$|[^A-Z])`, 'i').test(fragment)) continue;
+
+    if (/(?:劣弧|minor arc)[\s\S]{0,20}(?:AB|AC)|(?:AB|AC)[\s\S]{0,20}(?:劣弧|minor arc)/i.test(fragment)) {
+      return 'minor';
+    }
+    if (/(?:优弧|major arc)[\s\S]{0,20}(?:AB|AC)|(?:AB|AC)[\s\S]{0,20}(?:优弧|major arc)/i.test(fragment)) {
+      return 'major';
+    }
+    if (/on the minor arc[\s\S]{0,20}(?:AB|AC)|(?:AB|AC)[\s\S]{0,20}on the minor arc/i.test(fragment)) {
+      return 'minor';
+    }
+    if (/on the major arc[\s\S]{0,20}(?:AB|AC)|(?:AB|AC)[\s\S]{0,20}on the major arc/i.test(fragment)) {
+      return 'major';
+    }
+  }
+
+  return null;
 }
 
 function hasCircleThreePointsCue(text) {
@@ -270,16 +323,28 @@ export function needsTangentChordRepair({ conceptTitle = "", conceptDesc = "", g
   if (diagramPolicy === "must_not_draw") return false;
 
   const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
+  const problemSource = normalizeText([conceptTitle, conceptDesc].filter(Boolean).join("\n"));
   if (!hasTangentChordCue(source) || !hasTangentChordAngleCue(source)) return false;
   if (!hasMathDiagramBlock(generatedText)) return false;
 
-  if (hasDualTangentChordArcPointsCue(source)) {
-    if (!/"template"\s*:\s*"circle_tangent_chord_dual_points"/i.test(String(generatedText ?? ""))) return true;
-    return !hasExpectedDualTangentChordLabels(generatedText);
+  const expectedCArcType = inferArcTypeCueForPoint(problemSource, 'C');
+  const expectedDArcType = inferArcTypeCueForPoint(problemSource, 'D');
+  const expectedArcType = expectedDArcType ?? expectedCArcType;
+  const wantsDualArcPoints = hasDualTangentChordArcPointsCue(source);
+  const data = extractDiagramBlockJson(generatedText);
+
+  if (wantsDualArcPoints) {
+    if (!data || String(data.template ?? "").trim() !== "circle_tangent_chord_dual_points") return true;
+    if (!hasExpectedDualTangentChordLabels(generatedText)) return true;
+    if (expectedCArcType && String(data.arc_type ?? data.c_arc ?? data.arc ?? "").toLowerCase().indexOf(expectedCArcType) === -1) return true;
+    if (expectedDArcType && String(data.d_arc_type ?? data.arc_type_d ?? data.arc2_type ?? "").toLowerCase().indexOf(expectedDArcType) === -1) return true;
+    return false;
   }
 
-  if (!/"template"\s*:\s*"circle_chord_tangent"/i.test(String(generatedText ?? ""))) return true;
-  return !hasExpectedTangentChordLabels(generatedText, source);
+  if (!data || String(data.template ?? "").trim() !== "circle_chord_tangent") return true;
+  if (!hasExpectedTangentChordLabels(generatedText, source)) return true;
+  if (expectedArcType && String(data.arc_type ?? data.c_arc ?? data.arc ?? "").toLowerCase().indexOf(expectedArcType) === -1) return true;
+  return false;
 }
 
 export function needsTargetAngleLeakRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
