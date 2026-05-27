@@ -433,6 +433,12 @@ function validateDiagramData(template: string, data: any): string | null {
         ? null
         : 'circle_cyclic_quadrilateral requires a positive radius';
     }
+    case 'circle_three_points': {
+      const radius = asFiniteNumber(data.radius ?? 5);
+      return radius !== null && radius > 0
+        ? null
+        : 'circle_three_points requires a positive radius';
+    }
     case 'circle_diameter_points': {
       const radius = asFiniteNumber(data.radius ?? 5);
       return radius !== null && radius > 0
@@ -475,6 +481,10 @@ function normalizeDiagramData(template: string, data: any): any {
 
   if (template === 'rectangle' && !hasRequiredLabels(data.labels, 4)) {
     return { ...data, labels: ['A', 'B', 'C', 'D'] };
+  }
+
+  if (template === 'circle_three_points' && !hasRequiredLabels(data.labels, 3)) {
+    return { ...data, labels: ['A', 'B', 'C'] };
   }
 
   if ((template === 'coordinate_points') && Array.isArray(data.segments)) {
@@ -1578,6 +1588,55 @@ function CircleCyclicQuadrilateral({ data }: { data: any }) {
 }
 
 /**
+ * circle_three_points - three named points A/B/C on a circle with angle relations.
+ */
+function CircleThreePoints({ data }: { data: any }) {
+  const r: number = data.radius ?? 5;
+  const labels: string[] = data.labels ?? ['A', 'B', 'C'];
+  const angles: number[] = data.angles ?? data.point_angles ?? [120, 20, -80];
+
+  const O: Pt = { x: 0, y: 0 };
+  const pts = angles.slice(0, 3).map((deg) => {
+    const rad = deg * Math.PI / 180;
+    return { x: r * Math.cos(rad), y: r * Math.sin(rad) };
+  });
+
+  const pad = r * 0.35;
+  const sc = makeScaler(-r - pad, r + pad, -r - pad, r + pad);
+  const sO = sc(O);
+  const sPts = pts.map(sc);
+  const pixelR = Math.abs(sc({ x: r, y: 0 }).x - sO.x);
+
+  const [sA, sB, sC] = sPts;
+
+  return (
+    <g>
+      <circle cx={sO.x} cy={sO.y} r={pixelR}
+        fill="none" stroke={GREY} strokeWidth={2} strokeOpacity={0.65} />
+      <Seg a={sO} b={sA} stroke={GREY} sw={1.4} dash="4,3" />
+      <Seg a={sO} b={sB} stroke={GREY} sw={1.4} dash="4,3" />
+      <Seg a={sO} b={sC} stroke={GREY} sw={1.4} dash="4,3" />
+      <Seg a={sA} b={sB} stroke={GOLD} sw={2.2} />
+      <Seg a={sB} b={sC} stroke={GOLD} sw={2.2} />
+      <Seg a={sC} b={sA} stroke={GOLD} sw={2.2} />
+
+      <Dot p={sO} label={data.label_O ?? 'O'} offset={{ x: 8, y: 12 }} color={WHITE} />
+      <Dot p={sA} label={labels[0] ?? 'A'} offset={{ x: -20, y: -12 }} />
+      <Dot p={sB} label={labels[1] ?? 'B'} offset={{ x: 10, y: -12 }} />
+      <Dot p={sC} label={labels[2] ?? 'C'} offset={{ x: 10, y: 14 }} />
+
+      {data.label_angle_aob && <AngleMark v={sO} a={sA} b={sB} label={String(data.label_angle_aob)} r={24} color={GOLD} />}
+      {data.label_angle_acb && <AngleMark v={sC} a={sA} b={sB} label={String(data.label_angle_acb)} r={24} color={GOLD} />}
+      {data.label_sum && (
+        <text x={sO.x} y={sO.y - pixelR - 18} fontSize={12} textAnchor="middle" fill={GOLD} fontWeight="700">
+          {String(data.label_sum)}
+        </text>
+      )}
+    </g>
+  );
+}
+
+/**
  * circle_diameter_points - AB is a diameter, with C/D on the same arc side.
  * Useful for problems that explicitly state AB is a diameter of circle O.
  */
@@ -1729,6 +1788,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'circle_tangent':      content = <CircleTangent data={parsed} />; break;
       case 'circle_chord_tangent': content = <CircleChordTangent data={parsed} />; break;
       case 'circle_cyclic_quadrilateral': content = <CircleCyclicQuadrilateral data={parsed} />; break;
+      case 'circle_three_points': content = <CircleThreePoints data={parsed} />; break;
       case 'circle_diameter_points': content = <CircleDiameterPoints data={parsed} />; break;
       case 'circle_intersecting_chords': content = <CircleIntersectingChords data={parsed} />; break;
       case 'linear_function':     content = <LinearFunction data={parsed} />; break;

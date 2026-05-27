@@ -33,6 +33,11 @@ function hasExpectedTangentChordLabelMap(text) {
     /"label_C"\s*:\s*"D"/i.test(source);
 }
 
+function hasCircleThreePointsCue(text) {
+  const source = String(text ?? "");
+  return /(?:A\s*[、,]\s*B\s*[、,]\s*C.*(?:\bO\b|⊙O|圆)|A、B、C.*O上|A,B,C.*O上|三点.*O上|AOB|ACB|AOC|∠\s*AOB|∠\s*ACB|∠\s*AOC)/i.test(source);
+}
+
 function extractAskedTargets(text) {
   const source = String(text ?? "");
   const angles = new Set();
@@ -225,5 +230,17 @@ export function needsCentralAngleRayRepair({ conceptTitle = "", conceptDesc = ""
   }
 
   return false;
+}
+
+export function needsCircleThreePointsRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
+  if (diagramPolicy === "must_not_draw") return false;
+
+  const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
+  if (!hasCircleThreePointsCue(source)) return false;
+  if (!hasMathDiagramBlock(generatedText)) return false;
+
+  const templateMatch = String(generatedText ?? "").match(/"template"\s*:\s*"([^"]+)"/i);
+  const template = String(templateMatch?.[1] ?? "");
+  return template !== "circle_three_points";
 }
 

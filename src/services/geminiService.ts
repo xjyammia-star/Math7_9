@@ -1,7 +1,7 @@
 import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 import { classifyDiagramNeed, stripDiagramArtifacts } from "../utils/diagramPolicy";
-import { needsCentralAngleRayRepair, needsCircleDiameterRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
+import { needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
 import { sanitizeMath } from "../utils/mathUtils";
 
 const ARK_BASE_URL =
@@ -116,6 +116,9 @@ function detectOutputIssues(
   }
   if (needsCentralAngleRayRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("missing_central_angle_ray");
+  }
+  if (needsCircleThreePointsRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
+    issues.push("circle_three_points_template_mismatch");
   }
 
   return issues;
@@ -346,6 +349,7 @@ Rules:
 - If diagram policy is must_draw, include exactly one matching fenced block with the math-diagram template and valid JSON when the problem genuinely depends on a figure.
 - If diagram policy is prefer_draw, include a diagram only when it can be drawn cleanly and it clearly helps the question.
 - For intersecting chords inside a circle, use template "circle_intersecting_chords" with ap, pb and exactly the given CD/CP/PD relation.
+- For problems that place exactly three named points A, B, C on the same circle and ask about angles such as ∠AOB, ∠ACB, or their relationship/sum, use template "circle_three_points". Do not use circle_chord for this pattern.
 - For diameter problems that ask for angles like ∠ABD or ∠BCD, use template "circle_diameter_points" so the diameter endpoints and the relevant chord/angle relationships are drawn explicitly. Do not replace BD with AC or any other diagonal.
 - For tangent-chord theorem problems with a tangent at A and chord AC, such as ∠BAC, use template "circle_chord_tangent" with arc_type "minor" when D lies on the minor arc AC. Keep the tangent point at A and map the chord endpoint/arc point labels consistently. Do not use circle_tangent for this pattern.
 - For the same tangent-chord pattern, use label_A="A", label_B="C", and label_C="D". Do not relabel the tangent-line helper points as A/B; the visible tangent point must remain A.
@@ -639,6 +643,11 @@ STRICT PRINCIPLES:
    Intersecting chords inside a circle (圆内两弦相交):
    ${BT}math-diagram
    {"template":"circle_intersecting_chords","ap":6,"pb":4,"cd":11,"cp_ratio":0.35,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_P":"P","label_ap":"6","label_pb":"4","label_cd":"11"}
+   ${BT}
+
+   Three named points on a circle with angle relation:
+   ${BT}math-diagram
+   {"template":"circle_three_points","radius":5,"labels":["A","B","C"],"label_O":"O","label_angle_aob":"?","label_angle_acb":"?","label_sum":"135°"}
    ${BT}
 
    Intersecting chords with CP:PD ratio:

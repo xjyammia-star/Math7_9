@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { needsCentralAngleRayRepair, needsCircleDiameterRepair, needsQuestionAnswerLeakRepair, needsTargetAngleLeakRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
+import { needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTargetAngleLeakRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
 
 assert.equal(
   needsCircleDiameterRepair({
@@ -192,3 +192,25 @@ assert.equal(
 );
 
 console.log('central-angle template coverage test passed');
+
+assert.equal(
+  needsCircleThreePointsRepair({
+    conceptTitle: '圆上三点',
+    conceptDesc: '如图，A、B、C都在⊙O上，已知∠AOB + ∠ACB = 135°，求∠ACB的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_chord","radius":5,"water_depth":4,"label_O":"O","label_A":"A","label_B":"B","label_C":"C"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsCircleThreePointsRepair({
+    conceptTitle: '圆上三点',
+    conceptDesc: '如图，A、B、C都在⊙O上，已知∠AOB + ∠ACB = 135°，求∠ACB的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_three_points","radius":5,"labels":["A","B","C"],"label_O":"O","label_angle_aob":"?","label_angle_acb":"?","label_sum":"135°"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+console.log('circle three-points coverage test passed');
