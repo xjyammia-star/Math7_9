@@ -9,6 +9,8 @@
  *   5. Clean up math commands that leak into plain text
  */
 
+import { promoteStandaloneDiagramJsonBlocks } from "./diagramPolicy";
+
 const LEAKED_MATH_COMMANDS = [
   ['odot', '⊙', '\\odot '],
   ['triangle', '△', '\\triangle '],
@@ -110,7 +112,7 @@ export function sanitizeMath(text: string): string {
   if (!text) return '';
 
   // Safe, whole-string normalization that should not change meaning.
-  const normalized = text
+  const normalized = promoteStandaloneDiagramJsonBlocks(text)
     .normalize('NFKC')
     .replace(/\\\[((?:.|\n)*?)\\\]/g, (_match, body) => `$$${body}$$`)
     .replace(/\\\(((?:.|\n)*?)\\\)/g, (_match, body) => `$${body}$`)

@@ -131,6 +131,42 @@ function stripInlineDiagramObjects(text) {
     .trim();
 }
 
+function isStandaloneDiagramJsonLine(line) {
+  const trimmed = String(line ?? "").trim();
+  return trimmed.startsWith("{") && trimmed.endsWith("}") && trimmed.includes('"template"');
+}
+
+export function promoteStandaloneDiagramJsonBlocks(text) {
+  const lines = String(text ?? "").replace(/\r\n/g, "\n").split("\n");
+  const output = [];
+  let inFence = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("```")) {
+      inFence = !inFence;
+      output.push(line);
+      continue;
+    }
+
+    if (!inFence && isStandaloneDiagramJsonLine(line)) {
+      try {
+        JSON.parse(trimmed);
+        output.push("```math-diagram");
+        output.push(trimmed);
+        output.push("```");
+        continue;
+      } catch {
+        // fall through to preserve the original line if it is not valid JSON
+      }
+    }
+
+    output.push(line);
+  }
+
+  return output.join("\n");
+}
+
 export function stripDiagramArtifacts(text) {
   return stripInlineDiagramObjects(stripMathDiagramFences(String(text ?? "")));
 }

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { classifyDiagramNeed, explainDiagramPolicy, stripDiagramArtifacts } from '../src/utils/diagramPolicy.js';
+import { classifyDiagramNeed, explainDiagramPolicy, promoteStandaloneDiagramJsonBlocks, stripDiagramArtifacts } from '../src/utils/diagramPolicy.js';
 
 assert.equal(
   classifyDiagramNeed({
@@ -45,6 +45,15 @@ const summary = explainDiagramPolicy({
 
 assert.ok(['must_draw', 'prefer_draw', 'maybe_draw', 'must_not_draw'].includes(summary.policy));
 assert.ok(typeof summary.reason === 'string' && summary.reason.length > 0);
+
+const promoted = promoteStandaloneDiagramJsonBlocks([
+  '1. ๅคๆ–ญ้ข',
+  '{"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"]}',
+  '2. ๅฆไธ€้ข',
+].join('\n'));
+
+assert.match(promoted, /```math-diagram/);
+assert.match(promoted, /"template":"circle_cyclic_quadrilateral"/);
 
 const stripped = stripDiagramArtifacts([
   '1. 判断题',

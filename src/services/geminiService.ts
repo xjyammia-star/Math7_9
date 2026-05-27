@@ -84,6 +84,11 @@ function hasMathDiagramBlock(text: string): boolean {
   return text.includes('```math-diagram') || text.includes('"template"');
 }
 
+function hasUnfencedDiagramJson(text: string): boolean {
+  const source = String(text ?? "");
+  return source.includes('"template"') && !source.includes('```math-diagram');
+}
+
 function needsDiagramRepair(text: string, conceptTitle: string, conceptDesc: string, diagramPolicy: string): boolean {
   if (diagramPolicy !== "must_draw") return false;
 
@@ -119,6 +124,9 @@ function detectOutputIssues(
   }
   if (needsCircleThreePointsRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("circle_three_points_template_mismatch");
+  }
+  if (hasUnfencedDiagramJson(text)) {
+    issues.push("diagram_json_unfenced");
   }
 
   return issues;
@@ -347,6 +355,7 @@ Rules:
 - Diagram policy for this task: ${diagramPolicy}.
 - If diagram policy is must_not_draw, do not include any diagram, figure, math-diagram block, template JSON, or visual payload.
 - If diagram policy is must_draw, include exactly one matching fenced block with the math-diagram template and valid JSON when the problem genuinely depends on a figure.
+- Never leave diagram JSON outside a fenced math-diagram block. Raw objects like {"template":"..."} in prose are invalid and must be wrapped or removed.
 - If diagram policy is prefer_draw, include a diagram only when it can be drawn cleanly and it clearly helps the question.
 - For intersecting chords inside a circle, use template "circle_intersecting_chords" with ap, pb and exactly the given CD/CP/PD relation.
 - For problems that place exactly three named points A, B, C on the same circle and ask about angles such as ∠AOB, ∠ACB, or their relationship/sum, use template "circle_three_points". Do not use circle_chord for this pattern.
