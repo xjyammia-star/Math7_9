@@ -1,7 +1,7 @@
 import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 import { classifyDiagramNeed, stripDiagramArtifacts } from "../utils/diagramPolicy";
-import { maskQuestionAnswerLeaks, needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
+import { maskQuestionAnswerLeaks, needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
 import { sanitizeMath } from "../utils/mathUtils";
 
 const ARK_BASE_URL =
@@ -112,6 +112,9 @@ function detectOutputIssues(
   if (needsDiagramRepair(text, conceptTitle, conceptDesc, diagramPolicy)) issues.push("missing_diagram_block");
   if (needsCircleDiameterRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("circle_diameter_line_mismatch");
+  }
+  if (needsCircleSectorRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
+    issues.push("circle_sector_template_mismatch");
   }
   if (needsTangentChordRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("tangent_chord_template_mismatch");
@@ -360,6 +363,7 @@ Rules:
 - If diagram policy is prefer_draw, include a diagram only when it can be drawn cleanly and it clearly helps the question.
 - For intersecting chords inside a circle, use template "circle_intersecting_chords" with ap, pb and exactly the given CD/CP/PD relation.
 - For problems that place exactly three named points A, B, C on the same circle and ask about angles such as ∠AOB, ∠ACB, or their relationship/sum, use template "circle_three_points". Do not use circle_chord for this pattern.
+- For circle-sector / wheel / clock-sweep problems, use template "circle_sector" and provide a radius plus one of: angle, minutes, or sector_count. Do not leave the template without the numerical parameters it needs.
 - For diameter problems that ask for angles like ∠ABD or ∠BCD, use template "circle_diameter_points" so the diameter endpoints and the relevant chord/angle relationships are drawn explicitly. Do not replace BD with AC or any other diagonal.
 - For tangent-chord theorem problems with a tangent at A and a chord from A to B, such as ∠PAB or ∠ADB, use template "circle_chord_tangent" instead of "circle_tangent". If the problem names one named arc point D only, keep that point visible with label_D and the matching arc-point flag. If the problem names both C and D on the circle (for example C on the minor arc AB and D on the major arc AB), use template "circle_tangent_chord_dual_points" so both points are visible.
 - For the same tangent-chord pattern, map the chord endpoint labels to the actual chord in the statement. Keep the tangent point at A. Do not relabel the tangent-line helper points as A/B; the visible tangent point must remain A.

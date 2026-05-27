@@ -78,6 +78,11 @@ function hasCircleThreePointsCue(text) {
   return /(?:A\s*[、,]\s*B\s*[、,]\s*C.*(?:\bO\b|⊙O|圆)|A、B、C.*O上|A,B,C.*O上|三点.*O上|AOB|ACB|AOC|∠\s*AOB|∠\s*ACB|∠\s*AOC)/i.test(source);
 }
 
+function hasCircleSectorCue(text) {
+  const source = String(text ?? "");
+  return /(?:扇形|sector|圆心角|分钟|sector_count|扫过|摆动|弧长|面积)/i.test(source);
+}
+
 function extractAskedTargets(text) {
   const source = String(text ?? "");
   const angles = new Set();
@@ -199,6 +204,25 @@ export function needsCircleDiameterRepair({ conceptTitle = "", conceptDesc = "",
   if (!hasMathDiagramBlock(generatedText)) return false;
 
   return !hasCircleDiameterTemplate(generatedText);
+}
+
+export function needsCircleSectorRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
+  if (diagramPolicy === "must_not_draw") return false;
+
+  const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
+  if (!hasCircleSectorCue(source)) return false;
+  if (!hasMathDiagramBlock(generatedText)) return false;
+  if (!/"template"\s*:\s*"circle_sector"/i.test(String(generatedText ?? ""))) return true;
+
+  const rendered = String(generatedText ?? "");
+  const hasRadius = /"radius"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered);
+  const hasAngle = /"angle"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered) ||
+    /"angle_deg"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered) ||
+    /"label_angle"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered);
+  const hasMinutes = /"(?:minutes|time_minutes|label_minutes)"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered);
+  const hasSectorCount = /"sector_count"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered);
+
+  return !(hasRadius && (hasAngle || hasMinutes || hasSectorCount));
 }
 
 export function needsTangentChordRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {

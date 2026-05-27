@@ -1244,30 +1244,30 @@ function CircleChord({ data }: { data: any }) {
 
 function humanizeDiagramValidationError(message: string): string {
   const msg = String(message ?? '').trim();
-  if (!msg) return '图形参数不完整，请检查题目中的已知条件。';
+  if (!msg) return '图形生成失败，系统正在自动重新尝试。';
 
   if (msg.includes('circle_sector requires')) {
-    return '扇形图缺少必要参数：请提供半径，以及角度、分钟数或等分份数中的至少一种。';
+    return '扇形图信息不足，系统正在自动重新生成。';
   }
   if (msg.includes('circle_tangent requires')) {
-    return '切线图缺少必要参数：请提供半径和外点距离，或者提供切线长度与夹角。';
+    return '切线图信息不足，系统正在自动重新生成。';
   }
   if (msg.includes('circle_chord_tangent requires')) {
-    return '切线-弦图缺少必要参数：请提供半径和角度。';
+    return '切线-弦图信息不足，系统正在自动重新生成。';
   }
   if (msg.includes('circle_tangent_chord_dual_points requires')) {
-    return '双弧点切线-弦图缺少必要参数：请提供半径和角度。';
+    return '双弧点切线-弦图信息不足，系统正在自动重新生成。';
   }
   if (msg.includes('circle_cyclic_quadrilateral requires')) {
-    return '圆内接四边形图缺少必要参数：请提供半径。';
+    return '圆内接四边形图信息不足，系统正在自动重新生成。';
   }
   if (msg.includes('circle_three_points requires')) {
-    return '三点同圆图缺少必要参数：请提供半径。';
+    return '三点同圆图信息不足，系统正在自动重新生成。';
   }
   if (msg.includes('circle_diameter_points requires')) {
-    return '直径圆图缺少必要参数：请提供半径。';
+    return '直径圆图信息不足，系统正在自动重新生成。';
   }
-  return '图形参数不完整，请检查题目中的已知条件。';
+  return '图形生成失败，系统正在自动重新尝试。';
 }
 
 /**

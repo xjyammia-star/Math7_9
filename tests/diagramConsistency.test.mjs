@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { maskQuestionAnswerLeaks, needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTargetAngleLeakRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
+import { maskQuestionAnswerLeaks, needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTargetAngleLeakRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
 
 assert.equal(
   needsCircleDiameterRepair({
@@ -283,6 +283,28 @@ assert.equal(
 );
 
 console.log('central-angle template coverage test passed');
+
+assert.equal(
+  needsCircleSectorRepair({
+    conceptTitle: '扇形',
+    conceptDesc: '如图，雨刷单次摆动扫过的圆心角为120°，橡胶片长度为50 cm，求扇形面积。',
+    generatedText: '```math-diagram\n{"template":"circle_sector","label_O":"O","label_A":"A","label_B":"B"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsCircleSectorRepair({
+    conceptTitle: '扇形',
+    conceptDesc: '如图，雨刷单次摆动扫过的圆心角为120°，橡胶片长度为50 cm，求扇形面积。',
+    generatedText: '```math-diagram\n{"template":"circle_sector","radius":50,"angle":120,"label_O":"O","label_A":"A","label_B":"B","label_angle":"120°"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+console.log('circle sector coverage test passed');
 
 assert.equal(
   needsCircleThreePointsRepair({
