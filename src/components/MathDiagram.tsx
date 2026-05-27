@@ -276,6 +276,56 @@ function numberFromValueOrLabel(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function coerceLabeledNumericFields(data: any): any {
+  if (!data || typeof data !== 'object') return data;
+
+  const fallbackMap: Record<string, string[]> = {
+    radius: ['label_radius', 'label_r', 'outer_radius', 'radius_outer', 'label_outer_radius', 'label_radius_outer'],
+    angle: ['label_angle'],
+    angle_deg: ['label_angle_deg'],
+    minutes: ['label_minutes', 'label_time_minutes'],
+    time_minutes: ['label_time_minutes', 'label_minutes'],
+    sector_count: ['label_sector_count'],
+    width: ['label_width'],
+    height: ['label_height'],
+    length: ['label_length'],
+    base: ['label_base'],
+    side: ['label_side'],
+    leg_h: ['label_leg_h'],
+    leg_v: ['label_leg_v'],
+    foot_dist: ['label_foot_dist'],
+    circumference: ['label_circumference'],
+    op_dist: ['label_op_dist'],
+    tangent_length: ['label_tangent_length', 'label_pa'],
+    pa_length: ['label_pa', 'label_tangent_length'],
+    pa: ['label_pa'],
+    pb: ['label_pb'],
+    ap: ['label_ap'],
+    cp: ['label_cp'],
+    pd: ['label_pd'],
+    cd: ['label_cd'],
+    chord_half: ['label_chord_half'],
+    water_depth: ['label_depth', 'label_water_depth'],
+    depth: ['label_depth', 'label_water_depth'],
+    diameter: ['label_diameter'],
+  };
+
+  const next = { ...data };
+  for (const [field, labels] of Object.entries(fallbackMap)) {
+    if (next[field] !== undefined && next[field] !== null) continue;
+    for (const label of labels) {
+      if (next[label] === undefined || next[label] === null) continue;
+      const numeric = numberFromValueOrLabel(next[label]);
+      if (numeric !== null) {
+        next[field] = numeric;
+        break;
+      }
+    }
+  }
+
+  return next;
+}
+
 function getSectorCount(data: any): number | null {
   return asFiniteNumber(data.sector_count ?? data.piece_count ?? data.parts ?? data.equal_parts ?? data.slices);
 }
@@ -285,6 +335,7 @@ function hasRequiredLabels(labels: unknown, count: number): boolean {
 }
 
 function validateDiagramData(template: string, data: any): string | null {
+  data = coerceLabeledNumericFields(data);
   switch (template) {
     case 'right_triangle': {
       const a = asFiniteNumber(data.leg_h ?? data.legs?.[0] ?? data.a);
@@ -396,7 +447,7 @@ function validateDiagramData(template: string, data: any): string | null {
         : 'circle_chord requires a radius and either a chord within the circle or a valid water_depth';
     }
     case 'circle_sector': {
-      const radius = asFiniteNumber(data.radius);
+      const radius = numberFromValueOrLabel(data.radius ?? data.outer_radius ?? data.label_radius ?? data.label_outer_radius);
       const angle = numberFromValueOrLabel(data.angle ?? data.angle_deg ?? data.label_angle);
       const minutes = numberFromValueOrLabel(data.minutes ?? data.time_minutes ?? data.label_minutes);
       const sectorCount = getSectorCount(data);
@@ -474,6 +525,7 @@ function validateDiagramData(template: string, data: any): string | null {
 }
 
 function normalizeDiagramData(template: string, data: any): any {
+  data = coerceLabeledNumericFields(data);
   if (
     template === 'circle_chord' &&
     data?.radius !== undefined &&
@@ -1822,7 +1874,7 @@ function CircleDiameterPoints({ data }: { data: any }) {
  * Fields: radius, angle/angle_deg or minutes/time_minutes, label_radius, label_angle.
  */
 function CircleSector({ data }: { data: any }) {
-  const r: number = data.radius ?? 5;
+  const r: number = numberFromValueOrLabel(data.radius ?? data.outer_radius ?? data.label_radius ?? data.label_outer_radius) ?? 5;
   const minutes: number | null = numberFromValueOrLabel(data.minutes ?? data.time_minutes ?? data.label_minutes);
   const sectorCount = getSectorCount(data);
   const angleDeg: number = numberFromValueOrLabel(data.angle ?? data.angle_deg ?? data.label_angle) ?? (minutes !== null ? minutes * 6 : (

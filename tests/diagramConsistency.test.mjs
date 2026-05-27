@@ -307,6 +307,16 @@ assert.equal(
 console.log('circle sector coverage test passed');
 
 assert.equal(
+  needsCircleSectorRepair({
+    conceptTitle: 'ๆๅฝข',
+    conceptDesc: 'ๅฆๅพ๏ผ้จๅทๅ•ๆฌกๆ‘ๅจๆซ่ฟ็ๅๅฟ่ง’ไธบ120ยฐ๏ผๆฉก่ถ็้•ฟๅบฆไธบ50 cm๏ผๆฑๆๅฝข้ข็งฏใ€',
+    generatedText: '```math-diagram\n{"template":"circle_sector","outer_radius":50,"angle":120,"label_O":"O","label_A":"A","label_B":"B","label_outer_radius":"50 cm","label_angle":"120ยฐ"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+assert.equal(
   needsCircleIntersectingChordsRepair({
     conceptTitle: '圆内相交弦',
     conceptDesc: '弦AB与CD相交于圆内一点P，已知AP:PB = 2:3，CP比PD短2 cm，弦CD的总长为10 cm，求弦AB的长。',

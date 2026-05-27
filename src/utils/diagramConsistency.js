@@ -233,7 +233,7 @@ export function needsCircleSectorRepair({ conceptTitle = "", conceptDesc = "", g
   if (!/"template"\s*:\s*"circle_sector"/i.test(String(generatedText ?? ""))) return true;
 
   const rendered = String(generatedText ?? "");
-  const hasRadius = /"radius"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered);
+  const hasRadius = /"(?:radius|outer_radius|radius_outer|label_radius|label_outer_radius|label_radius_outer)"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered);
   const hasAngle = /"angle"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered) ||
     /"angle_deg"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered) ||
     /"label_angle"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered);
