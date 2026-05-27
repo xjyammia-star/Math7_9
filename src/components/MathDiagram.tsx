@@ -1173,7 +1173,7 @@ function CircleChord({ data }: { data: any }) {
   const chordHalf: number = data.chord_half ?? (data.chord ? data.chord / 2 : (
     chordYFromDepth !== null ? Math.sqrt(Math.max(0, r * r - chordYFromDepth * chordYFromDepth)) : r * 0.6
   ));
-  const showPerp: boolean = data.show_perpendicular !== false;
+  const showPerp: boolean = data.show_perpendicular === true || (waterDepth === null && data.show_perpendicular !== false);
 
   // O at centre. Chord AB is horizontal, C is midpoint (foot of perpendicular from O).
   // For water-depth problems, OC is derived from the depth and should not be shown by default.
@@ -1236,7 +1236,12 @@ function CircleChord({ data }: { data: any }) {
       {lOC && <SegLabel a={sO} b={sC} label={lOC} />}
       {lAC && <SegLabel a={sA} b={sC} label={lAC} color={GOLD} />}
       {lChord && <SegLabel a={sA} b={sB} label={lChord} color={GOLD} />}
-      {lDepth && <SegLabel a={sc({ x: r * 0.82, y: -r })} b={sc({ x: r * 0.82, y: oc })} label={lDepth} color={GOLD} />}
+      {lDepth && (
+        <>
+          <Seg a={sc({ x: r * 0.82, y: -r })} b={sc({ x: r * 0.82, y: oc })} stroke={GOLD} sw={1.8} dash="5,4" />
+          <SegLabel a={sc({ x: r * 0.82, y: -r })} b={sc({ x: r * 0.82, y: oc })} label={lDepth} color={GOLD} />
+        </>
+      )}
       {data.label_angle_aoc && <AngleMark v={sO} a={sA} b={sC} label={String(data.label_angle_aoc)} r={22} color={GOLD} />}
     </g>
   );

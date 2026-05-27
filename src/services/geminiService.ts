@@ -654,7 +654,7 @@ STRICT PRINCIPLES:
 
    Circle with chord and perpendicular (圆中弦与垂径定理):
    ${BT}math-diagram
-   {"template":"circle_chord","radius":10,"water_depth":4,"label_O":"O","label_A":"A","label_B":"B","label_C":"C","label_radius":"10 cm","label_depth":"4 cm","label_chord":"AB"}
+   {"template":"circle_chord","radius":10,"water_depth":4,"show_perpendicular":false,"label_O":"O","label_A":"A","label_B":"B","label_C":"C","label_radius":"10 cm","label_depth":"4 cm","label_chord":"AB"}
    ${BT}
 
    Circle sector / clock hand sweep (弧长、扇形面积、钟表分针扫过):
