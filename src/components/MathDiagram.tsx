@@ -1583,6 +1583,7 @@ function CircleDiameterPoints({ data }: { data: any }) {
       <circle cx={sO.x} cy={sO.y} r={pixelR}
         fill="none" stroke={GREY} strokeWidth={2} strokeOpacity={0.65} />
       <Seg a={sA} b={sB} stroke={GOLD} sw={2.6} />
+      <Seg a={sB} b={sD} stroke={GOLD} sw={2.2} />
       <Seg a={sA} b={sC} stroke={GREY} sw={1.5} dash="4,3" />
       <Seg a={sB} b={sC} stroke={GREY} sw={1.5} dash="4,3" />
       <Seg a={sA} b={sD} stroke={GOLD} sw={2.2} />

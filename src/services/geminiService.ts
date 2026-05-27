@@ -1,6 +1,7 @@
 import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 import { classifyDiagramNeed, stripDiagramArtifacts } from "../utils/diagramPolicy";
+import { needsCircleDiameterRepair } from "../utils/diagramConsistency";
 import { sanitizeMath } from "../utils/mathUtils";
 
 const ARK_BASE_URL =
@@ -104,6 +105,9 @@ function detectOutputIssues(
 
   if (hasRawMathLeak(text)) issues.push("raw_math_leaks");
   if (needsDiagramRepair(text, conceptTitle, conceptDesc, diagramPolicy)) issues.push("missing_diagram_block");
+  if (needsCircleDiameterRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
+    issues.push("circle_diameter_line_mismatch");
+  }
 
   return issues;
 }
@@ -333,6 +337,8 @@ Rules:
 - If diagram policy is must_draw, include exactly one matching fenced block with the math-diagram template and valid JSON when the problem genuinely depends on a figure.
 - If diagram policy is prefer_draw, include a diagram only when it can be drawn cleanly and it clearly helps the question.
 - For intersecting chords inside a circle, use template "circle_intersecting_chords" with ap, pb and exactly the given CD/CP/PD relation.
+- For diameter problems that ask for angles like ∠ABD or ∠BCD, use template "circle_diameter_points" so the diameter endpoints and the relevant chord/angle relationships are drawn explicitly. Do not replace BD with AC or any other diagonal.
+- In any geometry diagram, if you label an angle such as ∠ABD, make sure the two rays/segments that define that angle are actually drawn in the figure.
 - Do not add new topics or remove required information.
 - Output only the corrected exercises.`;
 
