@@ -1,7 +1,7 @@
 import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 import { classifyDiagramNeed, stripDiagramArtifacts } from "../utils/diagramPolicy";
-import { maskQuestionAnswerLeaks, needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
+import { maskQuestionAnswerLeaks, needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
 import { sanitizeMath } from "../utils/mathUtils";
 
 const ARK_BASE_URL =
@@ -115,6 +115,9 @@ function detectOutputIssues(
   }
   if (needsCircleSectorRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("circle_sector_template_mismatch");
+  }
+  if (needsCircleIntersectingChordsRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
+    issues.push("circle_intersecting_chords_template_mismatch");
   }
   if (needsTangentChordRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("tangent_chord_template_mismatch");
@@ -362,6 +365,7 @@ Rules:
 - Never leave diagram JSON outside a fenced math-diagram block. Raw objects like {"template":"..."} in prose are invalid and must be wrapped or removed.
 - If diagram policy is prefer_draw, include a diagram only when it can be drawn cleanly and it clearly helps the question.
 - For intersecting chords inside a circle, use template "circle_intersecting_chords" with ap, pb and exactly the given CD/CP/PD relation.
+- For intersecting chords with AP:PB given as a ratio such as 2:3, solve the actual numeric AP and PB values for the diagram before outputting JSON. Do not leave them as a ratio string; the template needs positive numeric ap and pb.
 - For problems that place exactly three named points A, B, C on the same circle and ask about angles such as ∠AOB, ∠ACB, or their relationship/sum, use template "circle_three_points". Do not use circle_chord for this pattern.
 - For circle-sector / wheel / clock-sweep problems, use template "circle_sector" and provide a radius plus one of: angle, minutes, or sector_count. Do not leave the template without the numerical parameters it needs.
 - For diameter problems that ask for angles like ∠ABD or ∠BCD, use template "circle_diameter_points" so the diameter endpoints and the relevant chord/angle relationships are drawn explicitly. Do not replace BD with AC or any other diagonal.
@@ -700,6 +704,11 @@ STRICT PRINCIPLES:
    Intersecting chords with CP-PD difference:
    ${BT}math-diagram
    {"template":"circle_intersecting_chords","ap":6,"pb":4,"cp_minus_pd":2,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_P":"P","label_ap":"6","label_pb":"4","label_difference":"CP比PD长2"}
+   ${BT}
+
+   Intersecting chords with AP:PB ratio:
+   ${BT}math-diagram
+   {"template":"circle_intersecting_chords","ap":4,"pb":6,"cp":6,"pd":4,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_P":"P","label_ap":"4","label_pb":"6","label_cp":"6","label_pd":"4","label_ratio":"AP:PB=2:3"}
    ${BT}
 
    Circle with tangent and chord (tangent-chord theorem):

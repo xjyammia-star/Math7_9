@@ -14,6 +14,11 @@ function hasCircleDiameterTemplate(text) {
   return /"template"\s*:\s*"circle_diameter_points"/i.test(String(text ?? ""));
 }
 
+function hasCircleIntersectingChordsCue(text) {
+  const source = String(text ?? "");
+  return /(?:相交于圆内一点|两弦相交|intersecting chords|AP\s*[:：\/]\s*PB|CP\s*[:：\/]\s*PD|弦AB与CD相交|圆内一点P)/i.test(source);
+}
+
 function hasDiameterCue(text) {
   return /(?:直径|diameter)/i.test(String(text ?? ""));
 }
@@ -81,6 +86,19 @@ function hasCircleThreePointsCue(text) {
 function hasCircleSectorCue(text) {
   const source = String(text ?? "");
   return /(?:扇形|sector|圆心角|分钟|sector_count|扫过|摆动|弧长|面积)/i.test(source);
+}
+
+function extractDiagramBlockJson(text) {
+  const source = String(text ?? "");
+  const match = source.match(/```math-diagram\s*([\s\S]*?)```/i);
+  if (!match) return null;
+  const jsonText = String(match[1] ?? "").trim();
+  if (!jsonText) return null;
+  try {
+    return JSON.parse(jsonText);
+  } catch {
+    return null;
+  }
 }
 
 function extractAskedTargets(text) {
@@ -223,6 +241,29 @@ export function needsCircleSectorRepair({ conceptTitle = "", conceptDesc = "", g
   const hasSectorCount = /"sector_count"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered);
 
   return !(hasRadius && (hasAngle || hasMinutes || hasSectorCount));
+}
+
+export function needsCircleIntersectingChordsRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
+  if (diagramPolicy === "must_not_draw") return false;
+
+  const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
+  if (!hasCircleIntersectingChordsCue(source)) return false;
+  if (!hasMathDiagramBlock(generatedText)) return false;
+
+  const data = extractDiagramBlockJson(generatedText);
+  if (!data || String(data.template ?? "").trim() !== "circle_intersecting_chords") return true;
+
+  const ap = Number(data.ap ?? data.AP);
+  const pb = Number(data.pb ?? data.PB);
+  const hasAp = Number.isFinite(ap) && ap > 0;
+  const hasPb = Number.isFinite(pb) && pb > 0;
+  const hasCp = Number.isFinite(Number(data.cp ?? data.CP)) && Number(data.cp ?? data.CP) > 0;
+  const hasCd = Number.isFinite(Number(data.cd ?? data.CD ?? data.cd_total)) && Number(data.cd ?? data.CD ?? data.cd_total) > 0;
+  const hasRatio = Number.isFinite(Number(data.cp_pd_ratio ?? data.ratio_cp_pd ?? data.cp_to_pd ?? data.ratio)) &&
+    Number(data.cp_pd_ratio ?? data.ratio_cp_pd ?? data.cp_to_pd ?? data.ratio) > 0;
+  const hasDiff = Number.isFinite(Number(data.cp_minus_pd ?? data.cp_pd_diff ?? data.cp_gt_pd_by ?? data.difference));
+
+  return !(hasAp && hasPb && (hasCp || hasCd || hasRatio || hasDiff));
 }
 
 export function needsTangentChordRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {

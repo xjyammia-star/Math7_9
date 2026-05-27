@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { maskQuestionAnswerLeaks, needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTargetAngleLeakRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
+import { maskQuestionAnswerLeaks, needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTargetAngleLeakRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
 
 assert.equal(
   needsCircleDiameterRepair({
@@ -305,6 +305,28 @@ assert.equal(
 );
 
 console.log('circle sector coverage test passed');
+
+assert.equal(
+  needsCircleIntersectingChordsRepair({
+    conceptTitle: '圆内相交弦',
+    conceptDesc: '弦AB与CD相交于圆内一点P，已知AP:PB = 2:3，CP比PD短2 cm，弦CD的总长为10 cm，求弦AB的长。',
+    generatedText: '```math-diagram\n{"template":"circle_intersecting_chords","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_P":"P","label_ratio":"AP:PB=2:3"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsCircleIntersectingChordsRepair({
+    conceptTitle: '圆内相交弦',
+    conceptDesc: '弦AB与CD相交于圆内一点P，已知AP:PB = 2:3，CP比PD短2 cm，弦CD的总长为10 cm，求弦AB的长。',
+    generatedText: '```math-diagram\n{"template":"circle_intersecting_chords","ap":4,"pb":6,"cp":6,"pd":4,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_P":"P","label_ap":"4","label_pb":"6","label_cp":"6","label_pd":"4","label_ratio":"AP:PB=2:3"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+console.log('circle intersecting chords coverage test passed');
 
 assert.equal(
   needsCircleThreePointsRepair({
