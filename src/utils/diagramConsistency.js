@@ -26,6 +26,13 @@ function hasAngleBACCue(text) {
   return /(?:∠\s*BAC|angle\s*BAC|BAC)/i.test(String(text ?? ""));
 }
 
+function hasExpectedTangentChordLabelMap(text) {
+  const source = String(text ?? "");
+  return /"label_A"\s*:\s*"A"/i.test(source) &&
+    /"label_B"\s*:\s*"C"/i.test(source) &&
+    /"label_C"\s*:\s*"D"/i.test(source);
+}
+
 export function needsCircleDiameterRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
   if (diagramPolicy === "must_not_draw") return false;
 
@@ -43,6 +50,7 @@ export function needsTangentChordRepair({ conceptTitle = "", conceptDesc = "", g
   if (!hasTangentChordCue(source) || !hasAngleBACCue(source)) return false;
   if (!hasMathDiagramBlock(generatedText)) return false;
 
-  return !/"template"\s*:\s*"circle_chord_tangent"/i.test(String(generatedText ?? ""));
+  if (!/"template"\s*:\s*"circle_chord_tangent"/i.test(String(generatedText ?? ""))) return true;
+  return !hasExpectedTangentChordLabelMap(generatedText);
 }
 
