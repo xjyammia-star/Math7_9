@@ -1376,7 +1376,7 @@ function CircleTangent({ data }: { data: any }) {
   const lP  = data.label_P  ?? 'P';
   const lA  = data.label_A  ?? 'A';
   const lB  = data.label_B  ?? 'B';
-  const lC  = data.label_C  ?? 'C';
+  const lC  = data.label_C  ?? (!showArcTangent ? data.label_D : undefined) ?? 'C';
   const lD  = data.label_D  ?? 'D';
   const lE  = data.label_E  ?? 'E';
   const showRadiusLabel = data.show_radius_label === true || data.radius_given === true;
@@ -1385,6 +1385,7 @@ function CircleTangent({ data }: { data: any }) {
   const lPA = data.label_pa !== undefined ? String(data.label_pa) : '';
   const lOP = showOpLabel && data.label_op !== undefined ? String(data.label_op) : '';
   const lAngleApb = data.label_angle_apb ?? data.label_angle ?? (angleApbDeg !== null ? `${angleApbDeg}°` : '');
+  const lAngleAdb = data.label_angle_adb ?? '';
   const showChord: boolean = data.show_chord !== false;
 
   return (
@@ -1412,6 +1413,7 @@ function CircleTangent({ data }: { data: any }) {
       {/* Chord AB */}
       {showChord && <Seg a={sA} b={sB} stroke={GREY} sw={1.5} dash="4,3" />}
       {lAngleApb && <AngleMark v={sP} a={sA} b={sB} label={String(lAngleApb)} r={26} color={GOLD} />}
+      {lAngleAdb && <AngleMark v={sC} a={sA} b={sB} label={String(lAngleAdb)} r={24} color={GOLD} />}
 
       {/* Tangent at C, meeting PA and PB at D and E */}
       {showArcTangent && D && E && (() => {
@@ -1447,8 +1449,9 @@ function CircleTangent({ data }: { data: any }) {
 // ─── Main component ──────────────────────────────────────────────────────────
 
 /**
- * circle_chord_tangent - tangent line PQ at A, chord AB, and point C on the
- * opposite arc side. Useful for tangent-chord / alternate segment theorem.
+ * circle_chord_tangent - tangent line PQ at A, chord AB, and a named point on the
+ * opposite arc side (typically C, or D when the problem names that arc point D).
+ * Useful for tangent-chord / alternate segment theorem.
  * Fields: radius, angle or angle_pab, label_O/P/Q/A/B/C, label_angle.
  */
 function CircleChordTangent({ data }: { data: any }) {

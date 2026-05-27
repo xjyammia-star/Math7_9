@@ -35,6 +35,36 @@ console.log('diagram consistency test passed');
 
 assert.equal(
   needsTangentChordRepair({
+    conceptTitle: 'tangent-chord theorem',
+    conceptDesc: 'Line PQ is tangent to circle O at A. A,B is a chord, and D lies on the minor arc AB. Given ∠PAB = 42°, find ∠ADB.',
+    generatedText: '```math-diagram\n{"template":"circle_tangent","radius":5,"op_dist":13,"label_O":"O","label_P":"P","label_A":"A","label_B":"B"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsTangentChordRepair({
+    conceptTitle: 'tangent-chord theorem',
+    conceptDesc: 'Line PQ is tangent to circle O at A. A,B is a chord, and D lies on the minor arc AB. Given ∠PAB = 42°, find ∠ADB.',
+    generatedText: '```math-diagram\n{"template":"circle_chord_tangent","radius":5,"angle":42,"arc_type":"minor","label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"B","label_C":"C","label_angle_apb":"42°"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsTangentChordRepair({
+    conceptTitle: 'tangent-chord theorem',
+    conceptDesc: 'Line PQ is tangent to circle O at A. A,B is a chord, and D lies on the minor arc AB. Given ∠PAB = 42°, find ∠ADB.',
+    generatedText: '```math-diagram\n{"template":"circle_chord_tangent","radius":5,"angle":42,"arc_type":"minor","label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"B","label_C":"D","label_angle_apb":"42°","label_angle_adb":"?"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+assert.equal(
+  needsTangentChordRepair({
     conceptTitle: '切线-弦定理',
     conceptDesc: '如图，AB是⊙O的切线，切点为A，AC是⊙O的一条弦，点D在劣弧AC上，已知∠BAC = 35°，求∠ADC的度数。',
     generatedText: '```math-diagram\n{"template":"circle_tangent","radius":5,"op_dist":13,"label_O":"O","label_P":"P","label_A":"A","label_B":"B"}\n```',

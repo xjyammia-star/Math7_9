@@ -33,6 +33,29 @@ function hasExpectedTangentChordLabelMap(text) {
     /"label_C"\s*:\s*"D"/i.test(source);
 }
 
+function hasTangentChordAngleCue(text) {
+  return /(?:∠\s*(?:BAC|PAB|ADB|ABD)|angle\s*(?:BAC|PAB|ADB|ABD)|(?:BAC|PAB|ADB|ABD))/i.test(String(text ?? ""));
+}
+
+function hasTangentChordArcPointDCue(text) {
+  const source = String(text ?? "");
+  return /(?:点\s*D|D\s*在|point\s*D|D\s+on\s+the\s+(?:minor|major)?\s*arc|D\s*lies\s*on\s+the\s+(?:minor|major)?\s*arc|∠\s*ADB|angle\s*ADB)/i.test(source);
+}
+
+function hasExpectedTangentChordLabels(text, source) {
+  const generated = String(text ?? "");
+  const sourceText = String(source ?? "");
+  const needsDArcPoint = hasTangentChordArcPointDCue(sourceText);
+
+  if (!/"label_A"\s*:\s*"A"/i.test(generated)) return false;
+
+  if (needsDArcPoint) {
+    return /"label_(?:C|D)"\s*:\s*"D"/i.test(generated);
+  }
+
+  return true;
+}
+
 function hasCircleThreePointsCue(text) {
   const source = String(text ?? "");
   return /(?:A\s*[、,]\s*B\s*[、,]\s*C.*(?:\bO\b|⊙O|圆)|A、B、C.*O上|A,B,C.*O上|三点.*O上|AOB|ACB|AOC|∠\s*AOB|∠\s*ACB|∠\s*AOC)/i.test(source);
@@ -109,11 +132,11 @@ export function needsTangentChordRepair({ conceptTitle = "", conceptDesc = "", g
   if (diagramPolicy === "must_not_draw") return false;
 
   const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
-  if (!hasTangentChordCue(source) || !hasAngleBACCue(source)) return false;
+  if (!hasTangentChordCue(source) || !hasTangentChordAngleCue(source)) return false;
   if (!hasMathDiagramBlock(generatedText)) return false;
 
   if (!/"template"\s*:\s*"circle_chord_tangent"/i.test(String(generatedText ?? ""))) return true;
-  return !hasExpectedTangentChordLabelMap(generatedText);
+  return !hasExpectedTangentChordLabels(generatedText, source);
 }
 
 export function needsTargetAngleLeakRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
