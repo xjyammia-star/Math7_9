@@ -18,6 +18,14 @@ function hasAngleCueNeedingBD(text) {
   return /(?:∠\s*ABD|angle\s*ABD|∠\s*BCD|angle\s*BCD|ABD|BCD)/i.test(String(text ?? ""));
 }
 
+function hasTangentChordCue(text) {
+  return /(?:切线|tangent|切点|弦|chord)/i.test(String(text ?? ""));
+}
+
+function hasAngleBACCue(text) {
+  return /(?:∠\s*BAC|angle\s*BAC|BAC)/i.test(String(text ?? ""));
+}
+
 export function needsCircleDiameterRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
   if (diagramPolicy === "must_not_draw") return false;
 
@@ -26,5 +34,15 @@ export function needsCircleDiameterRepair({ conceptTitle = "", conceptDesc = "",
   if (!hasMathDiagramBlock(generatedText)) return false;
 
   return !hasCircleDiameterTemplate(generatedText);
+}
+
+export function needsTangentChordRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
+  if (diagramPolicy === "must_not_draw") return false;
+
+  const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
+  if (!hasTangentChordCue(source) || !hasAngleBACCue(source)) return false;
+  if (!hasMathDiagramBlock(generatedText)) return false;
+
+  return !/"template"\s*:\s*"circle_chord_tangent"/i.test(String(generatedText ?? ""));
 }
 

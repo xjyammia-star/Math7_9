@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { needsCircleDiameterRepair } from '../src/utils/diagramConsistency.js';
+import { needsCircleDiameterRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
 
 assert.equal(
   needsCircleDiameterRepair({
@@ -32,3 +32,25 @@ assert.equal(
 );
 
 console.log('diagram consistency test passed');
+
+assert.equal(
+  needsTangentChordRepair({
+    conceptTitle: '切线-弦定理',
+    conceptDesc: '如图，AB是⊙O的切线，切点为A，AC是⊙O的一条弦，点D在劣弧AC上，已知∠BAC = 35°，求∠ADC的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_tangent","radius":5,"op_dist":13,"label_O":"O","label_P":"P","label_A":"A","label_B":"B"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsTangentChordRepair({
+    conceptTitle: '切线-弦定理',
+    conceptDesc: '如图，AB是⊙O的切线，切点为A，AC是⊙O的一条弦，点D在劣弧AC上，已知∠BAC = 35°，求∠ADC的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_chord_tangent","radius":5,"angle":35,"arc_type":"minor","label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"C","label_C":"D","label_angle":"35°"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+console.log('tangent-chord consistency test passed');
