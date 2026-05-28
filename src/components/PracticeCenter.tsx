@@ -121,7 +121,8 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
         promptContext,
         activeConcept.description[lang],
         grade, difficulty, count, lang,
-        curriculum
+        curriculum,
+        activeConcept.id
       );
       setExercises(result);
     } catch (err: any) {

@@ -1,76 +1,88 @@
-import assert from 'node:assert/strict';
-import { classifyDiagramNeed, explainDiagramPolicy, promoteStandaloneDiagramJsonBlocks, shouldRequireDiagramBlock, stripDiagramArtifacts } from '../src/utils/diagramPolicy.js';
+﻿import assert from 'node:assert/strict';
+import {
+  classifyDiagramNeed,
+  explainDiagramPolicy,
+  promoteStandaloneDiagramJsonBlocks,
+  shouldRequireDiagramBlock,
+  stripDiagramArtifacts,
+} from '../src/utils/diagramPolicy.js';
 
 assert.equal(
   classifyDiagramNeed({
-    conceptTitle: '判断正误',
-    conceptDesc: '判断下列说法的正误。',
-    prompt: '请判断下列每个说法的正误。',
+    conceptId: 'factorisation',
+    conceptTitle: 'Factorisation',
+    conceptDesc: 'Common factor and difference of squares.',
+    prompt: '如图所示，分解因式。',
   }),
   'must_not_draw'
 );
 
 assert.equal(
   classifyDiagramNeed({
-    conceptTitle: '扇形面积判断',
-    conceptDesc: '已知两个扇形，判断它们的面积是否相同。',
-    prompt: '请判断两个扇形的面积是否相同。',
+    conceptId: 'circles',
+    conceptTitle: 'Circles',
+    conceptDesc: 'Circle theorems and tangents.',
+    prompt: '如图所示，点A、B、C在同一圆上，求角。',
   }),
-  'prefer_draw'
+  'must_draw'
 );
 
 assert.equal(
   classifyDiagramNeed({
-    conceptTitle: '正方形面积',
-    conceptDesc: '已知正方形边长为5厘米，求面积。',
-    prompt: '已知正方形边长5cm，求它的面积。',
+    conceptId: 'coordinate-geometry',
+    conceptTitle: 'Coordinate Geometry',
+    conceptDesc: 'Distance, midpoint, equations of lines.',
+    prompt: '点A(2, 3)和点B(-1, 4)在坐标系中，求线段AB的长度。',
   }),
-  'prefer_draw'
+  'must_draw'
 );
 
 assert.equal(
   classifyDiagramNeed({
-    conceptTitle: '坐标系中的点',
-    conceptDesc: '在平面直角坐标系中标出点A(2, 3)和点B(-1, 4)，并求线段AB的长度。',
-    prompt: '在平面直角坐标系中，求线段AB的长度。',
+    conceptId: 'geometry',
+    conceptTitle: 'Geometry',
+    conceptDesc: 'Circle, angle and line relationships.',
+    prompt: '已知优弧AB上有点C，求角。',
   }),
   'must_draw'
 );
 
 const summary = explainDiagramPolicy({
-  conceptTitle: '三角形和平行线',
-  conceptDesc: '已知三角形ABC中，DE平行于BC，判断角度关系。',
-  prompt: '判断下列说法是否正确。',
+  conceptId: 'circles',
+  conceptTitle: 'Circles',
+  conceptDesc: 'Circle theorems and tangents.',
+  prompt: '如图所示，圆中有角。',
 });
 
-assert.ok(['must_draw', 'prefer_draw', 'maybe_draw', 'must_not_draw'].includes(summary.policy));
+assert.ok(['must_draw', 'must_not_draw'].includes(summary.policy));
 assert.ok(typeof summary.reason === 'string' && summary.reason.length > 0);
 
 const promoted = promoteStandaloneDiagramJsonBlocks([
-  '1. ๅคๆ–ญ้ข',
+  '1. 第一题',
   '{"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"]}',
-  '2. ๅฆไธ€้ข',
+  '2. 第二题',
 ].join('\n'));
 
 assert.match(promoted, /```math-diagram/);
 assert.match(promoted, /"template":"circle_cyclic_quadrilateral"/);
 
 const stripped = stripDiagramArtifacts([
-  '1. 判断题',
+  '1. 题目一',
   '```math-diagram',
   '{"template":"coordinate_points","points":[{"x":0,"y":0,"label":"A"}]}',
   '```',
   '',
-  '2. 另一题',
+  '2. 题目二',
 ].join('\n'));
 
-assert.equal(stripped, '1. 判断题\n\n2. 另一题');
+assert.equal(stripped, '1. 题目一\n\n2. 题目二');
 
 assert.equal(
   shouldRequireDiagramBlock({
+    conceptId: 'circles',
     conceptTitle: 'circle chord length',
-    conceptDesc: '已知圆O半径为13 cm，AB到圆心O的距离为5 cm，求弦AB长度。',
-    prompt: '已知圆O半径为13 cm，AB到圆心O的距离为5 cm，求弦AB长度。',
+    conceptDesc: '圆O的半径为13 cm，AB到圆心O的距离为5 cm，求弦AB的长度。',
+    prompt: '求弦AB的长度。',
   }),
   true
 );
