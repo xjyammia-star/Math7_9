@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTargetAngleLeakRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
+import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTargetAngleLeakRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
 
 assert.equal(
   needsCircleDiameterRepair({
@@ -402,6 +402,14 @@ assert.equal(
 );
 
 console.log('circle sector coverage test passed');
+
+assert.equal(
+  needsPointLabelRepair({
+    generatedText: '```math-diagram\n{"template":"circle_sector","radius":50,"angle":120,"label_O":"O","label_A":"起点","label_B":"终点","label_angle":"120°"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
 
 assert.equal(
   needsCircleSectorRepair({

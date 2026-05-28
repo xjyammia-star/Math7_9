@@ -10,6 +10,25 @@ function hasMathDiagramBlock(text) {
   return /```math-diagram[\s\S]*?```/i.test(String(text ?? "")) || /"template"\s*:\s*"/i.test(String(text ?? ""));
 }
 
+const GENERIC_POINT_PLACEHOLDERS = new Set([
+  "起点",
+  "终点",
+  "开始",
+  "结束",
+  "start",
+  "end",
+  "point",
+  "point a",
+  "point b",
+  "point c",
+  "point d",
+]);
+
+function isGenericPointPlaceholder(value) {
+  const normalized = normalizeText(String(value ?? "")).toLowerCase();
+  return GENERIC_POINT_PLACEHOLDERS.has(normalized);
+}
+
 function hasCircleDiameterTemplate(text) {
   return /"template"\s*:\s*"circle_diameter_points"/i.test(String(text ?? ""));
 }
@@ -298,6 +317,33 @@ function hasMaskedExplicitAngleStatement(text, source, templateName) {
   return false;
 }
 
+function hasGenericPointLabelLeak(text) {
+  const generated = String(text ?? "");
+  const data = extractDiagramBlockJson(generated);
+  if (!data || typeof data !== "object") return false;
+
+  const visit = (node) => {
+    if (!node || typeof node !== "object") return false;
+    for (const [key, value] of Object.entries(node)) {
+      if (/^label_/i.test(String(key)) || String(key).toLowerCase() === "labels") {
+        if (typeof value === "string" && isGenericPointPlaceholder(value)) return true;
+        if (Array.isArray(value) && value.some((item) => typeof item === "string" && isGenericPointPlaceholder(item))) return true;
+      }
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        if (visit(value)) return true;
+      }
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          if (item && typeof item === "object" && visit(item)) return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  return visit(data);
+}
+
 function hasNumericAngleValue(text, key) {
   const source = String(text ?? "");
   const patterns = [
@@ -418,6 +464,12 @@ export function needsCircleSectorRepair({ conceptTitle = "", conceptDesc = "", g
   const hasSectorCount = /"sector_count"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered);
 
   return !(hasRadius && (hasAngle || hasMinutes || hasSectorCount));
+}
+
+export function needsPointLabelRepair({ generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
+  if (diagramPolicy === "must_not_draw") return false;
+  if (!hasMathDiagramBlock(generatedText)) return false;
+  return hasGenericPointLabelLeak(generatedText);
 }
 
 export function needsCircleIntersectingChordsRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
