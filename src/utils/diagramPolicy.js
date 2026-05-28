@@ -189,3 +189,14 @@ export function explainDiagramPolicy(input = {}) {
 
   return { policy, reason, signals };
 }
+
+export function shouldRequireDiagramBlock(input = {}) {
+  const text = normalizeText([input.conceptTitle, input.conceptDesc, input.prompt, input.requirement].filter(Boolean).join(" "));
+  const policy = classifyDiagramNeed(input);
+  if (policy === "must_not_draw") return false;
+  if (policy === "must_draw") return true;
+  if (policy === "prefer_draw") return true;
+
+  const signals = scoreDiagramNeed(text);
+  return signals.geometryLike || signals.coordinateLike || signals.spatialLike;
+}

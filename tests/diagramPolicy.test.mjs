@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { classifyDiagramNeed, explainDiagramPolicy, promoteStandaloneDiagramJsonBlocks, stripDiagramArtifacts } from '../src/utils/diagramPolicy.js';
+import { classifyDiagramNeed, explainDiagramPolicy, promoteStandaloneDiagramJsonBlocks, shouldRequireDiagramBlock, stripDiagramArtifacts } from '../src/utils/diagramPolicy.js';
 
 assert.equal(
   classifyDiagramNeed({
@@ -65,5 +65,14 @@ const stripped = stripDiagramArtifacts([
 ].join('\n'));
 
 assert.equal(stripped, '1. 判断题\n\n2. 另一题');
+
+assert.equal(
+  shouldRequireDiagramBlock({
+    conceptTitle: 'circle chord length',
+    conceptDesc: '已知圆O半径为13 cm，AB到圆心O的距离为5 cm，求弦AB长度。',
+    prompt: '已知圆O半径为13 cm，AB到圆心O的距离为5 cm，求弦AB长度。',
+  }),
+  true
+);
 
 console.log('diagram policy test passed');

@@ -1,6 +1,6 @@
 import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
-import { classifyDiagramNeed, stripDiagramArtifacts } from "../utils/diagramPolicy";
+import { classifyDiagramNeed, shouldRequireDiagramBlock, stripDiagramArtifacts } from "../utils/diagramPolicy";
 import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
 import { sanitizeMath } from "../utils/mathUtils";
 
@@ -133,9 +133,6 @@ const RAW_MATH_LEAK_PATTERNS: RegExp[] = [
   /(?:^|[^A-Za-z])(?:\\)?circ\b/,
 ];
 
-const GEOMETRY_HINT_PATTERN =
-  /(?:如图|as shown|圆|切线|弦|半径|三角形|直角|相似|平行|垂直|梯形|长方形|正方形|坐标|中点|中线|odot|triangle|perp|parallel)/i;
-
 function hasRawMathLeak(text: string): boolean {
   return RAW_MATH_LEAK_PATTERNS.some((pattern) => pattern.test(text));
 }
@@ -150,17 +147,17 @@ function hasUnfencedDiagramJson(text: string): boolean {
 }
 
 function needsDiagramRepair(text: string, conceptTitle: string, conceptDesc: string, diagramPolicy: string): boolean {
-  if (diagramPolicy !== "must_draw") return false;
+  const shouldRequireDiagram = shouldRequireDiagramBlock({
+    conceptTitle,
+    conceptDesc,
+    prompt: text,
+    requirement: "",
+  });
 
-  const source = `${conceptTitle}\n${conceptDesc}\n${text}`;
-  const geometryContext = GEOMETRY_HINT_PATTERN.test(source);
-  const explicitFigureCue =
-    /(?:如图|as shown|点[A-Z]|odot|triangle|perp|parallel|圆|切线|弦|半径)/i.test(text);
-
-  return geometryContext && explicitFigureCue && !hasMathDiagramBlock(text);
+  return shouldRequireDiagram && !hasMathDiagramBlock(text);
 }
 
-function detectOutputIssues(
+export function detectOutputIssues(
   text: string,
   conceptTitle: string,
   conceptDesc: string,
@@ -430,7 +427,7 @@ Rules:
 - Hard rule: if the question asks for an unknown quantity, that quantity must not appear as a numeric label anywhere in the final diagram JSON. Use "?" or omit it, even if the model previously wrote a number.
 - Hard rule: every numeric angle shown in the diagram, in any template, must come from an explicit angle value stated in the problem text. If the problem says ∠QAB = 62°, do not output 42° or any other number for that angle.
 - Never leave diagram JSON outside a fenced math-diagram block. Raw objects like {"template":"..."} in prose are invalid and must be wrapped or removed.
-- If diagram policy is prefer_draw, include a diagram only when it can be drawn cleanly and it clearly helps the question.
+- If diagram policy is prefer_draw, include a diagram for standard geometry, coordinate, circle, triangle, or spatial problems unless the problem is explicitly conceptual. Do not leave a clean, drawable figure out just because the final answer is computational.
 - For intersecting chords inside a circle, use template "circle_intersecting_chords" with ap, pb and exactly the given CD/CP/PD relation.
 - For intersecting chords with AP:PB given as a ratio such as 2:3, solve the actual numeric AP and PB values for the diagram before outputting JSON. Do not leave them as a ratio string; the template needs positive numeric ap and pb.
 - For problems that place exactly three named points A, B, C on the same circle and ask about angles such as ∠AOB, ∠ACB, or their relationship/sum, use template "circle_three_points". Do not use circle_chord for this pattern.
@@ -1231,11 +1228,11 @@ export async function generateExercises(
     `Diagram policy: ${diagramPolicy}\n` +
     (diagramPolicy === "must_not_draw"
       ? `Hard constraint: do not include any diagram, figure, math-diagram block, template JSON, or visual payload.\n`
-      : diagramPolicy === "must_draw"
-        ? `Hard constraint: include exactly one valid math-diagram block whenever a clean standard diagram can be drawn from the given information.\n`
-        : diagramPolicy === "prefer_draw"
-          ? `Preference: include a clean standard diagram whenever it can be drawn reliably from the given information and it will help explain the question.\n`
-          : `Preference: include a diagram only if it is genuinely helpful and can be drawn reliably from the given information.\n`) +
+        : diagramPolicy === "must_draw"
+          ? `Hard constraint: include exactly one valid math-diagram block whenever a clean standard diagram can be drawn from the given information.\n`
+          : diagramPolicy === "prefer_draw"
+            ? `Preference: for standard geometry, coordinate, circle, triangle, or other visual school-math questions, include exactly one clean math-diagram block unless the problem is explicitly conceptual. Do not omit the figure just because the final answer is computational.\n`
+            : `Preference: if a clean diagram would genuinely clarify the problem and the task is geometric, coordinate, or spatial, include one. Otherwise keep the output text-only.\n`) +
     `Hard constraint: output exactly ${count} exercise(s) and nothing extra.\n` +
     `Formatting rule: if any exercise needs a figure, include a matching fenced math-diagram block and keep all math commands properly wrapped in $...$.\n` +
     `Formatting rule: never use Markdown tables or pipe-separated rows in the question text. If a problem lists coordinates, vertices, or known values, rewrite them as clear sentences or bullet points so they remain readable in this renderer.\n` +
@@ -1371,3 +1368,4 @@ export async function chatStep(
 
   return await safeGenerate(messages, false, 600);
 }
+
