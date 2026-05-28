@@ -1934,8 +1934,8 @@ function CircleSector({ data }: { data: any }) {
       <AngleMark v={sO} a={sA} b={sB} label={lAngle} r={34} color={GOLD} />
 
       <Dot p={sO} label={data.label_O ?? 'O'} offset={{ x: 8, y: 12 }} color={WHITE} />
-      <Dot p={sA} label={data.label_A ?? 'A'} offset={{ x: -28, y: -10 }} />
-      <Dot p={sB} label={data.label_B ?? 'B'} offset={{ x: 10, y: -10 }} />
+      <Dot p={sA} label={data.label_A ?? ''} offset={{ x: -28, y: -10 }} />
+      <Dot p={sB} label={data.label_B ?? ''} offset={{ x: 10, y: -10 }} />
       {lRadius && <SegLabel a={sO} b={sA} label={lRadius} color={GREY} />}
       {lArc && (
         <text x={sMid.x} y={sMid.y - 22} fontSize={12} fontWeight="700"
