@@ -365,7 +365,7 @@ Rules:
 - If diagram policy is must_not_draw, do not include any diagram, figure, math-diagram block, template JSON, or visual payload.
 - If diagram policy is must_draw, include exactly one matching fenced block with the math-diagram template and valid JSON when the problem genuinely depends on a figure.
 - Hard rule: if the question asks for an unknown quantity, that quantity must not appear as a numeric label anywhere in the final diagram JSON. Use "?" or omit it, even if the model previously wrote a number.
-- Hard rule: every numeric angle shown in the diagram must come from an explicit angle value stated in the problem text. If the problem says ∠QAB = 62°, do not output 42° or any other number for that angle.
+- Hard rule: every numeric angle shown in the diagram, in any template, must come from an explicit angle value stated in the problem text. If the problem says ∠QAB = 62°, do not output 42° or any other number for that angle.
 - Never leave diagram JSON outside a fenced math-diagram block. Raw objects like {"template":"..."} in prose are invalid and must be wrapped or removed.
 - If diagram policy is prefer_draw, include a diagram only when it can be drawn cleanly and it clearly helps the question.
 - For intersecting chords inside a circle, use template "circle_intersecting_chords" with ap, pb and exactly the given CD/CP/PD relation.
@@ -378,7 +378,7 @@ Rules:
 - For the same tangent-chord pattern, map the chord endpoint labels to the actual chord in the statement. Keep the tangent point at A. Do not relabel the tangent-line helper points as A/B; the visible tangent point must remain A.
 - For two-tangent plus one extra tangent problems, if the statement only gives a tangent length such as PA=12 cm, that is enough to build the figure. Use tangent_length/label_pa and show_arc_tangent:true; do not require angle_apb unless it is explicitly given.
 - If the question asks for a specific unknown value, do not print that unknown as a numeric label in the diagram. Use "?" or omit the label, and only annotate the given conditions.
-- If a diagram uses a numeric angle field or label, make sure the value appears explicitly in the problem statement; never invent a nearby-looking angle such as 42° when the statement says 62°.
+- If a diagram uses any numeric angle field or label in any template, make sure the value appears explicitly in the problem statement; never invent a nearby-looking angle such as 42° when the statement says 62°.
 - If the question asks for a central angle like ∠AOC, show both rays explicitly. Use show_oc:true on templates that can expose OC directly (such as circle_diameter_points, circle_tangent, or circle_chord_tangent), use show_center_rays:true on circle_cyclic_quadrilateral, and keep circle_chord perpendicular helper lines visible when the central ray is needed. Do not leave the angle floating without its rays.
 - In any geometry diagram, if you label an angle such as ∠ABD, make sure the two rays/segments that define that angle are actually drawn in the figure.
 - Do not add new topics or remove required information.

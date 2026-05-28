@@ -194,8 +194,8 @@ function extractExplicitAngleNumbers(text) {
   const values = new Set();
 
   const anglePatterns = [
-    /(?:∠|angle)\s*[A-Z]{3}\s*(?:=|:|is|为|是)\s*(-?\d+(?:\.\d+)?)\s*(?:°|º|度)?/gi,
-    /(?:∠|angle)\s*[A-Z]{3}[^\n。！？；;，,]{0,18}?(-?\d+(?:\.\d+)?)\s*(?:°|º|度)/gi,
+    /(?:∠|angle)\s*[A-Z]{1,4}\s*(?:=|:|is|为|是)\s*(-?\d+(?:\.\d+)?)\s*(?:°|º|度)?/gi,
+    /(?:∠|angle)[^\n。！？；;，,]{0,24}?(-?\d+(?:\.\d+)?)\s*(?:°|º|度)/gi,
   ];
 
   for (const pattern of anglePatterns) {
@@ -219,25 +219,29 @@ function hasAngleFieldValueMismatch(text, source) {
     const data = extractDiagramBlockJson(generated);
     if (!data || typeof data !== "object") return false;
 
-    const angleFieldPatterns = [
-      /^angle(?:_[a-z0-9]+)?$/i,
-      /^label_angle(?:_[a-z0-9]+)?$/i,
-    ];
-
-    const fields = Object.entries(data).filter(([key, value]) =>
-      angleFieldPatterns.some((pattern) => pattern.test(key)) &&
-      value !== undefined &&
-      value !== null &&
-      value !== "?"
-    );
-
-    for (const [, value] of fields) {
-      const numeric = Number(String(value).replace(/[^-\d.]/g, ""));
-      if (!Number.isFinite(numeric)) continue;
-      if (!sourceAngles.has(String(numeric))) {
-        return true;
+    const visit = (node) => {
+      if (!node || typeof node !== "object") return false;
+      for (const [key, value] of Object.entries(node)) {
+        if (/angle/i.test(String(key))) {
+          if (value === undefined || value === null || value === "?") continue;
+          const numeric = Number(String(value).replace(/[^-\d.]/g, ""));
+          if (Number.isFinite(numeric) && !sourceAngles.has(String(numeric))) {
+            return true;
+          }
+        }
+        if (value && typeof value === "object" && !Array.isArray(value)) {
+          if (visit(value)) return true;
+        }
+        if (Array.isArray(value)) {
+          for (const item of value) {
+            if (item && typeof item === "object" && visit(item)) return true;
+          }
+        }
       }
-    }
+      return false;
+    };
+
+    if (visit(data)) return true;
   } catch {
     return false;
   }

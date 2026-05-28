@@ -243,6 +243,28 @@ assert.equal(
 console.log('angle value source match test passed');
 
 assert.equal(
+  needsAngleValueSourceMismatchRepair({
+    conceptTitle: 'parallelogram angle mismatch',
+    conceptDesc: '如图，平行四边形ABCD中，已知∠A = 60°，求∠B的度数。',
+    generatedText: '```math-diagram\n{"template":"parallelogram","base":8,"side":5,"angle":42,"label_base":"8","label_side":"5","label_height":"h"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsAngleValueSourceMismatchRepair({
+    conceptTitle: 'parallelogram angle match',
+    conceptDesc: '如图，平行四边形ABCD中，已知∠A = 60°，求∠B的度数。',
+    generatedText: '```math-diagram\n{"template":"parallelogram","base":8,"side":5,"angle":60,"label_base":"8","label_side":"5","label_height":"h"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+console.log('generic angle value source match test passed');
+
+assert.equal(
   needsCentralAngleRayRepair({
     conceptTitle: '圆心角',
     conceptDesc: '如图，AB是⊙O的直径，点C和点D都在⊙O上，且两点都在AB的同侧。已知∠ABD = 28°，∠BCD = 34°，求圆心角∠AOC的度数。',
