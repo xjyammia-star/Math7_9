@@ -1863,6 +1863,7 @@ function CircleDiameterPoints({ data }: { data: any }) {
       {data.label_ab && <SegLabel a={sA} b={sB} label={String(data.label_ab)} color={GOLD} />}
       {data.label_angle_bcd && <AngleMark v={sC} a={sB} b={sD} label={String(data.label_angle_bcd)} r={20} color={GOLD} />}
       {data.label_angle_abd && <AngleMark v={sB} a={sA} b={sD} label={String(data.label_angle_abd)} r={20} color={GOLD} />}
+      {data.label_angle_cad && <AngleMark v={sA} a={sC} b={sD} label={String(data.label_angle_cad)} r={24} color={GOLD} />}
       {data.label_angle_aoc && <AngleMark v={sO} a={sA} b={sC} label={String(data.label_angle_aoc)} r={24} color={GOLD} />}
       {data.label_oc !== undefined && <SegLabel a={sO} b={sC} label={String(data.label_oc)} color={GREY} />}
     </g>

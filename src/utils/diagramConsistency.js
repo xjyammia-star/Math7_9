@@ -227,6 +227,15 @@ function hasNumericAngleLeakForAngle(text, angle) {
   return hasAnyNumericLabel(text, keys);
 }
 
+function hasAngleLabelForAngle(text, angle) {
+  const source = String(text ?? "");
+  for (const alias of getAngleAliases(angle)) {
+    const key = escapeRegExp(alias);
+    if (new RegExp(`"(?:label_)?angle_${key}"\\s*:`, 'i').test(source)) return true;
+  }
+  return false;
+}
+
 function replaceNumericFieldWithQuestion(text, key) {
   const source = String(text ?? "");
   const escapedKey = escapeRegExp(key);
@@ -273,8 +282,14 @@ export function needsCircleDiameterRepair({ conceptTitle = "", conceptDesc = "",
   const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
   if (!hasDiameterCue(source) || !hasAngleCueNeedingBD(source)) return false;
   if (!hasMathDiagramBlock(generatedText)) return false;
+  if (!hasCircleDiameterTemplate(generatedText)) return true;
 
-  return !hasCircleDiameterTemplate(generatedText);
+  const askedAngles = extractAskedTargets(source).angles;
+  for (const angle of askedAngles) {
+    if (!hasAngleLabelForAngle(generatedText, angle)) return true;
+  }
+
+  return false;
 }
 
 export function needsCircleSectorRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {

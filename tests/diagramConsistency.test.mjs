@@ -379,3 +379,23 @@ assert.equal(
 );
 
 console.log('circle three-points coverage test passed');
+
+assert.equal(
+  needsCircleDiameterRepair({
+    conceptTitle: 'diameter problem',
+    conceptDesc: '如图，AB是⊙O的直径，C、D都在⊙O上，且两点都在AB的同侧。已知∠ABD = 32°，∠BCD = 21°，求∠CAD的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_diameter_points","radius":5,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_angle_abd":"32°","label_angle_bcd":"21°"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsCircleDiameterRepair({
+    conceptTitle: 'diameter problem',
+    conceptDesc: '如图，AB是⊙O的直径，C、D都在⊙O上，且两点都在AB的同侧。已知∠ABD = 32°，∠BCD = 21°，求∠CAD的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_diameter_points","radius":5,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_angle_abd":"32°","label_angle_bcd":"21°","label_angle_cad":"?"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
