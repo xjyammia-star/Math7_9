@@ -3,6 +3,7 @@ import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 import { classifyDiagramNeed, shouldRequireDiagramBlock, stripDiagramArtifacts } from "../utils/diagramPolicy";
 import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
 import { sanitizeMath } from "../utils/mathUtils";
+import { buildChatCompletionBody } from "../utils/modelRequest";
 
 export type AiModelId = "glm47" | "doubao";
 
@@ -54,16 +55,7 @@ async function safeGenerate(
     if (!modelConfig.apiKey) {
       throw new Error(`${modelConfig.label} API key is missing`);
     }
-    const body: Record<string, any> = {
-      model: modelConfig.model,
-      messages,
-      max_tokens: maxTokens,
-      temperature,
-      top_p: 0.95,
-    };
-    if (jsonMode) {
-      body.response_format = { type: "json_object" };
-    }
+    const body = buildChatCompletionBody(modelConfig, messages, jsonMode, maxTokens, temperature, modelId);
 
     const res = await fetch(`${modelConfig.baseUrl}/chat/completions`, {
       method: "POST",
