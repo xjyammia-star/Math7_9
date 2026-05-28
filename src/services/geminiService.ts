@@ -1,7 +1,7 @@
 import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 import { classifyDiagramNeed, stripDiagramArtifacts } from "../utils/diagramPolicy";
-import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
+import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
 import { sanitizeMath } from "../utils/mathUtils";
 
 const ARK_BASE_URL =
@@ -133,6 +133,9 @@ function detectOutputIssues(
   }
   if (needsCircleThreePointsRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("circle_three_points_template_mismatch");
+  }
+  if (needsCircleCyclicQuadrilateralRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
+    issues.push("circle_cyclic_quadrilateral_template_mismatch");
   }
   if (hasUnfencedDiagramJson(text)) {
     issues.push("diagram_json_unfenced");
@@ -372,6 +375,7 @@ Rules:
 - For intersecting chords with AP:PB given as a ratio such as 2:3, solve the actual numeric AP and PB values for the diagram before outputting JSON. Do not leave them as a ratio string; the template needs positive numeric ap and pb.
 - For problems that place exactly three named points A, B, C on the same circle and ask about angles such as ∠AOB, ∠ACB, or their relationship/sum, use template "circle_three_points". Do not use circle_chord for this pattern.
 - For circle-sector / wheel / clock-sweep problems, use template "circle_sector" and provide the OUTER radius plus one of: angle, minutes, or sector_count. Do not leave the template without the numerical parameters it needs. If the wording mentions a fan or annular-sector style inner edge, still keep the outer radius as the required radius field.
+- For cyclic quadrilateral problems that mention C on the minor arc AB and D on the major arc AB, use template "circle_cyclic_quadrilateral" with explicit c_arc_type and d_arc_type fields, keep labels A/B/C/D visible, and use label_angle_aob for the requested central angle AOB when needed. Do not leave D off the circle or swap the arc sides.
 - For diameter problems that ask for angles like ∠ABD, ∠BCD, or ∠CAD, use template "circle_diameter_points" so the diameter endpoints and the relevant chord/angle relationships are drawn explicitly. Do not replace BD with AC or any other diagonal, and place the unknown angle label on the actual vertex it is asked at.
 - For tangent-chord theorem problems with a tangent at A and a chord from A to B, such as ∠PAB or ∠ADB, use template "circle_chord_tangent" instead of "circle_tangent". If the problem names one named arc point D only, keep that point visible with label_D and the matching arc-point flag. If the problem names both C and D on the circle (for example C on the minor arc AB and D on the major arc AB), use template "circle_tangent_chord_dual_points" so both points are visible.
 - For tangent-chord problems, never guess the arc side. If the statement says C is on the minor arc AB and D is on the major arc AB, set arc_type:"minor" and d_arc_type:"major" exactly. If the statement reverses them, reverse the fields. Do not swap minor and major arc points.
@@ -740,7 +744,7 @@ STRICT PRINCIPLES:
 
    If the question asks for a central angle such as ∠AOC, add "show_oc":true and use "label_angle_aoc":"?" (or omit the label) so the OC ray is visible without giving away the answer.
 
-   For cyclic quadrilateral figures that need a central-angle helper, use "show_center_rays":true and the same "label_angle_aoc":"?" pattern so the center rays are explicitly drawn.
+   For cyclic quadrilateral figures that need a central-angle helper, use "show_center_rays":true and label_angle_aob:"?" for ∠AOB, or label_angle_aoc:"?" for ∠AOC, so the center rays are explicitly drawn.
 
    DIAGRAM LABEL RULE: ALL "label" values must be plain Unicode text only.
    NO LaTeX, NO dollar signs, NO backslashes inside labels.

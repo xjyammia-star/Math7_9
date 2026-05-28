@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTargetAngleLeakRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
+import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTargetAngleLeakRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
 
 assert.equal(
   needsCircleDiameterRepair({
@@ -242,6 +242,17 @@ assert.equal(
 
 console.log('angle value source match test passed');
 
+const maskedCyclicKnownAngle = maskQuestionAnswerLeaks({
+  conceptTitle: 'cyclic quadrilateral',
+  conceptDesc: '如图，点A、B、C、D都在⊙O上，其中C在劣弧AB上，D在优弧AB上。若∠ACB = 105°，求圆心角∠AOB的度数。',
+  generatedText: '```math-diagram\n{"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"c_arc_type":"minor","d_arc_type":"major","label_A":"A","label_B":"B","label_C":"105°","label_D":"D","label_angle_aob":"?" ,"show_center_rays":true}\n```',
+  diagramPolicy: 'must_draw',
+});
+assert.equal(maskedCyclicKnownAngle.includes('"label_C":"105°"'), true);
+assert.equal(maskedCyclicKnownAngle.includes('"label_angle_aob":"?"'), true);
+
+console.log('cyclic quadrilateral known-angle masking test passed');
+
 assert.equal(
   needsAngleValueSourceMismatchRepair({
     conceptTitle: 'parallelogram angle mismatch',
@@ -347,6 +358,28 @@ assert.equal(
 );
 
 console.log('central-angle template coverage test passed');
+
+assert.equal(
+  needsCircleCyclicQuadrilateralRepair({
+    conceptTitle: 'cyclic quadrilateral',
+    conceptDesc: '如图，点A、B、C、D都在⊙O上，其中C在劣弧AB上，D在优弧AB上。若∠ACB = 105°，求圆心角∠AOB的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"label_A":"A","label_B":"B","label_C":"?","label_D":"D","label_angle_aoc":"?","show_center_rays":true}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsCircleCyclicQuadrilateralRepair({
+    conceptTitle: 'cyclic quadrilateral',
+    conceptDesc: '如图，点A、B、C、D都在⊙O上，其中C在劣弧AB上，D在优弧AB上。若∠ACB = 105°，求圆心角∠AOB的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"c_arc_type":"minor","d_arc_type":"major","label_A":"A","label_B":"B","label_C":"105°","label_D":"D","label_angle_aob":"?" ,"show_center_rays":true}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+console.log('circle cyclic quadrilateral coverage test passed');
 
 assert.equal(
   needsCircleSectorRepair({

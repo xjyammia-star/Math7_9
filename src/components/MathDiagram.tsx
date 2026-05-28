@@ -1713,8 +1713,19 @@ function CircleTangentChordDualPoints({ data }: { data: any }) {
 function CircleCyclicQuadrilateral({ data }: { data: any }) {
   const r: number = data.radius ?? 5;
   const labels: string[] = data.labels ?? ['A', 'B', 'C', 'D'];
-  const angleDegs: number[] = data.angles ?? [112, 58, -42, -148];
-  const showCenterRays: boolean = data.show_center_rays === true || data.show_radii === true || data.label_angle_aoc !== undefined || data.label_oc !== undefined;
+  const hasExplicitAngles = Array.isArray(data.angles) || Array.isArray(data.point_angles);
+  const cArcType = String(data.c_arc_type ?? data.cArcType ?? '').toLowerCase();
+  const dArcType = String(data.d_arc_type ?? data.arc_type_d ?? data.arc2_type ?? '').toLowerCase();
+  const angleDegs: number[] = hasExplicitAngles
+    ? (data.angles ?? data.point_angles)
+    : [
+        126,
+        24,
+        cArcType.includes('major') ? 248 : 72,
+        dArcType.includes('minor') ? 108 : 286,
+      ];
+  const showCenterRays: boolean = data.show_center_rays === true || data.show_radii === true ||
+    data.label_angle_aob !== undefined || data.label_angle_aoc !== undefined || data.label_oc !== undefined;
 
   const O: Pt = { x: 0, y: 0 };
   const pts = angleDegs.slice(0, 4).map((deg) => {
@@ -1761,7 +1772,8 @@ function CircleCyclicQuadrilateral({ data }: { data: any }) {
           )}
         </g>
       ))}
-      {data.label_angle_aoc && <AngleMark v={sO} a={sPts[0]} b={sPts[2]} label={String(data.label_angle_aoc)} r={24} color={GOLD} />}
+      {data.label_angle_aob && <AngleMark v={sO} a={sPts[0]} b={sPts[1]} label={String(data.label_angle_aob)} r={24} color={GOLD} />}
+      {!data.label_angle_aob && data.label_angle_aoc && <AngleMark v={sO} a={sPts[0]} b={sPts[2]} label={String(data.label_angle_aoc)} r={24} color={GOLD} />}
       {showCenterRays && data.label_oc !== undefined && <SegLabel a={sO} b={sPts[2]} label={String(data.label_oc)} color={GREY} />}
     </g>
   );

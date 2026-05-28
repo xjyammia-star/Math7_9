@@ -210,6 +210,27 @@ function extractExplicitAngleNumbers(text) {
   return [...values];
 }
 
+function extractExplicitAngleStatements(text) {
+  const source = String(text ?? "");
+  const statements = [];
+  const patterns = [
+    /(?:∠|angle)\s*([A-Z]{1,4})\s*(?:=|:|is|为|是)\s*(-?\d+(?:\.\d+)?)\s*(?:°|º|度)?/gi,
+    /(?:∠|angle)\s*([A-Z]{1,4})[^\n。！？；;，,]{0,24}?(-?\d+(?:\.\d+)?)\s*(?:°|º|度)/gi,
+  ];
+
+  for (const pattern of patterns) {
+    for (const match of source.matchAll(pattern)) {
+      const name = String(match[1] ?? "").toUpperCase();
+      const value = Number(match[2]);
+      if (name && Number.isFinite(value)) {
+        statements.push({ name, value });
+      }
+    }
+  }
+
+  return statements;
+}
+
 function hasAngleFieldValueMismatch(text, source) {
   const generated = String(text ?? "");
   const sourceAngles = new Set(extractExplicitAngleNumbers(source));
@@ -244,6 +265,34 @@ function hasAngleFieldValueMismatch(text, source) {
     if (visit(data)) return true;
   } catch {
     return false;
+  }
+
+  return false;
+}
+
+function hasMaskedExplicitAngleStatement(text, source, templateName) {
+  const generated = String(text ?? "");
+  const statements = extractExplicitAngleStatements(source);
+  if (statements.length === 0) return false;
+
+  const data = extractDiagramBlockJson(generated);
+  if (!data || typeof data !== "object") return false;
+
+  const template = String(templateName ?? data.template ?? "").trim();
+  if (template !== "circle_cyclic_quadrilateral") return false;
+
+  const labelForVertex = (vertex) => {
+    const key = `label_${vertex}`;
+    return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : undefined;
+  };
+
+  for (const stmt of statements) {
+    const vertex = stmt.name.length >= 2 ? stmt.name[1] : "";
+    if (!vertex) continue;
+    const value = labelForVertex(vertex);
+    if (value === undefined || value === null || value === "?" || !String(value).match(/\d/)) {
+      return true;
+    }
   }
 
   return false;
@@ -479,6 +528,38 @@ export function needsAngleValueSourceMismatchRepair({ conceptTitle = "", concept
   return hasAngleFieldValueMismatch(generatedText, source);
 }
 
+export function needsCircleCyclicQuadrilateralRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
+  if (diagramPolicy === "must_not_draw") return false;
+
+  const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
+  if (!/cyclic quadrilateral|inscribed in a circle|内接于⊙O|圆内接四边形|ABCD.*⊙O|A、B、C、D.*⊙O|A,B,C,D.*⊙O/i.test(source)) {
+    return false;
+  }
+  if (!hasMathDiagramBlock(generatedText)) return false;
+
+  const data = extractDiagramBlockJson(generatedText);
+  if (!data || String(data.template ?? "").trim() !== "circle_cyclic_quadrilateral") return true;
+
+  const labels = Array.isArray(data.labels) ? data.labels : [];
+  if (labels.length < 4 && !(data.label_A && data.label_B && data.label_C && data.label_D)) return true;
+
+  const cArcCue = /C.*(?:劣弧|minor arc|minor)/i.test(source);
+  const dArcCue = /D.*(?:优弧|major arc|major)/i.test(source);
+  if (cArcCue) {
+    const cArc = String(data.c_arc_type ?? data.cArcType ?? "").toLowerCase();
+    if (!cArc) return true;
+  }
+  if (dArcCue) {
+    const dArc = String(data.d_arc_type ?? data.arc_type_d ?? data.arc2_type ?? "").toLowerCase();
+    if (!dArc) return true;
+  }
+
+  if (/(?:∠|angle)\s*AOB/i.test(source) && data.label_angle_aob === undefined) return true;
+  if (hasMaskedExplicitAngleStatement(generatedText, source, "circle_cyclic_quadrilateral")) return true;
+
+  return false;
+}
+
 export function maskQuestionAnswerLeaks({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
   if (diagramPolicy === "must_not_draw") return String(generatedText ?? "");
 
@@ -630,7 +711,7 @@ export function needsCentralAngleRayRepair({ conceptTitle = "", conceptDesc = ""
     }
 
     if (template === "circle_cyclic_quadrilateral") {
-      if (!(hasShowOC || /"label_angle_aoc"\s*:\s*/i.test(sourceText))) {
+      if (!(hasShowOC || /"label_angle_aob"\s*:\s*/i.test(sourceText) || /"label_angle_aoc"\s*:\s*/i.test(sourceText))) {
         return true;
       }
       continue;
