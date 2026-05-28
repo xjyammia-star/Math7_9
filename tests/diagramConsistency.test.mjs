@@ -379,6 +379,26 @@ assert.equal(
   false
 );
 
+assert.equal(
+  needsCircleCyclicQuadrilateralRepair({
+    conceptTitle: 'cyclic quadrilateral extension',
+    conceptDesc: '如图，四边形ABCD内接于⊙O。延长边CD到点E，连接AE。已知∠ADE = 100°，且∠ABC = 2x + 10°，∠BAD = 3x°。求x的值以及∠BCD的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"label_O":"O","label_A":"3x°","label_B":"2x+10°","label_C":"105°","label_D":"D","label_angle_ade":"100°","label_angle_bcd":"?"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsCircleCyclicQuadrilateralRepair({
+    conceptTitle: 'cyclic quadrilateral extension',
+    conceptDesc: '如图，四边形ABCD内接于⊙O。延长边CD到点E，连接AE。已知∠ADE = 100°，且∠ABC = 2x + 10°，∠BAD = 3x°。求x的值以及∠BCD的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"label_O":"O","label_E":"E","label_A":"3x°","label_B":"2x+10°","label_C":"105°","label_D":"D","label_angle_ade":"100°","label_angle_bcd":"?"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
 console.log('circle cyclic quadrilateral coverage test passed');
 
 assert.equal(

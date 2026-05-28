@@ -1721,6 +1721,7 @@ function CircleCyclicQuadrilateral({ data }: { data: any }) {
   const hasExplicitAngles = Array.isArray(data.angles) || Array.isArray(data.point_angles);
   const cArcType = String(data.c_arc_type ?? data.cArcType ?? '').toLowerCase();
   const dArcType = String(data.d_arc_type ?? data.arc_type_d ?? data.arc2_type ?? '').toLowerCase();
+  const showExtensionToE: boolean = data.label_E !== undefined;
   const angleDegs: number[] = hasExplicitAngles
     ? (data.angles ?? data.point_angles)
     : [
@@ -1743,6 +1744,14 @@ function CircleCyclicQuadrilateral({ data }: { data: any }) {
   const sO = sc(O);
   const sPts = pts.map(sc);
   const pixelR = Math.abs(sc({ x: r, y: 0 }).x - sO.x);
+  const [sA, sB, sC, sD] = sPts;
+  const ePoint = showExtensionToE
+    ? {
+        x: D.x + (D.x - C.x) * 0.92,
+        y: D.y + (D.y - C.y) * 0.92,
+      }
+    : null;
+  const sE = ePoint ? sc(ePoint) : null;
 
   const labelFor = (i: number) => labels[i] ?? ['A', 'B', 'C', 'D'][i];
   const angleLabels = [
@@ -1777,8 +1786,23 @@ function CircleCyclicQuadrilateral({ data }: { data: any }) {
           )}
         </g>
       ))}
+      {showExtensionToE && sE && (
+        <>
+          <Seg a={sD} b={sE} stroke={GREY} sw={1.5} dash="4,3" />
+          <Seg a={sA} b={sE} stroke={GOLD} sw={2.2} />
+          <Dot
+            p={sE}
+            label={String(data.label_E)}
+            offset={{
+              x: Math.sign(sE.x - sD.x || 1) * 10,
+              y: Math.sign(sE.y - sD.y || -1) * 10,
+            }}
+          />
+        </>
+      )}
       {data.label_angle_aob && <AngleMark v={sO} a={sPts[0]} b={sPts[1]} label={String(data.label_angle_aob)} r={24} color={GOLD} />}
       {!data.label_angle_aob && data.label_angle_aoc && <AngleMark v={sO} a={sPts[0]} b={sPts[2]} label={String(data.label_angle_aoc)} r={24} color={GOLD} />}
+      {showExtensionToE && data.label_angle_ade && sE && <AngleMark v={sD} a={sA} b={sE} label={String(data.label_angle_ade)} r={24} color={GOLD} />}
       {showCenterRays && data.label_oc !== undefined && <SegLabel a={sO} b={sPts[2]} label={String(data.label_oc)} color={GREY} />}
     </g>
   );

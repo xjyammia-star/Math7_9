@@ -75,6 +75,11 @@ function hasDualTangentChordArcPointsCue(text) {
   return /(?:C\s*在[^。\n]{0,18}(?:劣弧|minor arc)[^。\n]{0,18}AB|D\s*在[^。\n]{0,18}(?:优弧|major arc)[^。\n]{0,18}AB|C\s*在[^。\n]{0,18}(?:优弧|major arc)[^。\n]{0,18}AB|D\s*在[^。\n]{0,18}(?:劣弧|minor arc)[^。\n]{0,18}AB)/i.test(source);
 }
 
+function hasCyclicQuadrilateralExtensionCue(text) {
+  const source = String(text ?? "");
+  return /(?:延长(?:边)?\s*CD\s*到点?\s*E|将\s*CD\s*延长到点?\s*E|连接\s*AE|connect\s*AE|(?:∠|angle)\s*ADE)/i.test(source);
+}
+
 function inferNamedArcType(text, point) {
   const source = String(text ?? "");
   const p = escapeRegExp(String(point ?? "").trim());
@@ -306,6 +311,15 @@ function hasMaskedExplicitAngleStatement(text, source, templateName) {
   };
 
   for (const stmt of statements) {
+    const explicitAngleKey = `label_angle_${stmt.name.toLowerCase()}`;
+    if (Object.prototype.hasOwnProperty.call(data, explicitAngleKey)) {
+      const explicitAngleValue = data[explicitAngleKey];
+      if (explicitAngleValue === undefined || explicitAngleValue === null || explicitAngleValue === "?" || !String(explicitAngleValue).match(/\d/)) {
+        return true;
+      }
+      continue;
+    }
+
     const vertex = stmt.name.length >= 2 ? stmt.name[1] : "";
     if (!vertex) continue;
     const value = labelForVertex(vertex);
@@ -607,6 +621,13 @@ export function needsCircleCyclicQuadrilateralRepair({ conceptTitle = "", concep
   }
 
   if (/(?:∠|angle)\s*AOB/i.test(source) && data.label_angle_aob === undefined) return true;
+  const extensionCue = hasCyclicQuadrilateralExtensionCue(source);
+  if (data.label_E !== undefined && !extensionCue) return true;
+  if (extensionCue) {
+    const labelE = String(data.label_E ?? "").trim();
+    if (!labelE) return true;
+    if (/(?:∠|angle)\s*ADE/i.test(source) && data.label_angle_ade === undefined) return true;
+  }
   if (hasMaskedExplicitAngleStatement(generatedText, source, "circle_cyclic_quadrilateral")) return true;
 
   return false;

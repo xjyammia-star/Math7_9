@@ -625,6 +625,7 @@ STRICT PRINCIPLES:
      * A circular cake/pizza divided into equal slices/sectors → use circle_sector with radius and sector_count. Do NOT omit sector_count, and do NOT use coordinate_points.
      * Tangent-chord theorem with one named point on the arc (such as D on the minor arc AB or C on the minor arc AC) → use circle_chord_tangent with arc_type:"minor". If the named arc point lies on the major arc / 优弧, use arc_type:"major". If the problem explicitly names both C and D on the circle, use circle_tangent_chord_dual_points so both arc points are drawn.
      * Cyclic quadrilateral / quadrilateral inscribed in a circle (圆内接四边形、四边形ABCD内接于⊙O) → ALWAYS use circle_cyclic_quadrilateral, not coordinate_points.
+     * If the cyclic-quadrilateral problem says to extend side CD to point E and connect AE, keep A/B/C/D on the circle, add label_E:"E" outside the circle on the extension of CD, and use label_angle_ade for the angle at D when it is given. Do not omit E or collapse the extension into the quadrilateral.
      * If the problem says AB is a diameter (AB是⊙O的直径), use circle_diameter_points, not circle_cyclic_quadrilateral. A and B must be opposite ends of the diameter through O.
      * Intersecting chords inside a circle (两弦相交于圆内一点, AP/PB/CP/PD) → ALWAYS use circle_intersecting_chords, not coordinate_points.
      * Rectangular prism / cuboid nets (展开图) → use rectangular_prism_net. Do NOT invent raw coordinates for solid nets.
@@ -821,6 +822,11 @@ STRICT PRINCIPLES:
    Cyclic quadrilateral / quadrilateral inscribed in a circle:
    ${BT}math-diagram
    {"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"label_O":"O","label_A":"2x+10°","label_B":"3x-5°","label_C":"3x°"}
+   ${BT}
+
+   Cyclic quadrilateral with side CD extended to point E and AE connected:
+   ${BT}math-diagram
+   {"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"label_O":"O","label_E":"E","label_A":"3x°","label_B":"2x+10°","label_C":"105°","label_D":"D","label_angle_ade":"100°","label_angle_bcd":"?"}
    ${BT}
 
    Circle with diameter AB and points C/D on the same arc side:
