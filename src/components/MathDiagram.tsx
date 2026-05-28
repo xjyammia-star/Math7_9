@@ -109,6 +109,22 @@ function SegLabel({ a, b, label, color = DIM }:
   );
 }
 
+function cleanDiagramLabelText(value: unknown): string {
+  let text = String(value ?? '').trim();
+  if (!text) return '';
+
+  text = text.replace(/\\+frac\{([^{}]+)\}\{([^{}]+)\}/g, '$1/$2');
+  text = text.replace(/\\+pi\b/g, '\u03c0');
+  text = text.replace(/\\+circ\b/g, '\u00b0');
+  text = text.replace(/\\+angle\b/g, '\u2220');
+  text = text.replace(/\\+times\b/g, '\u00d7');
+  text = text.replace(/\\+div\b/g, '\u00f7');
+  text = text.replace(/\\+text\{([^}]*)\}/g, '$1');
+  text = text.replace(/\s+/g, ' ').trim();
+
+  return text;
+}
+
 /** Right-angle square marker at vertex `v`, coming from `a` and going to `b` */
 function RightAngleMark({ v, a, b, size = 10, color = GREY }:
   { v: Pt; a: Pt; b: Pt; size?: number; color?: string }) {
@@ -1943,10 +1959,10 @@ function CircleSector({ data }: { data: any }) {
 
   const mid = polar(startDeg - angleDeg / 2);
   const sMid = sc({ x: mid.x * 0.65, y: mid.y * 0.65 });
-  const lRadius = data.label_radius ?? `${r}`;
-  const lAngle = data.label_angle ?? `${angleDeg}°`;
-  const lArc = data.label_arc ?? '弧长?';
-  const lArea = data.label_area ?? (data.show_area_label === false ? '' : '扇形面积?');
+  const lRadius = cleanDiagramLabelText(data.label_radius ?? `${r}`);
+  const lAngle = cleanDiagramLabelText(data.label_angle ?? `${angleDeg}\u00b0`);
+  const lArc = cleanDiagramLabelText(data.label_arc ?? '');
+  const lArea = cleanDiagramLabelText(data.label_area ?? (data.show_area_label === true ? '\u6247\u5f62\u9762\u79ef?' : ''));
 
   return (
     <g>

@@ -630,7 +630,8 @@ STRICT PRINCIPLES:
      * Intersecting chords inside a circle (两弦相交于圆内一点, AP/PB/CP/PD) → ALWAYS use circle_intersecting_chords, not coordinate_points.
      * Rectangular prism / cuboid nets (展开图) → use rectangular_prism_net. Do NOT invent raw coordinates for solid nets.
      * Pure geometry (no coordinate grid in problem) → ALWAYS set axes:false. Use right_triangle / triangle / rectangle / coordinate_points with axes:false.
-     * Only use axes:true when the problem explicitly mentions a coordinate system (坐标系/坐标轴/函数图象).
+     * Only use axes:true when the problem explicitly mentions a coordinate system
+   * For circle_sector, only include label_area when the problem explicitly asks for area. If the problem only asks for arc length, radius, angle, or sector count, omit label_area entirely. (坐标系/坐标轴/函数图象).
 
 3. DIAGRAM FORMAT — TEMPLATE SYSTEM (CRITICAL):
    Use ONLY the templates below. NEVER invent raw coordinates. The frontend calculates positions automatically.
@@ -756,7 +757,7 @@ STRICT PRINCIPLES:
 
    Circle sector / clock hand sweep (弧长、扇形面积、钟表分针扫过):
    ${BT}math-diagram
-   {"template":"circle_sector","radius":15,"minutes":25,"label_O":"O","label_radius":"15 cm","label_angle":"150°","label_arc":"弧长?","label_area":"扇形面积?"}
+   {"template":"circle_sector","radius":15,"minutes":25,"label_O":"O","label_radius":"15 cm","label_angle":"150?","label_arc":"???"}
    ${BT}
 
    Circle with tangent from external point (圆外切线):
@@ -776,7 +777,7 @@ STRICT PRINCIPLES:
 
    Circle sector from equal slices:
    ${BT}math-diagram
-   {"template":"circle_sector","radius":10,"sector_count":8,"label_O":"O","label_radius":"10 cm","label_angle":"45°","label_arc":"弧长?","label_area":"面积?"}
+   {"template":"circle_sector","radius":10,"sector_count":8,"label_O":"O","label_radius":"10 cm","label_angle":"45?","label_arc":"???"}
    ${BT}
 
    Circle with two tangents and tangent through arc point C:
