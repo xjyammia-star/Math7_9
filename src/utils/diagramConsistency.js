@@ -374,6 +374,18 @@ function extractExpectedPointNames(source) {
     }
   }
 
+  for (const match of text.matchAll(/\b[A-Z]{3,4}\b/g)) {
+    for (const ch of match[0]) {
+      if (/[A-Z]/.test(ch)) points.add(ch);
+    }
+  }
+
+  for (const match of text.matchAll(/(?:\u2220|angle)\s*([A-Z]{3,4})/gi)) {
+    for (const ch of String(match[1] ?? "").toUpperCase()) {
+      if (/[A-Z]/.test(ch)) points.add(ch);
+    }
+  }
+
   for (const match of text.matchAll(/\u70b9\s*([A-Z])|([A-Z])\s*\u70b9/gi)) {
     addPoint(match[1]);
     addPoint(match[2]);
@@ -381,6 +393,22 @@ function extractExpectedPointNames(source) {
 
   for (const match of text.matchAll(/point\s*([A-Z])/gi)) {
     addPoint(match[1]);
+  }
+
+  for (const match of text.matchAll(/\b([A-Z]('?|))\s*[\(（]\s*-?\d+(?:\.\d+)?\s*[,，]\s*-?\d+(?:\.\d+)?\s*[\)）]/g)) {
+    addPoint(match[1]);
+  }
+
+  if (/\bO\b/.test(text) ||
+      /(?:⊙\s*O|circle\s*O|center\s*O|centre\s*O|圆\s*O|圓\s*O|以O为圆心|以O為圓心)/i.test(text) ||
+      /O\s*(?:is the center|is the centre|is the center of|is the centre of)/i.test(text)) {
+    addPoint('O');
+  }
+
+  if (/(?:延长|extend(?:ed)?|extended)\s*(?:side\s*)?CD.*(?:\bpoint\s*E\b|\bE\b|点E|到点E)|(?:CD).*(?:延长|extend(?:ed)?).*(?:\bpoint\s*E\b|\bE\b|点E)/i.test(text) ||
+      /(?:\bpoint\s*E\b|\bE\b)\s*(?:lies on|is on|on)\s*(?:the\s*)?(?:extension|延长线).*(?:CD|side\s*CD|line\s*CD)/i.test(text) ||
+      /(?:\bE\b)\s*(?:on|lies on|is on)\s*(?:the\s*)?(?:extension of\s*)?(?:CD|side\s*CD|line\s*CD)/i.test(text)) {
+    addPoint('E');
   }
 
   return [...points];
@@ -406,8 +434,13 @@ function collectDiagramPointLabels(data) {
       }
     }
 
+    if (Object.prototype.hasOwnProperty.call(node, "label") &&
+      (Object.prototype.hasOwnProperty.call(node, "x") || Object.prototype.hasOwnProperty.call(node, "y"))) {
+      if (typeof node.label === "string") add(node.label);
+    }
+
     for (const [key, value] of Object.entries(node)) {
-      if (/^label_/i.test(String(key))) {
+      if (/^label_[A-Z]('?|)$/i.test(String(key))) {
         if (typeof value === "string") add(value);
       }
       if (value && typeof value === "object" && !Array.isArray(value)) {
@@ -561,7 +594,8 @@ export function needsPointLabelRepair({ conceptTitle = "", conceptDesc = "", gen
   if (!data || typeof data !== "object") return false;
 
   const actualPoints = collectDiagramPointLabels(data);
-  return expectedPoints.some((point) => !actualPoints.has(point));
+  if (expectedPoints.some((point) => !actualPoints.has(point))) return true;
+  return [...actualPoints].some((point) => !expectedPoints.includes(point));
 }
 
 export function needsCircleIntersectingChordsRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {

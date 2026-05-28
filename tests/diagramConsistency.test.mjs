@@ -401,6 +401,16 @@ assert.equal(
   false
 );
 assert.equal(
+  needsPointLabelRepair({
+    conceptTitle: "line intersection coordinate",
+    conceptDesc: "Line l1 passes through A(0,-1) and B(2,3). Line l2 is parallel to y=-1/2x+3 and passes through C(1,2). Find the intersection of l1 and l2.",
+    generatedText: '```math-diagram\n{"template":"coordinate_points","axes":true,"points":[{"x":0,"y":-1,"label":"A"},{"x":2,"y":3,"label":"B"},{"x":1,"y":2,"label":"C"},{"x":2,"y":1,"label":"P"},{"x":-1,"y":4,"label":"L_1"},{"x":3,"y":0,"label":"L_2"}],"segments":[["A","B"],["C","P"]],"label_AB":"4"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
   needsCircleSectorRepair({
     conceptTitle: '扇形',
     conceptDesc: '如图，雨刷单次摆动扫过的圆心角为120°，橡胶片长度为50 cm，求扇形面积。',
