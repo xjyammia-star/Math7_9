@@ -404,6 +404,41 @@ function reconcileDiagramPolicy(
   return rulePolicy;
 }
 
+function buildExerciseModelProfile(modelId: AiModelId, difficulty: Difficulty, lang: Language): { system: string; user: string } {
+  if (modelId !== "glm47") {
+    return { system: "", user: "" };
+  }
+
+  const languageHint = lang === "zh" ? "用中文出题。" : "Write the exercises in English.";
+  const difficultyHint =
+    difficulty === "Easy"
+      ? `- Keep the problem direct, but still avoid bland template copying.\n- Use one clear skill and one obvious reasoning step.\n`
+      : difficulty === "Medium"
+        ? `- Every problem must require at least one non-trivial intermediate step.\n- Avoid pure plug-in exercises that can be solved by a single formula application.\n- For circle/sector questions, do not use the most direct radius+angle-only version unless there is an extra condition.\n`
+        : `- Every problem must require multi-step reasoning or a small twist.\n- Do not generate one-line plug-in exercises.\n- For geometry and circle/sector questions, combine two ideas or add one extra condition so the student must think beyond the standard formula.\n`;
+
+  const system = [
+    "GLM 4.7 style profile for exercise generation:",
+    "- Write stronger, less repetitive exercises than the default style.",
+    "- Prefer richer problem situations, not bare formula drills.",
+    "- Keep the requested knowledge point central, but make the path to the answer noticeably less direct.",
+    "- When the selected difficulty is Medium or Hard, avoid the easiest textbook variant of the topic.",
+    difficultyHint.trimEnd(),
+    "- If the topic is geometry, circles, sectors, or coordinate geometry, prefer a figure that supports the reasoning instead of a text-only shortcut.",
+  ].join("\n");
+
+  const user = [
+    "GLM-specific generation rule:",
+    "- Do not generate the most obvious or shortest possible version of the problem.",
+    "- Medium and Hard should feel like actual training questions, not direct formula substitution.",
+    "- If the topic is circle_sector, do not stop at 'radius + central angle' unless the question has an additional relation, a second quantity, or a comparison task.",
+    "- If the topic is geometry, add one extra reasoning move: an auxiliary relation, a missing quantity to infer, a comparison, or a two-step calculation.",
+    `- ${languageHint}`,
+  ].join("\n");
+
+  return { system, user };
+}
+
 async function repairExerciseOutput(
   rawText: string,
   conceptTitle: string,
@@ -1186,7 +1221,9 @@ export async function generateExercises(
   curriculum: Curriculum | null = null
 ) {
   const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
-  const system = SYSTEM_PROMPT_BASE + curriculumInstr;
+  const activeModelId = getActiveAiModelId();
+  const modelProfile = buildExerciseModelProfile(activeModelId, difficulty, lang);
+  const system = SYSTEM_PROMPT_BASE + curriculumInstr + modelProfile.system;
   const ruleDiagramPolicy = classifyDiagramNeed({ conceptTitle, conceptDesc });
   const semanticDiagramPolicy = await analyzeDiagramPolicy(conceptTitle, conceptDesc, grade, difficulty, lang);
   const diagramPolicy = reconcileDiagramPolicy(
@@ -1234,6 +1271,7 @@ export async function generateExercises(
     `Language: ${lang === "zh" ? "Chinese" : "English"}\n` +
     `Description: ${conceptDesc}\n` +
     difficultyGuide +
+    modelProfile.user +
     `Diagram policy: ${diagramPolicy}\n` +
     (diagramPolicy === "must_not_draw"
       ? `Hard constraint: do not include any diagram, figure, math-diagram block, template JSON, or visual payload.\n`
