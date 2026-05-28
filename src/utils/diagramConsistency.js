@@ -189,6 +189,62 @@ function extractAskedTargets(text) {
   };
 }
 
+function extractExplicitAngleNumbers(text) {
+  const source = String(text ?? "");
+  const values = new Set();
+
+  const anglePatterns = [
+    /(?:∠|angle)\s*[A-Z]{3}\s*(?:=|:|is|为|是)\s*(-?\d+(?:\.\d+)?)\s*(?:°|º|度)?/gi,
+    /(?:∠|angle)\s*[A-Z]{3}[^\n。！？；;，,]{0,18}?(-?\d+(?:\.\d+)?)\s*(?:°|º|度)/gi,
+  ];
+
+  for (const pattern of anglePatterns) {
+    for (const match of source.matchAll(pattern)) {
+      const value = Number(match[1]);
+      if (Number.isFinite(value)) {
+        values.add(String(value));
+      }
+    }
+  }
+
+  return [...values];
+}
+
+function hasAngleFieldValueMismatch(text, source) {
+  const generated = String(text ?? "");
+  const sourceAngles = new Set(extractExplicitAngleNumbers(source));
+  if (sourceAngles.size === 0) return false;
+
+  try {
+    const data = extractDiagramBlockJson(generated);
+    if (!data || typeof data !== "object") return false;
+
+    const angleFieldPatterns = [
+      /^angle(?:_[a-z0-9]+)?$/i,
+      /^label_angle(?:_[a-z0-9]+)?$/i,
+    ];
+
+    const fields = Object.entries(data).filter(([key, value]) =>
+      angleFieldPatterns.some((pattern) => pattern.test(key)) &&
+      value !== undefined &&
+      value !== null &&
+      value !== "?"
+    );
+
+    for (const [, value] of fields) {
+      const numeric = Number(String(value).replace(/[^-\d.]/g, ""));
+      if (!Number.isFinite(numeric)) continue;
+      if (!sourceAngles.has(String(numeric))) {
+        return true;
+      }
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+}
+
 function hasNumericAngleValue(text, key) {
   const source = String(text ?? "");
   const patterns = [
@@ -408,6 +464,15 @@ export function needsQuestionAnswerLeakRepair({ conceptTitle = "", conceptDesc =
   }
 
   return false;
+}
+
+export function needsAngleValueSourceMismatchRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
+  if (diagramPolicy === "must_not_draw") return false;
+
+  const source = normalizeText([conceptTitle, conceptDesc].filter(Boolean).join("\n"));
+  if (!hasMathDiagramBlock(generatedText)) return false;
+
+  return hasAngleFieldValueMismatch(generatedText, source);
 }
 
 export function maskQuestionAnswerLeaks({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {

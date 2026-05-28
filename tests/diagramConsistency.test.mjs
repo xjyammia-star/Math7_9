@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { maskQuestionAnswerLeaks, needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTargetAngleLeakRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
+import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTargetAngleLeakRepair, needsTangentChordRepair } from '../src/utils/diagramConsistency.js';
 
 assert.equal(
   needsCircleDiameterRepair({
@@ -219,6 +219,28 @@ assert.equal(
 );
 
 console.log('generic question-answer leak test passed');
+
+assert.equal(
+  needsAngleValueSourceMismatchRepair({
+    conceptTitle: 'angle mismatch',
+    conceptDesc: '如图，直线PQ与⊙O于点A相切，AB是⊙O的弦，点C在⊙O的优弧AB上。已知∠QAB = 62°，求∠ACB的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_chord_tangent","radius":5,"angle":42,"arc_type":"minor","label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"B","label_C":"C","label_angle_apb":"42°"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsAngleValueSourceMismatchRepair({
+    conceptTitle: 'angle match',
+    conceptDesc: '如图，直线PQ与⊙O于点A相切，AB是⊙O的弦，点C在⊙O的优弧AB上。已知∠QAB = 62°，求∠ACB的度数。',
+    generatedText: '```math-diagram\n{"template":"circle_chord_tangent","radius":5,"angle":62,"arc_type":"minor","label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"B","label_C":"C","label_angle_apb":"62°"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+console.log('angle value source match test passed');
 
 assert.equal(
   needsCentralAngleRayRepair({

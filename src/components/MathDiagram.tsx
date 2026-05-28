@@ -1938,11 +1938,12 @@ interface MathDiagramProps {
 
 const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
   let parsed = rawData;
+  const fallbackMsg = "图形信息不足，系统正在自动重新生成。";
 
   // If it arrived as a string, try to parse JSON
   if (typeof parsed === 'string') {
     try { parsed = JSON.parse(parsed); } catch {
-      return <DiagramError msg="无法解析图形数据" />;
+      return <DiagramError msg={fallbackMsg} />;
     }
   }
 
@@ -1980,10 +1981,10 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'coordinate_points':   content = <CoordinatePoints data={parsed} />; break;
       case 'similar_triangles':   content = <SimilarTriangles data={parsed} />; break;
       default:
-        content = <DiagramError msg={`未知模板: "${template}"`} />;
+        content = <DiagramError msg={fallbackMsg} />;
     }
   } catch (e: any) {
-    content = <DiagramError msg={`渲染出错: ${e?.message}`} />;
+    content = <DiagramError msg={fallbackMsg} />;
   }
 
   return (
@@ -1998,7 +1999,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
 
 function DiagramError({ msg }: { msg: string }) {
   return (
-    <text x={W / 2} y={H / 2} textAnchor="middle" fill="#ef4444" fontSize={13}>{msg}</text>
+    <text x={W / 2} y={H / 2} textAnchor="middle" fill="#f59e0b" fontSize={13}>{msg}</text>
   );
 }
 
