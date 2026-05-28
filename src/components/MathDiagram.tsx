@@ -466,10 +466,11 @@ function validateDiagramData(template: string, data: any): string | null {
       const angleApb = numberFromValueOrLabel(data.angle_apb ?? data.angle ?? data.label_angle_apb ?? data.label_angle);
       return (
         (radius !== null && op !== null && radius > 0 && op > radius) ||
+        (tangentLength !== null && tangentLength > 0) ||
         (tangentLength !== null && angleApb !== null && tangentLength > 0 && angleApb > 0 && angleApb < 180)
       )
         ? null
-        : 'circle_tangent requires op_dist to be larger than radius, or a tangent_length with angle_apb';
+        : 'circle_tangent requires op_dist to be larger than radius, or a positive tangent_length, or a tangent_length with angle_apb';
     }
     case 'circle_chord_tangent': {
       const radius = asFiniteNumber(data.radius ?? 5);
