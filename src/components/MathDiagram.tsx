@@ -24,6 +24,7 @@
  */
 
 import React from 'react';
+import { explicitLabel } from '../utils/diagramLabelPolicy';
 
 // ─── SVG canvas constants ────────────────────────────────────────────────────
 const W = 480;
@@ -555,14 +556,6 @@ function normalizeDiagramData(template: string, data: any): any {
     return { ...data, template: 'circle_sector' };
   }
 
-  if (template === 'rectangle' && !hasRequiredLabels(data.labels, 4)) {
-    return { ...data, labels: ['A', 'B', 'C', 'D'] };
-  }
-
-  if (template === 'circle_three_points' && !hasRequiredLabels(data.labels, 3)) {
-    return { ...data, labels: ['A', 'B', 'C'] };
-  }
-
   if ((template === 'coordinate_points') && Array.isArray(data.segments)) {
     const pointLabels = new Set(
       (data.points ?? [])
@@ -588,9 +581,9 @@ function RightTriangle({ data }: { data: any }) {
   const a: number = data.leg_h ?? data.legs?.[0] ?? data.a ?? 3;
   const b: number = data.leg_v ?? data.legs?.[1] ?? data.b ?? 4;
   const hyp = Math.sqrt(a * a + b * b);
-  const labelA: string = data.labels?.A ?? data.label_A ?? 'A';
-  const labelB: string = data.labels?.B ?? data.label_B ?? 'B';
-  const labelC: string = data.labels?.C ?? data.label_C ?? 'C';
+  const labelA: string = explicitLabel(data.labels?.A ?? data.label_A);
+  const labelB: string = explicitLabel(data.labels?.B ?? data.label_B);
+  const labelC: string = explicitLabel(data.labels?.C ?? data.label_C);
   const labelAB: string = data.labels?.AB ?? data.label_AB ?? String(b);
   const labelBC: string = data.labels?.BC ?? data.label_BC ?? String(a);
   const labelAC: string = data.labels?.AC ?? data.label_AC ?? (
@@ -636,7 +629,7 @@ function Triangle({ data }: { data: any }) {
   const pad = (Math.max(...xs) - Math.min(...xs) + Math.max(...ys) - Math.min(...ys)) * 0.2;
   const sc = makeScaler(Math.min(...xs) - pad, Math.max(...xs) + pad, Math.min(...ys) - pad, Math.max(...ys) + pad);
   const [sA, sB, sC] = [sc(A), sc(B), sc(C)];
-  const lA = data.labels?.A ?? 'A', lB = data.labels?.B ?? 'B', lC = data.labels?.C ?? 'C';
+  const lA = explicitLabel(data.labels?.A), lB = explicitLabel(data.labels?.B), lC = explicitLabel(data.labels?.C);
   const lAB = data.labels?.AB ?? '', lBC = data.labels?.BC ?? '', lCA = data.labels?.CA ?? '';
   const rightAt: string = data.right_angle ?? '';
 
@@ -660,7 +653,7 @@ function Triangle({ data }: { data: any }) {
 function Rectangle({ data }: { data: any }) {
   const w: number = data.width ?? data.w ?? 6;
   const h: number = data.height ?? data.h ?? 4;
-  const labels: string[] = data.labels ?? ['A', 'B', 'C', 'D'];
+  const labels: string[] = Array.isArray(data.labels) ? data.labels : [];
   const lW: string = data.label_width  ?? String(w);
   const lH: string = data.label_height ?? String(h);
   const pad = Math.max(w, h) * 0.22;
@@ -671,10 +664,10 @@ function Rectangle({ data }: { data: any }) {
   return (
     <g>
       <Poly pts={[A, B, C, D]} />
-      <Dot p={A} label={labels[0]} offset={{ x: -18, y: -4 }} />
-      <Dot p={B} label={labels[1]} offset={{ x: -18, y: 12 }} />
-      <Dot p={C} label={labels[2]} offset={{ x: 8,  y: 12 }} />
-      <Dot p={D} label={labels[3]} offset={{ x: 8,  y: -4 }} />
+      <Dot p={A} label={explicitLabel(labels[0])} offset={{ x: -18, y: -4 }} />
+      <Dot p={B} label={explicitLabel(labels[1])} offset={{ x: -18, y: 12 }} />
+      <Dot p={C} label={explicitLabel(labels[2])} offset={{ x: 8,  y: 12 }} />
+      <Dot p={D} label={explicitLabel(labels[3])} offset={{ x: 8,  y: -4 }} />
       <SegLabel a={A} b={B} label={lH} />
       <SegLabel a={B} b={C} label={lW} />
     </g>
@@ -759,13 +752,13 @@ function RectangleFold({ data }: { data: any }) {
   const sE = sc(E), sF = sc(F), sVp = sc(Vp);
 
   // Label defaults — empty string means "don't show"
-  const lA  = data.label_A  ?? 'A';
-  const lB  = data.label_B  ?? 'B';
-  const lC  = data.label_C  ?? 'C';
-  const lD  = data.label_D  ?? 'D';
-  const lE  = data.label_E  ?? '';   // no default — AI must explicitly pass the letter from the problem
-  const lF  = data.label_F  ?? '';   // same
-  const lVp = data.label_Ap ?? data.label_Vp ?? '';
+  const lA  = explicitLabel(data.label_A);
+  const lB  = explicitLabel(data.label_B);
+  const lC  = explicitLabel(data.label_C);
+  const lD  = explicitLabel(data.label_D);
+  const lE  = explicitLabel(data.label_E);
+  const lF  = explicitLabel(data.label_F);
+  const lVp = explicitLabel(data.label_Ap ?? data.label_Vp);
 
   // Smart offsets for corner labels
   const cornerOffset = (key: string) => {
@@ -854,9 +847,9 @@ function Ladder({ data }: { data: any }) {
       {/* Ladder */}
       <Seg a={W_} b={F} stroke={GOLD} sw={3} />
       <RightAngleMark v={O} a={W_} b={F} />
-      <Dot p={W_} label={data.label_top  ?? 'A'} offset={{ x: -18, y: 0 }} />
-      <Dot p={F}  label={data.label_foot_pt ?? 'B'} offset={{ x: 8, y: 12 }} />
-      <Dot p={O}  label={data.label_corner ?? 'O'} offset={{ x: -18, y: 12 }} />
+      <Dot p={W_} label={explicitLabel(data.label_top)} offset={{ x: -18, y: 0 }} />
+      <Dot p={F}  label={explicitLabel(data.label_foot_pt)} offset={{ x: 8, y: 12 }} />
+      <Dot p={O}  label={explicitLabel(data.label_corner)} offset={{ x: -18, y: 12 }} />
       {lL && <SegLabel a={W_} b={F} label={lL} color={GOLD} />}
       {lW && <SegLabel a={O}  b={W_} label={lW} />}
       {lF && <SegLabel a={O}  b={F}  label={lF} />}
@@ -1147,8 +1140,8 @@ function SimilarTriangles({ data }: { data: any }) {
   const base1: number = data.base ?? 3;
   const sides1 = data.sides ?? [base1, base1 * 1.3, base1 * 0.8];
   const sides2 = sides1.map((s: number) => s * ratio);
-  const labels1: string[] = data.labels1 ?? ['A', 'B', 'C'];
-  const labels2: string[] = data.labels2 ?? ["A'", "B'", "C'"];
+  const labels1: string[] = Array.isArray(data.labels1) ? data.labels1 : [];
+  const labels2: string[] = Array.isArray(data.labels2) ? data.labels2 : [];
 
   const [A1, B1, C1] = triangleFromSides(sides1[0], sides1[1], sides1[2]);
   const [A2r, B2r, C2r] = triangleFromSides(sides2[0], sides2[1], sides2[2]);
@@ -1169,12 +1162,12 @@ function SimilarTriangles({ data }: { data: any }) {
     <g>
       <Poly pts={[A1, B1, C1].map(sc)} />
       <Poly pts={[A2, B2, C2].map(sc)} fill="rgba(16,185,129,0.08)" stroke="#10b981" />
-      <Dot p={sc(A1)} label={labels1[0]} offset={{ x: -6, y: -14 }} />
-      <Dot p={sc(B1)} label={labels1[1]} offset={{ x: -18, y: 10 }} />
-      <Dot p={sc(C1)} label={labels1[2]} offset={{ x: 8, y: 10 }} />
-      <Dot p={sc(A2)} label={labels2[0]} color="#10b981" offset={{ x: -6, y: -14 }} />
-      <Dot p={sc(B2)} label={labels2[1]} color="#10b981" offset={{ x: -18, y: 10 }} />
-      <Dot p={sc(C2)} label={labels2[2]} color="#10b981" offset={{ x: 8, y: 10 }} />
+      <Dot p={sc(A1)} label={explicitLabel(labels1[0])} offset={{ x: -6, y: -14 }} />
+      <Dot p={sc(B1)} label={explicitLabel(labels1[1])} offset={{ x: -18, y: 10 }} />
+      <Dot p={sc(C1)} label={explicitLabel(labels1[2])} offset={{ x: 8, y: 10 }} />
+      <Dot p={sc(A2)} label={explicitLabel(labels2[0])} color="#10b981" offset={{ x: -6, y: -14 }} />
+      <Dot p={sc(B2)} label={explicitLabel(labels2[1])} color="#10b981" offset={{ x: -18, y: 10 }} />
+      <Dot p={sc(C2)} label={explicitLabel(labels2[2])} color="#10b981" offset={{ x: 8, y: 10 }} />
       {data.show_sides !== false && (
         <>
           <SegLabel a={sc(B1)} b={sc(C1)} label={String(+sides1[0].toFixed(1))} />
@@ -1217,10 +1210,10 @@ function Parallelogram({ data }: { data: any }) {
           <SegLabel a={sc(A)} b={sc({ x: A.x, y: 0 })} label={lH} />
         </>
       )}
-      <Dot p={sc(A)} label={data.labels?.[0] ?? 'A'} offset={{ x: -6, y: -14 }} />
-      <Dot p={sc(B)} label={data.labels?.[1] ?? 'B'} offset={{ x: -18, y: 10 }} />
-      <Dot p={sc(C)} label={data.labels?.[2] ?? 'C'} offset={{ x: 8, y: 10 }} />
-      <Dot p={sc(D)} label={data.labels?.[3] ?? 'D'} offset={{ x: 8, y: -4 }} />
+      <Dot p={sc(A)} label={explicitLabel(data.labels?.[0])} offset={{ x: -6, y: -14 }} />
+      <Dot p={sc(B)} label={explicitLabel(data.labels?.[1])} offset={{ x: -18, y: 10 }} />
+      <Dot p={sc(C)} label={explicitLabel(data.labels?.[2])} offset={{ x: 8, y: 10 }} />
+      <Dot p={sc(D)} label={explicitLabel(data.labels?.[3])} offset={{ x: 8, y: -4 }} />
       <SegLabel a={sc(B)} b={sc(C)} label={lBase} />
       <SegLabel a={sc(A)} b={sc(B)} label={lSide} />
       <AngleMark v={sc(B)} a={sc(A)} b={sc(C)} label={`${angleDeg}°`} r={22} />
@@ -1261,10 +1254,10 @@ function CircleChord({ data }: { data: any }) {
   // Draw circle as SVG circle element using pixel radius
   const pixelR = Math.abs(sc({ x: r, y: 0 }).x - sc({ x: 0, y: 0 }).x);
 
-  const lO  = data.label_O  ?? 'O';
-  const lA  = data.label_A  ?? 'A';
-  const lB  = data.label_B  ?? 'B';
-  const lC  = data.label_C  ?? (showPerp ? 'C' : '');
+  const lO  = explicitLabel(data.label_O);
+  const lA  = explicitLabel(data.label_A);
+  const lB  = explicitLabel(data.label_B);
+  const lC  = explicitLabel(data.label_C);
   const lOA = data.label_radius ?? String(r);
   const lOC = data.label_oc !== undefined ? String(data.label_oc) : '';
   const lAC = data.label_chord_half !== undefined ? String(data.label_chord_half) : '';
@@ -1403,11 +1396,11 @@ function CircleIntersectingChords({ data }: { data: any }) {
       })()}
       <Seg a={sA} b={sB} stroke={GOLD} sw={2.5} />
       <Seg a={sC} b={sD} stroke={GOLD} sw={2.5} />
-      <Dot p={sA} label={data.label_A ?? 'A'} offset={{ x: -16, y: -10 }} />
-      <Dot p={sB} label={data.label_B ?? 'B'} offset={{ x: 10, y: -10 }} />
-      <Dot p={sC} label={data.label_C ?? 'C'} offset={{ x: -12, y: -12 }} />
-      <Dot p={sD} label={data.label_D ?? 'D'} offset={{ x: 8, y: 14 }} />
-      <Dot p={sP} label={data.label_P ?? 'P'} offset={{ x: 8, y: -10 }} color={WHITE} />
+      <Dot p={sA} label={explicitLabel(data.label_A)} offset={{ x: -16, y: -10 }} />
+      <Dot p={sB} label={explicitLabel(data.label_B)} offset={{ x: 10, y: -10 }} />
+      <Dot p={sC} label={explicitLabel(data.label_C)} offset={{ x: -12, y: -12 }} />
+      <Dot p={sD} label={explicitLabel(data.label_D)} offset={{ x: 8, y: 14 }} />
+      <Dot p={sP} label={explicitLabel(data.label_P)} offset={{ x: 8, y: -10 }} color={WHITE} />
       <SegLabel a={sA} b={sP} label={data.label_ap ?? String(ap)} color={GOLD} />
       <SegLabel a={sP} b={sB} label={data.label_pb ?? String(pb)} color={GOLD} />
       {(data.label_cp !== undefined) && <SegLabel a={sC} b={sP} label={String(data.label_cp)} color={GOLD} />}
@@ -1486,13 +1479,13 @@ function CircleTangent({ data }: { data: any }) {
   const sO = sc(O), sP = sc(P), sA = sc(A), sB = sc(B), sC = sc(C);
   const pixelR = Math.abs(sc({ x: r, y: 0 }).x - sc({ x: 0, y: 0 }).x);
 
-  const lO  = data.label_O  ?? 'O';
-  const lP  = data.label_P  ?? 'P';
-  const lA  = data.label_A  ?? 'A';
-  const lB  = data.label_B  ?? 'B';
-  const lC  = data.label_C  ?? (!showArcTangent ? data.label_D : undefined) ?? 'C';
-  const lD  = data.label_D  ?? 'D';
-  const lE  = data.label_E  ?? 'E';
+  const lO  = explicitLabel(data.label_O);
+  const lP  = explicitLabel(data.label_P);
+  const lA  = explicitLabel(data.label_A);
+  const lB  = explicitLabel(data.label_B);
+  const lC  = explicitLabel(!showArcTangent ? (data.label_C ?? data.label_D) : data.label_C);
+  const lD  = explicitLabel(data.label_D);
+  const lE  = explicitLabel(data.label_E);
   const showRadiusLabel = data.show_radius_label === true || data.radius_given === true;
   const showOpLabel = data.show_op_label === true || data.op_given === true;
   const lR  = showRadiusLabel && data.label_radius !== undefined ? String(data.label_radius) : '';
@@ -1608,12 +1601,12 @@ function CircleChordTangent({ data }: { data: any }) {
   const sO = sc(O), sA = sc(A), sB = sc(B), sC = sc(C), sP = sc(P), sQ = sc(Q);
   const pixelR = Math.abs(sc({ x: r, y: 0 }).x - sc({ x: 0, y: 0 }).x);
 
-  const lO = data.label_O ?? 'O';
-  const lP = data.label_P ?? 'P';
-  const lQ = data.label_Q ?? 'Q';
-  const lA = data.label_A ?? 'A';
-  const lB = data.label_B ?? 'B';
-  const lC = data.label_C ?? 'C';
+  const lO = explicitLabel(data.label_O);
+  const lP = explicitLabel(data.label_P);
+  const lQ = explicitLabel(data.label_Q);
+  const lA = explicitLabel(data.label_A);
+  const lB = explicitLabel(data.label_B);
+  const lC = explicitLabel(data.label_C);
   const lAngle = data.label_angle ?? `${angleDeg}°`;
 
   return (
@@ -1691,13 +1684,13 @@ function CircleTangentChordDualPoints({ data }: { data: any }) {
   const sO = sc(O), sA = sc(A), sB = sc(B), sC = sc(C), sD = sc(D), sP = sc(P), sQ = sc(Q);
   const pixelR = Math.abs(sc({ x: r, y: 0 }).x - sc({ x: 0, y: 0 }).x);
 
-  const lO = data.label_O ?? 'O';
-  const lP = data.label_P ?? 'P';
-  const lQ = data.label_Q ?? 'Q';
-  const lA = data.label_A ?? 'A';
-  const lB = data.label_B ?? 'B';
-  const lC = data.label_C ?? 'C';
-  const lD = data.label_D ?? 'D';
+  const lO = explicitLabel(data.label_O);
+  const lP = explicitLabel(data.label_P);
+  const lQ = explicitLabel(data.label_Q);
+  const lA = explicitLabel(data.label_A);
+  const lB = explicitLabel(data.label_B);
+  const lC = explicitLabel(data.label_C);
+  const lD = explicitLabel(data.label_D);
   const lAngle = data.label_angle ?? `${angleDeg}°`;
 
   return (
@@ -1733,7 +1726,7 @@ function CircleTangentChordDualPoints({ data }: { data: any }) {
  */
 function CircleCyclicQuadrilateral({ data }: { data: any }) {
   const r: number = data.radius ?? 5;
-  const labels: string[] = data.labels ?? ['A', 'B', 'C', 'D'];
+  const labels: string[] = Array.isArray(data.labels) ? data.labels : [];
   const hasExplicitAngles = Array.isArray(data.angles) || Array.isArray(data.point_angles);
   const cArcType = String(data.c_arc_type ?? data.cArcType ?? '').toLowerCase();
   const dArcType = String(data.d_arc_type ?? data.arc_type_d ?? data.arc2_type ?? '').toLowerCase();
@@ -1769,7 +1762,7 @@ function CircleCyclicQuadrilateral({ data }: { data: any }) {
     : null;
   const sE = ePoint ? sc(ePoint) : null;
 
-  const labelFor = (i: number) => labels[i] ?? ['A', 'B', 'C', 'D'][i];
+  const labelFor = (i: number) => explicitLabel(labels[i]);
   const angleLabels = [
     data.label_A,
     data.label_B,
@@ -1791,7 +1784,7 @@ function CircleCyclicQuadrilateral({ data }: { data: any }) {
           <Seg a={sO} b={sPts[3]} stroke={GREY} sw={1.4} dash="4,3" />
         </>
       )}
-      <Dot p={sO} label={data.label_O ?? 'O'} offset={{ x: 8, y: 12 }} color={WHITE} />
+      <Dot p={sO} label={explicitLabel(data.label_O)} offset={{ x: 8, y: 12 }} color={WHITE} />
 
       {sPts.map((p, i) => (
         <g key={labelFor(i)}>
@@ -1829,7 +1822,7 @@ function CircleCyclicQuadrilateral({ data }: { data: any }) {
  */
 function CircleThreePoints({ data }: { data: any }) {
   const r: number = data.radius ?? 5;
-  const labels: string[] = data.labels ?? ['A', 'B', 'C'];
+  const labels: string[] = Array.isArray(data.labels) ? data.labels : [];
   const angles: number[] = data.angles ?? data.point_angles ?? [120, 20, -80];
 
   const O: Pt = { x: 0, y: 0 };
@@ -1857,10 +1850,10 @@ function CircleThreePoints({ data }: { data: any }) {
       <Seg a={sB} b={sC} stroke={GOLD} sw={2.2} />
       <Seg a={sC} b={sA} stroke={GOLD} sw={2.2} />
 
-      <Dot p={sO} label={data.label_O ?? 'O'} offset={{ x: 8, y: 12 }} color={WHITE} />
-      <Dot p={sA} label={labels[0] ?? 'A'} offset={{ x: -20, y: -12 }} />
-      <Dot p={sB} label={labels[1] ?? 'B'} offset={{ x: 10, y: -12 }} />
-      <Dot p={sC} label={labels[2] ?? 'C'} offset={{ x: 10, y: 14 }} />
+      <Dot p={sO} label={explicitLabel(data.label_O)} offset={{ x: 8, y: 12 }} color={WHITE} />
+      <Dot p={sA} label={explicitLabel(labels[0])} offset={{ x: -20, y: -12 }} />
+      <Dot p={sB} label={explicitLabel(labels[1])} offset={{ x: 10, y: -12 }} />
+      <Dot p={sC} label={explicitLabel(labels[2])} offset={{ x: 10, y: 14 }} />
 
       {data.label_angle_aob && <AngleMark v={sO} a={sA} b={sB} label={String(data.label_angle_aob)} r={24} color={GOLD} />}
       {data.label_angle_acb && <AngleMark v={sC} a={sA} b={sB} label={String(data.label_angle_acb)} r={24} color={GOLD} />}
@@ -1912,11 +1905,11 @@ function CircleDiameterPoints({ data }: { data: any }) {
       <Seg a={sD} b={sC} stroke={GOLD} sw={2.2} />
       <Seg a={sC} b={sB} stroke={GOLD} sw={2.2} />
 
-      <Dot p={sO} label={data.label_O ?? 'O'} offset={{ x: 8, y: 12 }} color={WHITE} />
-      <Dot p={sA} label={data.label_A ?? 'A'} offset={{ x: -20, y: 0 }} />
-      <Dot p={sB} label={data.label_B ?? 'B'} offset={{ x: 10, y: 0 }} />
-      <Dot p={sC} label={data.label_C ?? 'C'} offset={{ x: 10, y: 10 }} />
-      <Dot p={sD} label={data.label_D ?? 'D'} offset={{ x: 8, y: -12 }} />
+      <Dot p={sO} label={explicitLabel(data.label_O)} offset={{ x: 8, y: 12 }} color={WHITE} />
+      <Dot p={sA} label={explicitLabel(data.label_A)} offset={{ x: -20, y: 0 }} />
+      <Dot p={sB} label={explicitLabel(data.label_B)} offset={{ x: 10, y: 0 }} />
+      <Dot p={sC} label={explicitLabel(data.label_C)} offset={{ x: 10, y: 10 }} />
+      <Dot p={sD} label={explicitLabel(data.label_D)} offset={{ x: 8, y: -12 }} />
 
       {data.label_ab && <SegLabel a={sA} b={sB} label={String(data.label_ab)} color={GOLD} />}
       {data.label_angle_bcd && <AngleMark v={sC} a={sB} b={sD} label={String(data.label_angle_bcd)} r={20} color={GOLD} />}
@@ -1973,9 +1966,9 @@ function CircleSector({ data }: { data: any }) {
       <Seg a={sO} b={sB} stroke={GOLD} sw={2.2} />
       <AngleMark v={sO} a={sA} b={sB} label={lAngle} r={34} color={GOLD} />
 
-      <Dot p={sO} label={data.label_O ?? 'O'} offset={{ x: 8, y: 12 }} color={WHITE} />
-      <Dot p={sA} label={data.label_A ?? ''} offset={{ x: -28, y: -10 }} />
-      <Dot p={sB} label={data.label_B ?? ''} offset={{ x: 10, y: -10 }} />
+      <Dot p={sO} label={explicitLabel(data.label_O)} offset={{ x: 8, y: 12 }} color={WHITE} />
+      <Dot p={sA} label={explicitLabel(data.label_A)} offset={{ x: -28, y: -10 }} />
+      <Dot p={sB} label={explicitLabel(data.label_B)} offset={{ x: 10, y: -10 }} />
       {lRadius && <SegLabel a={sO} b={sA} label={lRadius} color={GREY} />}
       {lArc && (
         <text x={sMid.x} y={sMid.y - 22} fontSize={12} fontWeight="700"

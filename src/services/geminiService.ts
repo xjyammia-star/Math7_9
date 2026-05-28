@@ -636,7 +636,7 @@ STRICT PRINCIPLES:
 3. DIAGRAM FORMAT — TEMPLATE SYSTEM (CRITICAL):
    Use ONLY the templates below. NEVER invent raw coordinates. The frontend calculates positions automatically.
    Pick the matching template and fill in numeric values and labels from the problem.
-   Point labels are not fixed to A/B/C/D/P/O. Use the exact names stated in the problem, and if the problem does not name a point, do not invent a new one just to satisfy a template example.
+   Point labels are not fixed to A/B/C/D/P/O. Use the exact names stated in the problem. If the problem does not name a point, leave its label blank instead of inventing A/B/C/D/P/O or any other placeholder.
    Never omit a required side, line, point, or label that is explicitly present in the problem statement.
    Never label the value being asked for in the question. If the problem asks for CP, do NOT set label_cp to the computed answer; show "?" or omit that segment label. If only CD is given, label the whole CD segment, not CP/PD.
    For intersecting chords with a difference such as CP is 2 longer than PD / CP比PD长2, use cp_minus_pd and label_difference. Do NOT invent cd, label_cd, label_cp, or label_pd.
