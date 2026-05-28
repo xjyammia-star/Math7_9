@@ -638,6 +638,7 @@ STRICT PRINCIPLES:
    Never label derived tangent lengths such as PA, PB, OP, or radius unless those values are explicitly given in the problem statement.
    In circle_tangent, radius/op_dist may be used as invisible layout values. Do NOT set label_radius or label_op unless the problem explicitly gives those values; if you must show them, also set show_radius_label:true or show_op_label:true.
    If a tangent problem gives PA and angle APB, use tangent_length and angle_apb with label_pa and label_angle_apb; do NOT invent radius or OP labels.
+   If a tangent problem gives only ∠APB, you may omit tangent_length/op_dist; the renderer will derive a consistent scale from angle_apb alone. Do not invent op_dist just to satisfy the template.
    For water-depth chord problems, use circle_chord with water_depth and label_depth. water_depth means the vertical height from the lowest point of the circular pipe up to the water surface, NOT the distance from the centre. Do NOT label derived OC or half-chord values unless they are explicitly given in the problem.
    If you are not confident that a diagram will be exact, prefer a simpler valid template over guessing geometry.
 
@@ -756,6 +757,11 @@ STRICT PRINCIPLES:
    Circle with tangent from external point (圆外切线):
    ${BT}math-diagram
    {"template":"circle_tangent","radius":5,"op_dist":13,"label_O":"O","label_P":"P","label_A":"A","label_B":"B"}
+   ${BT}
+   
+   Circle with tangent from external point given only ∠APB:
+   ${BT}math-diagram
+   {"template":"circle_tangent","radius":5,"angle_apb":80,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_angle_apb":"80°"}
    ${BT}
 
    Circle with tangent from external point and a central helper ray:

@@ -1421,17 +1421,22 @@ function CircleTangent({ data }: { data: any }) {
   const halfAngle = angleApbDeg !== null ? angleApbDeg * Math.PI / 360 : null;
   const explicitRadius = asFiniteNumber(data.radius);
   const explicitOp = asFiniteNumber(data.op_dist);
+  const defaultRadius = explicitRadius ?? 5;
   const r: number = explicitRadius ?? (
     tangentLength !== null && halfAngle !== null
       ? tangentLength * Math.tan(halfAngle)
-      : 5
+      : defaultRadius
   );
   const op: number = explicitOp ?? (
     tangentLength !== null && halfAngle !== null
       ? tangentLength / Math.cos(halfAngle)
-      : explicitRadius !== null && tangentLength !== null
-        ? Math.sqrt(explicitRadius * explicitRadius + tangentLength * tangentLength)
-        : 13
+      : explicitRadius !== null && halfAngle !== null
+        ? explicitRadius / Math.sin(halfAngle)
+        : tangentLength !== null
+          ? Math.sqrt(r * r + tangentLength * tangentLength)
+          : halfAngle !== null
+            ? r / Math.sin(halfAngle)
+            : 13
   );
 
   // PA = sqrt(OP² - r²)
