@@ -642,6 +642,7 @@ STRICT PRINCIPLES:
    For intersecting chords with a difference such as CP is 2 longer than PD / CP比PD长2, use cp_minus_pd and label_difference. Do NOT invent cd, label_cd, label_cp, or label_pd.
    For intersecting chords with a ratio such as CP:PD=2, use cp_pd_ratio and label_ratio. Do NOT invent cd, label_cd, label_cp, or label_pd.
    Never label derived tangent lengths such as PA, PB, OP, or radius unless those values are explicitly given in the problem statement.
+   For linear_function and quadratic_function diagrams, do not add derived coordinate labels such as intercept coordinates or vertex coordinates unless the problem explicitly asks for them.
    In circle_tangent, radius/op_dist may be used as invisible layout values. Do NOT set label_radius or label_op unless the problem explicitly gives those values; if you must show them, also set show_radius_label:true or show_op_label:true.
    If a tangent problem gives PA and angle APB, use tangent_length and angle_apb with label_pa and label_angle_apb; do NOT invent radius or OP labels.
    If a tangent problem gives only ∠APB, you may omit tangent_length/op_dist; the renderer will derive a consistent scale from angle_apb alone. Do not invent op_dist just to satisfy the template.

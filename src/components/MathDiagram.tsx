@@ -25,6 +25,7 @@
 
 import React from 'react';
 import { explicitLabel } from '../utils/diagramLabelPolicy';
+import { getLinearFunctionAnnotations, getQuadraticFunctionAnnotations } from '../utils/functionDiagramPolicy';
 
 // ─── SVG canvas constants ────────────────────────────────────────────────────
 const W = 480;
@@ -972,17 +973,19 @@ function LinearFunction({ data }: { data: any }) {
   const p1 = sc({ x: xMin, y: k * xMin + b });
   const p2 = sc({ x: xMax, y: k * xMax + b });
   const label: string = data.label ?? `y = ${k}x${b >= 0 ? '+' + b : b}`;
-  // Mark intercepts
-  const xIntercept = -b / k;
+  const { xInterceptLabel, yInterceptLabel, showInterceptDots } = getLinearFunctionAnnotations(data);
   const extras: React.ReactNode[] = [];
-  if (xIntercept >= xMin && xIntercept <= xMax) {
-    const p = sc({ x: xIntercept, y: 0 });
-    extras.push(<Dot key="xi" p={p} label={`(${+xIntercept.toFixed(2)},0)`}
-      color={GREY} offset={{ x: 6, y: 14 }} />);
-  }
-  if (b >= yMin && b <= yMax) {
-    const p = sc({ x: 0, y: b });
-    extras.push(<Dot key="yi" p={p} label={`(0,${b})`} color={GREY} offset={{ x: 8, y: -10 }} />);
+  if (showInterceptDots) {
+    const xIntercept = -b / k;
+    if (xIntercept >= xMin && xIntercept <= xMax && xInterceptLabel) {
+      const p = sc({ x: xIntercept, y: 0 });
+      extras.push(<Dot key="xi" p={p} label={xInterceptLabel}
+        color={GREY} offset={{ x: 6, y: 14 }} />);
+    }
+    if (b >= yMin && b <= yMax && yInterceptLabel) {
+      const p = sc({ x: 0, y: b });
+      extras.push(<Dot key="yi" p={p} label={yInterceptLabel} color={GREY} offset={{ x: 8, y: -10 }} />);
+    }
   }
   return (
     <g>
@@ -1010,13 +1013,14 @@ function QuadraticFunction({ data }: { data: any }) {
   const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
   // Vertex
   const vx = -b / (2 * a), vy = f(vx);
-  const vLabel = data.show_vertex !== false ? `(${+vx.toFixed(2)}, ${+vy.toFixed(2)})` : '';
+  const { vertexLabel, showVertexDot } = getQuadraticFunctionAnnotations(data);
+  const vLabel = showVertexDot ? (vertexLabel || '') : '';
   const label = data.label ?? `y = ${a}x²${b !== 0 ? (b > 0 ? '+' + b : b) + 'x' : ''}${c !== 0 ? (c > 0 ? '+' + c : c) : ''}`;
   return (
     <g>
       <Axes sc={sc} xMin={xMin} xMax={xMax} yMin={yMin} yMax={yMax} />
       <path d={d} fill="none" stroke={GOLD} strokeWidth={2.5} strokeLinejoin="round" />
-      {vx >= xMin && vx <= xMax && (
+      {showVertexDot && vx >= xMin && vx <= xMax && (
         <Dot p={sc({ x: vx, y: vy })} label={vLabel} color={GREY}
           offset={{ x: 8, y: vy < (yMin + yMax) / 2 ? -14 : 14 }} />
       )}
