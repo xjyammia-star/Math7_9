@@ -405,6 +405,7 @@ function buildExerciseModelProfile(modelId: AiModelId, difficulty: Difficulty, l
     "- Medium and Hard should feel like actual training questions, not direct formula substitution.",
     "- If the topic is circle_sector, do not stop at 'radius + central angle' unless the question has an additional relation, a second quantity, or a comparison task.",
     "- If the topic is geometry, add one extra reasoning move: an auxiliary relation, a missing quantity to infer, a comparison, or a two-step calculation.",
+    "- For pricing, fee, cost-comparison, and other pure verbal algebra problems, do not invent a coordinate graph or diagram unless the question explicitly asks for one or clearly references an existing figure or coordinate axes.",
     `- ${languageHint}`,
   ].join("\n");
 
@@ -1092,7 +1093,7 @@ const GENERIC_PROBLEM_TYPES = [
   "error analysis: find and correct a mistaken solution or claim",
   "parameter variation: ask how the answer changes when a condition changes",
   "open-ended construction: create an example satisfying given constraints",
-  "table, graph, or coordinate representation problem",
+  "table or data interpretation problem",
 ];
 
 const VARIETY_HISTORY_KEY = "math7-9:exercise-type-history:v1";
@@ -1274,6 +1275,7 @@ export async function generateExercises(
     `Hard constraint: output exactly ${count} exercise(s) and nothing extra.\n` +
     `Formatting rule: if any exercise needs a figure, include a matching fenced math-diagram block and keep all math commands properly wrapped in $...$.\n` +
     `Formatting rule: never use Markdown tables or pipe-separated rows in the question text. If a problem lists coordinates, vertices, or known values, rewrite them as clear sentences or bullet points so they remain readable in this renderer.\n` +
+    `Hard constraint: for pure verbal algebra, pricing, fee, comparison, or cost questions, do not include a coordinate graph or diagram unless the problem explicitly asks for one or clearly mentions a graph/coordinate system.\n` +
     varietyInstr + forcedVarietyInstr + `\n` +
     `CRITICAL: DO NOT include solutions. ONLY output the numbered questions.\n` +
     `Timestamp: ${Date.now()}`;
