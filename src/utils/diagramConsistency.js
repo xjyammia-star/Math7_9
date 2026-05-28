@@ -77,7 +77,7 @@ function hasDualTangentChordArcPointsCue(text) {
 
 function hasCyclicQuadrilateralExtensionCue(text) {
   const source = String(text ?? "");
-  return /(?:延长(?:边)?\s*CD\s*到点?\s*E|将\s*CD\s*延长到点?\s*E|连接\s*AE|connect\s*AE|(?:∠|angle)\s*ADE)/i.test(source);
+  return /(?:\u5ef6\u957f.*CD.*E|CD.*\u5ef6\u957f.*E|\u8fde\u63a5.*AE|connect.*AE|(?:\u2220|angle)\s*ADE)/i.test(source);
 }
 
 function inferNamedArcType(text, point) {
@@ -317,14 +317,6 @@ function hasMaskedExplicitAngleStatement(text, source, templateName) {
       if (explicitAngleValue === undefined || explicitAngleValue === null || explicitAngleValue === "?" || !String(explicitAngleValue).match(/\d/)) {
         return true;
       }
-      continue;
-    }
-
-    const vertex = stmt.name.length >= 2 ? stmt.name[1] : "";
-    if (!vertex) continue;
-    const value = labelForVertex(vertex);
-    if (value === undefined || value === null || value === "?" || !String(value).match(/\d/)) {
-      return true;
     }
   }
 
@@ -356,6 +348,81 @@ function hasGenericPointLabelLeak(text) {
   };
 
   return visit(data);
+}
+
+function extractExpectedPointNames(source) {
+  const text = normalizeText(source);
+  const points = new Set();
+
+  const addPoint = (value) => {
+    const name = String(value ?? "").trim().toUpperCase();
+    if (!name) return;
+    if (/^[A-Z]('?|)$/.test(name)) {
+      points.add(name);
+      return;
+    }
+    if (/^[A-Z]{2,4}$/.test(name)) {
+      for (const ch of name) points.add(ch);
+    }
+  };
+
+  const askedTargets = extractAskedTargets(text);
+  for (const label of askedTargets.labels) addPoint(label);
+  for (const angle of askedTargets.angles) {
+    for (const ch of String(angle ?? "").toUpperCase()) {
+      if (/[A-Z]/.test(ch)) points.add(ch);
+    }
+  }
+
+  for (const match of text.matchAll(/\u70b9\s*([A-Z])|([A-Z])\s*\u70b9/gi)) {
+    addPoint(match[1]);
+    addPoint(match[2]);
+  }
+
+  for (const match of text.matchAll(/point\s*([A-Z])/gi)) {
+    addPoint(match[1]);
+  }
+
+  return [...points];
+}
+
+function collectDiagramPointLabels(data) {
+  const labels = new Set();
+
+  const add = (value) => {
+    const name = String(value ?? "").trim().toUpperCase();
+    if (!name) return;
+    if (/^[A-Z]('?|)$/.test(name)) {
+      labels.add(name);
+    }
+  };
+
+  const visit = (node) => {
+    if (!node || typeof node !== "object") return;
+
+    if (Array.isArray(node.labels)) {
+      for (const item of node.labels) {
+        if (typeof item === "string") add(item);
+      }
+    }
+
+    for (const [key, value] of Object.entries(node)) {
+      if (/^label_/i.test(String(key))) {
+        if (typeof value === "string") add(value);
+      }
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        visit(value);
+      }
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          if (item && typeof item === "object") visit(item);
+        }
+      }
+    }
+  };
+
+  visit(data);
+  return labels;
 }
 
 function hasNumericAngleValue(text, key) {
@@ -480,10 +547,21 @@ export function needsCircleSectorRepair({ conceptTitle = "", conceptDesc = "", g
   return !(hasRadius && (hasAngle || hasMinutes || hasSectorCount));
 }
 
-export function needsPointLabelRepair({ generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
+export function needsPointLabelRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
   if (diagramPolicy === "must_not_draw") return false;
   if (!hasMathDiagramBlock(generatedText)) return false;
-  return hasGenericPointLabelLeak(generatedText);
+
+  if (hasGenericPointLabelLeak(generatedText)) return true;
+
+  const source = normalizeText([conceptTitle, conceptDesc].filter(Boolean).join("\n"));
+  const expectedPoints = extractExpectedPointNames(source);
+  if (expectedPoints.length === 0) return false;
+
+  const data = extractDiagramBlockJson(generatedText);
+  if (!data || typeof data !== "object") return false;
+
+  const actualPoints = collectDiagramPointLabels(data);
+  return expectedPoints.some((point) => !actualPoints.has(point));
 }
 
 export function needsCircleIntersectingChordsRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
@@ -598,7 +676,7 @@ export function needsCircleCyclicQuadrilateralRepair({ conceptTitle = "", concep
   if (diagramPolicy === "must_not_draw") return false;
 
   const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
-  if (!/cyclic quadrilateral|inscribed in a circle|内接于⊙O|圆内接四边形|ABCD.*⊙O|A、B、C、D.*⊙O|A,B,C,D.*⊙O/i.test(source)) {
+  if (!/cyclic quadrilateral|inscribed in a circle|ABCD.*O|A,B,C,D.*O/i.test(source)) {
     return false;
   }
   if (!hasMathDiagramBlock(generatedText)) return false;
@@ -609,26 +687,10 @@ export function needsCircleCyclicQuadrilateralRepair({ conceptTitle = "", concep
   const labels = Array.isArray(data.labels) ? data.labels : [];
   if (labels.length < 4 && !(data.label_A && data.label_B && data.label_C && data.label_D)) return true;
 
-  const cArcCue = /C.*(?:劣弧|minor arc|minor)/i.test(source);
-  const dArcCue = /D.*(?:优弧|major arc|major)/i.test(source);
-  if (cArcCue) {
-    const cArc = String(data.c_arc_type ?? data.cArcType ?? "").toLowerCase();
-    if (!cArc) return true;
-  }
-  if (dArcCue) {
-    const dArc = String(data.d_arc_type ?? data.arc_type_d ?? data.arc2_type ?? "").toLowerCase();
-    if (!dArc) return true;
-  }
-
-  if (/(?:∠|angle)\s*AOB/i.test(source) && data.label_angle_aob === undefined) return true;
   const extensionCue = hasCyclicQuadrilateralExtensionCue(source);
   if (data.label_E !== undefined && !extensionCue) return true;
-  if (extensionCue) {
-    const labelE = String(data.label_E ?? "").trim();
-    if (!labelE) return true;
-    if (/(?:∠|angle)\s*ADE/i.test(source) && data.label_angle_ade === undefined) return true;
-  }
-  if (hasMaskedExplicitAngleStatement(generatedText, source, "circle_cyclic_quadrilateral")) return true;
+  if (extensionCue && String(data.label_E ?? "").trim() === "") return true;
+  if (extensionCue && /(?:\u2220|angle)\s*ADE/i.test(source) && data.label_angle_ade === undefined) return true;
 
   return false;
 }

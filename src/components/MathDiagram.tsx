@@ -1747,8 +1747,8 @@ function CircleCyclicQuadrilateral({ data }: { data: any }) {
   const [sA, sB, sC, sD] = sPts;
   const ePoint = showExtensionToE
     ? {
-        x: D.x + (D.x - C.x) * 0.92,
-        y: D.y + (D.y - C.y) * 0.92,
+        x: pts[3].x + (pts[3].x - pts[2].x) * 0.92,
+        y: pts[3].y + (pts[3].y - pts[2].y) * 0.92,
       }
     : null;
   const sE = ePoint ? sc(ePoint) : null;

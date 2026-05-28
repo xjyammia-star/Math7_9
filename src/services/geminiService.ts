@@ -148,7 +148,7 @@ export function detectOutputIssues(
   if (needsCircleSectorRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("circle_sector_template_mismatch");
   }
-  if (needsPointLabelRepair({ generatedText: text, diagramPolicy })) {
+  if (needsPointLabelRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("point_label_placeholder");
   }
   if (needsCircleIntersectingChordsRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {

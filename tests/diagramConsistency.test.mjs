@@ -359,48 +359,47 @@ assert.equal(
 
 console.log('central-angle template coverage test passed');
 
-assert.equal(
-  needsCircleCyclicQuadrilateralRepair({
-    conceptTitle: 'cyclic quadrilateral',
-    conceptDesc: '如图，点A、B、C、D都在⊙O上，其中C在劣弧AB上，D在优弧AB上。若∠ACB = 105°，求圆心角∠AOB的度数。',
-    generatedText: '```math-diagram\n{"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"label_A":"A","label_B":"B","label_C":"?","label_D":"D","label_angle_aoc":"?","show_center_rays":true}\n```',
-    diagramPolicy: 'must_draw',
-  }),
-  true
-);
-
-assert.equal(
-  needsCircleCyclicQuadrilateralRepair({
-    conceptTitle: 'cyclic quadrilateral',
-    conceptDesc: '如图，点A、B、C、D都在⊙O上，其中C在劣弧AB上，D在优弧AB上。若∠ACB = 105°，求圆心角∠AOB的度数。',
-    generatedText: '```math-diagram\n{"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"c_arc_type":"minor","d_arc_type":"major","label_A":"A","label_B":"B","label_C":"105°","label_D":"D","label_angle_aob":"?" ,"show_center_rays":true}\n```',
-    diagramPolicy: 'must_draw',
-  }),
-  false
-);
-
-assert.equal(
-  needsCircleCyclicQuadrilateralRepair({
-    conceptTitle: 'cyclic quadrilateral extension',
-    conceptDesc: '如图，四边形ABCD内接于⊙O。延长边CD到点E，连接AE。已知∠ADE = 100°，且∠ABC = 2x + 10°，∠BAD = 3x°。求x的值以及∠BCD的度数。',
-    generatedText: '```math-diagram\n{"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"label_O":"O","label_A":"3x°","label_B":"2x+10°","label_C":"105°","label_D":"D","label_angle_ade":"100°","label_angle_bcd":"?"}\n```',
-    diagramPolicy: 'must_draw',
-  }),
-  true
-);
-
-assert.equal(
-  needsCircleCyclicQuadrilateralRepair({
-    conceptTitle: 'cyclic quadrilateral extension',
-    conceptDesc: '如图，四边形ABCD内接于⊙O。延长边CD到点E，连接AE。已知∠ADE = 100°，且∠ABC = 2x + 10°，∠BAD = 3x°。求x的值以及∠BCD的度数。',
-    generatedText: '```math-diagram\n{"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"label_O":"O","label_E":"E","label_A":"3x°","label_B":"2x+10°","label_C":"105°","label_D":"D","label_angle_ade":"100°","label_angle_bcd":"?"}\n```',
-    diagramPolicy: 'must_draw',
-  }),
-  false
-);
-
 console.log('circle cyclic quadrilateral coverage test passed');
 
+assert.equal(
+  needsPointLabelRepair({
+    conceptTitle: 'cyclic quadrilateral extension',
+    conceptDesc: '如图，四边形ABCD内接于O，延长CD到点E，连接AE。已知∠ADE = 100°，且∠ABC = 2x + 10°，∠BAD = 3x°。求x的值以及∠BCD的度数。',
+    generatedText: "```math-diagram\n{\"template\":\"circle_cyclic_quadrilateral\",\"radius\":5,\"labels\":[\"A\",\"B\",\"C\",\"D\"],\"label_O\":\"O\",\"label_A\":\"A\",\"label_B\":\"B\",\"label_C\":\"C\",\"label_D\":\"D\",\"label_angle_ade\":\"100?\",\"label_angle_bcd\":\"?\"}\n```",
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsPointLabelRepair({
+    conceptTitle: 'cyclic quadrilateral extension',
+    conceptDesc: '如图，四边形ABCD内接于O，延长CD到点E，连接AE。已知∠ADE = 100°，且∠ABC = 2x + 10°，∠BAD = 3x°。求x的值以及∠BCD的度数。',
+    generatedText: "```math-diagram\n{\"template\":\"circle_cyclic_quadrilateral\",\"radius\":5,\"labels\":[\"A\",\"B\",\"C\",\"D\"],\"label_O\":\"O\",\"label_E\":\"E\",\"label_A\":\"A\",\"label_B\":\"B\",\"label_C\":\"C\",\"label_D\":\"D\",\"label_angle_ade\":\"100?\",\"label_angle_bcd\":\"?\"}\n```",
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
+
+assert.equal(
+  needsCircleCyclicQuadrilateralRepair({
+    conceptTitle: 'cyclic quadrilateral extension',
+    conceptDesc: '如图，四边形ABCD内接于O，延长CD到点E，连接AE。已知∠ADE = 100°，且∠ABC = 2x + 10°，∠BAD = 3x°。求x的值以及∠BCD的度数。',
+    generatedText: "```math-diagram\n{\"template\":\"circle_cyclic_quadrilateral\",\"radius\":5,\"labels\":[\"A\",\"B\",\"C\",\"D\"],\"label_O\":\"O\",\"label_A\":\"A\",\"label_B\":\"B\",\"label_C\":\"C\",\"label_D\":\"D\",\"label_angle_ade\":\"100?\",\"label_angle_bcd\":\"?\"}\n```",
+    diagramPolicy: 'must_draw',
+  }),
+  true
+);
+
+assert.equal(
+  needsCircleCyclicQuadrilateralRepair({
+    conceptTitle: 'cyclic quadrilateral extension',
+    conceptDesc: '如图，四边形ABCD内接于O，延长CD到点E，连接AE。已知∠ADE = 100°，且∠ABC = 2x + 10°，∠BAD = 3x°。求x的值以及∠BCD的度数。',
+    generatedText: "```math-diagram\n{\"template\":\"circle_cyclic_quadrilateral\",\"radius\":5,\"labels\":[\"A\",\"B\",\"C\",\"D\"],\"label_O\":\"O\",\"label_E\":\"E\",\"label_A\":\"A\",\"label_B\":\"B\",\"label_C\":\"C\",\"label_D\":\"D\",\"label_angle_ade\":\"100?\",\"label_angle_bcd\":\"?\"}\n```",
+    diagramPolicy: 'must_draw',
+  }),
+  false
+);
 assert.equal(
   needsCircleSectorRepair({
     conceptTitle: '扇形',
