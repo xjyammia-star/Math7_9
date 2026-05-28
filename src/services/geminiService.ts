@@ -389,6 +389,7 @@ function reconcileDiagramPolicy(
 ): string {
   if (rulePolicy === 'must_not_draw') return 'must_not_draw';
   if (rulePolicy === 'must_draw') return 'must_draw';
+  if (rulePolicy === 'prefer_draw') return 'must_draw';
 
   if (!selfCheckOk) {
     if (semanticPolicy === 'must_draw') return 'prefer_draw';
@@ -414,6 +415,7 @@ async function repairExerciseOutput(
   count: number,
   diagramPolicy: string
 ): Promise<string> {
+  const enforcedDiagramPolicy = issueList.includes("missing_diagram_block") ? "must_draw" : diagramPolicy;
   const system = `You are repairing AI-generated middle-school math exercises.
 
 Rules:
@@ -421,9 +423,9 @@ Rules:
 - Do not solve the problems.
 - Only fix formatting and representation issues.
 - Replace leaked math commands in prose with proper math formatting or Unicode symbols.
-- Diagram policy for this task: ${diagramPolicy}.
+- Diagram policy for this task: ${enforcedDiagramPolicy}.
 - If diagram policy is must_not_draw, do not include any diagram, figure, math-diagram block, template JSON, or visual payload.
-- If diagram policy is must_draw, include exactly one matching fenced block with the math-diagram template and valid JSON when the problem genuinely depends on a figure.
+- If diagram policy is must_draw, include exactly one matching fenced block with the math-diagram template and valid JSON when the problem genuinely depends on a figure, and do not return a text-only fallback.
 - Hard rule: if the question asks for an unknown quantity, that quantity must not appear as a numeric label anywhere in the final diagram JSON. Use "?" or omit it, even if the model previously wrote a number.
 - Hard rule: every numeric angle shown in the diagram, in any template, must come from an explicit angle value stated in the problem text. If the problem says ∠QAB = 62°, do not output 42° or any other number for that angle.
 - Never leave diagram JSON outside a fenced math-diagram block. Raw objects like {"template":"..."} in prose are invalid and must be wrapped or removed.
@@ -1206,6 +1208,12 @@ export async function generateExercises(
     ? recentTypes.map((type, i) => `  ${i + 1}. ${type}`).join("\n")
     : "  None";
   const selectedTypesText = pickedTypes.map((type, i) => `  ${i + 1}. ${type}`).join("\n");
+  const difficultyGuide =
+    difficulty === "Easy"
+      ? `Difficulty design:\n- Easy: one clear skill, direct setup, and the shortest reasonable solution path.\n- Prefer straightforward numbers and one obvious inference.\n`
+      : difficulty === "Medium"
+        ? `Difficulty design:\n- Medium: two-step reasoning or one small intermediate idea is expected.\n- Make the setup less direct than Easy, but still routine and classroom-appropriate.\n`
+        : `Difficulty design:\n- Hard: multi-step reasoning, at least one non-trivial intermediate step, or a small twist is required.\n- Avoid direct plug-in questions; combine two ideas when possible, and keep the prompt clearly more challenging than Medium.\n`;
   const forcedVarietyInstr =
     `\nPROBLEM TYPE CONTROL:\n` +
     `System-selected problem type(s) for THIS generation. You MUST use them in order, one per exercise:\n` +
@@ -1225,6 +1233,7 @@ export async function generateExercises(
     `Difficulty: ${difficulty}\n` +
     `Language: ${lang === "zh" ? "Chinese" : "English"}\n` +
     `Description: ${conceptDesc}\n` +
+    difficultyGuide +
     `Diagram policy: ${diagramPolicy}\n` +
     (diagramPolicy === "must_not_draw"
       ? `Hard constraint: do not include any diagram, figure, math-diagram block, template JSON, or visual payload.\n`
@@ -1262,6 +1271,9 @@ export async function generateExercises(
   const issues = detectOutputIssues(raw, conceptTitle, conceptDesc, diagramPolicy);
 
   if (issues.length > 0) {
+    const repairDiagramPolicy = issues.includes("missing_diagram_block")
+      ? "must_draw"
+      : diagramPolicy;
     const repaired = await repairExerciseOutput(
       cleaned,
       conceptTitle,
@@ -1271,7 +1283,7 @@ export async function generateExercises(
       lang,
       issues,
       count,
-      diagramPolicy
+      repairDiagramPolicy
     );
     return diagramPolicy === "must_not_draw"
       ? limitGeneratedExercises(stripDiagramArtifacts(normalizeMarkdownTables(repaired)), count)
