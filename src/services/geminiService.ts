@@ -4,13 +4,69 @@ import { classifyDiagramNeed, stripDiagramArtifacts } from "../utils/diagramPoli
 import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
 import { sanitizeMath } from "../utils/mathUtils";
 
+export type AiModelId = "glm47" | "doubao";
+
+export type AiModelConfig = {
+  id: AiModelId;
+  label: string;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+};
+
 const ARK_BASE_URL =
   (import.meta as any).env?.VITE_DOUBAO_BASE_URL ||
   "https://ark.cn-beijing.volces.com/api/v3";
-const ARK_API_KEY = (import.meta as any).env?.VITE_DOUBAO_API_KEY || "";
-const ARK_MODEL =
-  (import.meta as any).env?.VITE_DOUBAO_MODEL ||
-  "doubao-seed-2-0-lite-250615";
+
+const AI_MODEL_STORAGE_KEY = "math79_ai_model";
+export const DEFAULT_AI_MODEL_ID: AiModelId = "glm47";
+
+const AI_MODEL_CONFIGS: Record<AiModelId, AiModelConfig> = {
+  glm47: {
+    id: "glm47",
+    label: "GLM 4.7",
+    baseUrl: ARK_BASE_URL,
+    apiKey: (import.meta as any).env?.VITE_GLM_API_KEY || "",
+    model: (import.meta as any).env?.VITE_GLM_MODEL || "ep-20260528150018-jh75j",
+  },
+  doubao: {
+    id: "doubao",
+    label: "豆包",
+    baseUrl: ARK_BASE_URL,
+    apiKey: (import.meta as any).env?.VITE_DOUBAO_API_KEY || "",
+    model: (import.meta as any).env?.VITE_DOUBAO_MODEL || "doubao-seed-2-0-lite-250615",
+  },
+};
+
+function getModelStorage(): Storage | null {
+  try {
+    return typeof window !== "undefined" ? window.localStorage : null;
+  } catch {
+    return null;
+  }
+}
+
+export function getActiveAiModelId(): AiModelId {
+  const storage = getModelStorage();
+  const stored = storage?.getItem(AI_MODEL_STORAGE_KEY);
+  if (stored === "glm47" || stored === "doubao") return stored;
+  return DEFAULT_AI_MODEL_ID;
+}
+
+export function setActiveAiModelId(modelId: AiModelId) {
+  const storage = getModelStorage();
+  if (!storage) return;
+  storage.setItem(AI_MODEL_STORAGE_KEY, modelId);
+}
+
+export function getActiveAiModelConfig(): AiModelConfig {
+  return AI_MODEL_CONFIGS[getActiveAiModelId()];
+}
+
+export const AI_MODEL_OPTIONS: Array<Pick<AiModelConfig, "id" | "label">> = [
+  { id: "glm47", label: "GLM 4.7" },
+  { id: "doubao", label: "豆包" },
+];
 
 async function safeGenerate(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
@@ -19,8 +75,12 @@ async function safeGenerate(
   temperature = 0.7
 ): Promise<string> {
   try {
+    const modelConfig = getActiveAiModelConfig();
+    if (!modelConfig.apiKey) {
+      throw new Error(`${modelConfig.label} API key is missing`);
+    }
     const body: Record<string, any> = {
-      model: ARK_MODEL,
+      model: modelConfig.model,
       messages,
       max_tokens: maxTokens,
       temperature,
@@ -30,11 +90,11 @@ async function safeGenerate(
       body.response_format = { type: "json_object" };
     }
 
-    const res = await fetch(`${ARK_BASE_URL}/chat/completions`, {
+    const res = await fetch(`${modelConfig.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${ARK_API_KEY}`,
+        Authorization: `Bearer ${modelConfig.apiKey}`,
       },
       body: JSON.stringify(body),
     });
