@@ -20,12 +20,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { KNOWLEDGE_GRAPH } from './data/knowledgeGraph';
 import { Concept, Language, Curriculum } from './types';
 import { identifyTopic } from './services/geminiService';
-import {
-  AI_MODEL_OPTIONS,
-  getActiveAiModelId,
-  setActiveAiModelId,
-  type AiModelId,
-} from './services/geminiService';
 import LearningAgent from './components/LearningAgent';
 import PracticeCenter from './components/PracticeCenter';
 import FormulaVisualizer from './components/FormulaVisualizer';
@@ -100,11 +94,6 @@ const App: React.FC = () => {
   const [quotaExceeded, setQuotaExceeded]     = useState(false);
   const [collapsedModules, setCollapsedModules] = useState<Record<string, boolean>>(DEFAULT_COLLAPSED);
   const [curriculum, setCurriculum]           = useState<Curriculum | null>(null);
-  const [aiModel, setAiModel]                 = useState<AiModelId>(() => getActiveAiModelId());
-
-  React.useEffect(() => {
-    setActiveAiModelId(aiModel);
-  }, [aiModel]);
 
   const toggleModule = (moduleId: string) => {
     setCollapsedModules(prev => ({ ...prev, [moduleId]: !prev[moduleId] }));
@@ -206,7 +195,7 @@ const App: React.FC = () => {
   }, [searchQuery]);
 
   const activeCurriculum = curriculum ? CURRICULA.find(c => c.id === curriculum) : null;
-  const activeModelLabel = AI_MODEL_OPTIONS.find(option => option.id === aiModel)?.label ?? 'GLM 4.7';
+  const modelRoutingNote = '出题：GLM 4.7 · 讲解/引导：豆包';
 
   return (
     <div className="flex h-screen bg-[var(--color-brand-bg)] text-slate-100 font-sans">
@@ -262,26 +251,15 @@ const App: React.FC = () => {
             })}
           </div>
           <div className="mt-3 space-y-2">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.18em] flex items-center justify-between px-1">
-              <span className="flex items-center gap-1.5">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.18em] flex items-center gap-1.5">
                 <Settings2 className="w-3 h-3 text-[var(--color-brand-accent)]" />
-                Model
+                模型路由
               </span>
-              <span className="text-[9px] text-slate-600">{activeModelLabel}</span>
-            </label>
-            <select
-              value={aiModel}
-              onChange={(e) => setAiModel(e.target.value as AiModelId)}
-              className="w-full bg-[var(--color-brand-card)] border border-[var(--color-brand-border)] rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:ring-1 focus:ring-[var(--color-brand-accent)] transition-all"
-            >
-              {AI_MODEL_OPTIONS.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              <span className="text-[9px] text-slate-600">{modelRoutingNote}</span>
+            </div>
             <p className="px-1 text-[10px] leading-relaxed text-slate-500">
-              GLM 4.7 为默认主模型，豆包保留为手动备用。切换后立即生效。
+              出题默认走 GLM 4.7，讲解、引导解题和聊天默认走豆包。路由已固定，不再支持页面手动切换。
             </p>
           </div>
           <AnimatePresence>
@@ -452,7 +430,7 @@ const App: React.FC = () => {
             )}
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border border-[var(--color-brand-border)] bg-[var(--color-brand-card)] text-slate-300">
               <span className="uppercase tracking-widest text-[9px] text-slate-500">Model</span>
-              <span>{activeModelLabel}</span>
+              <span>{modelRoutingNote}</span>
             </div>
             {selectedConcept && activeView === 'knowledge' && (
               <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500 bg-[var(--color-brand-card)] border border-[var(--color-brand-border)] px-4 py-1.5 rounded-full uppercase tracking-widest min-w-0 overflow-hidden">
@@ -515,3 +493,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+

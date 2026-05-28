@@ -18,8 +18,8 @@ const ARK_BASE_URL =
   (import.meta as any).env?.VITE_DOUBAO_BASE_URL ||
   "https://ark.cn-beijing.volces.com/api/v3";
 
-const AI_MODEL_STORAGE_KEY = "math79_ai_model";
-export const DEFAULT_AI_MODEL_ID: AiModelId = "glm47";
+export const EXERCISE_MODEL_ID: AiModelId = "glm47";
+export const TUTOR_MODEL_ID: AiModelId = "doubao";
 
 const AI_MODEL_CONFIGS: Record<AiModelId, AiModelConfig> = {
   glm47: {
@@ -38,44 +38,19 @@ const AI_MODEL_CONFIGS: Record<AiModelId, AiModelConfig> = {
   },
 };
 
-function getModelStorage(): Storage | null {
-  try {
-    return typeof window !== "undefined" ? window.localStorage : null;
-  } catch {
-    return null;
-  }
+function getModelConfig(modelId: AiModelId = TUTOR_MODEL_ID): AiModelConfig {
+  return AI_MODEL_CONFIGS[modelId];
 }
-
-export function getActiveAiModelId(): AiModelId {
-  const storage = getModelStorage();
-  const stored = storage?.getItem(AI_MODEL_STORAGE_KEY);
-  if (stored === "glm47" || stored === "doubao") return stored;
-  return DEFAULT_AI_MODEL_ID;
-}
-
-export function setActiveAiModelId(modelId: AiModelId) {
-  const storage = getModelStorage();
-  if (!storage) return;
-  storage.setItem(AI_MODEL_STORAGE_KEY, modelId);
-}
-
-export function getActiveAiModelConfig(): AiModelConfig {
-  return AI_MODEL_CONFIGS[getActiveAiModelId()];
-}
-
-export const AI_MODEL_OPTIONS: Array<Pick<AiModelConfig, "id" | "label">> = [
-  { id: "glm47", label: "GLM 4.7" },
-  { id: "doubao", label: "豆包" },
-];
 
 async function safeGenerate(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
   jsonMode = false,
   maxTokens = 800,
-  temperature = 0.7
+  temperature = 0.7,
+  modelId: AiModelId = TUTOR_MODEL_ID
 ): Promise<string> {
   try {
-    const modelConfig = getActiveAiModelConfig();
+    const modelConfig = getModelConfig(modelId);
     if (!modelConfig.apiKey) {
       throw new Error(`${modelConfig.label} API key is missing`);
     }
@@ -321,7 +296,8 @@ async function analyzeDiagramPolicy(
   conceptDesc: string,
   grade: Grade,
   difficulty: Difficulty,
-  lang: Language
+  lang: Language,
+  modelId: AiModelId = EXERCISE_MODEL_ID
 ): Promise<{ policy: string; reason: string; selfCheck: string; selfCheckOk: boolean; confidence: number }> {
   const system = `You are classifying whether a math exercise should include a diagram.
 
@@ -358,7 +334,8 @@ Decision guidance:
     ],
     true,
     384,
-    0.1
+    0.1,
+    modelId
   );
 
   try {
@@ -448,7 +425,8 @@ async function repairExerciseOutput(
   lang: Language,
   issueList: string[],
   count: number,
-  diagramPolicy: string
+  diagramPolicy: string,
+  modelId: AiModelId = EXERCISE_MODEL_ID
 ): Promise<string> {
   const enforcedDiagramPolicy = issueList.includes("missing_diagram_block") ? "must_draw" : diagramPolicy;
   const system = `You are repairing AI-generated middle-school math exercises.
@@ -501,7 +479,9 @@ Rules:
       { role: "user", content: user },
     ],
     false,
-    1600
+    1600,
+    0.7,
+    modelId
   );
 
   let repairedText = limitGeneratedExercises(sanitizeMath(repaired || rawText), count);
@@ -521,7 +501,9 @@ Rules:
         { role: "user", content: `${user}\n\nRemaining issues after repair: ${remainingIssues.join(", ")}` },
       ],
       false,
-      1600
+      1600,
+      0.7,
+      modelId
     );
     repairedText = limitGeneratedExercises(sanitizeMath(secondRepair || repairedText), count);
     repairedText = maskQuestionAnswerLeaks({
@@ -927,7 +909,7 @@ export async function startFeynmanSession(
   return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
-  ], false, 400);
+  ], false, 400, 0.7, TUTOR_MODEL_ID);
 }
 
 export async function guideExercise(
@@ -963,7 +945,7 @@ ${buildLanguageLock(lang)}
   return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
-  ], false, 500);
+  ], false, 500, 0.7, TUTOR_MODEL_ID);
 }
 
 export async function guideExerciseStep(
@@ -1002,7 +984,7 @@ RULES:
     messages.push({ role: "user", content: reminder });
   }
 
-  return await safeGenerate(messages, false, 500);
+  return await safeGenerate(messages, false, 500, 0.7, TUTOR_MODEL_ID);
 }
 
 const PROBLEM_TYPE_POOLS: Record<string, string[]> = {
@@ -1221,11 +1203,10 @@ export async function generateExercises(
   curriculum: Curriculum | null = null
 ) {
   const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
-  const activeModelId = getActiveAiModelId();
-  const modelProfile = buildExerciseModelProfile(activeModelId, difficulty, lang);
+  const modelProfile = buildExerciseModelProfile(EXERCISE_MODEL_ID, difficulty, lang);
   const system = SYSTEM_PROMPT_BASE + curriculumInstr + modelProfile.system;
   const ruleDiagramPolicy = classifyDiagramNeed({ conceptTitle, conceptDesc });
-  const semanticDiagramPolicy = await analyzeDiagramPolicy(conceptTitle, conceptDesc, grade, difficulty, lang);
+  const semanticDiagramPolicy = await analyzeDiagramPolicy(conceptTitle, conceptDesc, grade, difficulty, lang, EXERCISE_MODEL_ID);
   const diagramPolicy = reconcileDiagramPolicy(
     ruleDiagramPolicy,
     semanticDiagramPolicy.policy,
@@ -1290,7 +1271,7 @@ export async function generateExercises(
   const raw = await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
-  ], false, 2048, 0.95);
+  ], false, 2048, 0.95, EXERCISE_MODEL_ID);
 
   writeRecentExerciseTypes(historyKey, pickedTypes);
 
@@ -1321,7 +1302,8 @@ export async function generateExercises(
       lang,
       issues,
       count,
-      repairDiagramPolicy
+      repairDiagramPolicy,
+      EXERCISE_MODEL_ID
     );
     return diagramPolicy === "must_not_draw"
       ? limitGeneratedExercises(stripDiagramArtifacts(normalizeMarkdownTables(repaired)), count)
@@ -1358,7 +1340,7 @@ $$独立公式$$
   return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: exercises },
-  ], false, 2048);
+  ], false, 2048, 0.7, TUTOR_MODEL_ID);
 }
 
 export async function identifyTopic(query: string, lang: Language) {
@@ -1378,7 +1360,10 @@ export async function identifyTopic(query: string, lang: Language) {
 
   const text = await safeGenerate(
     [{ role: "system", content: systemMsg }, { role: "user", content: userMsg }],
-    true
+    true,
+    800,
+    0.2,
+    TUTOR_MODEL_ID
   );
 
   try {
@@ -1416,6 +1401,6 @@ export async function chatStep(
     messages.push({ role: "user", content: langReminder });
   }
 
-  return await safeGenerate(messages, false, 600);
+  return await safeGenerate(messages, false, 600, 0.7, TUTOR_MODEL_ID);
 }
 
