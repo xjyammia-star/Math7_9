@@ -2024,12 +2024,11 @@ interface MathDiagramProps {
 
 const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
   let parsed = rawData;
-  const fallbackMsg = "图形信息不足，系统正在自动重新生成。";
 
   // If it arrived as a string, try to parse JSON
   if (typeof parsed === 'string') {
     try { parsed = JSON.parse(parsed); } catch {
-      return <DiagramError msg={fallbackMsg} />;
+      return <SilentDiagramFallback />;
     }
   }
 
@@ -2041,7 +2040,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
   let content: React.ReactNode;
   try {
     if (validationError) {
-      content = <DiagramError msg={humanizeDiagramValidationError(validationError)} />;
+      content = <SilentDiagramFallback />;
     } else switch (template) {
       case 'right_triangle':      content = <RightTriangle data={parsed} />; break;
       case 'triangle':            content = <Triangle data={parsed} />; break;
@@ -2067,10 +2066,10 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'coordinate_points':   content = <CoordinatePoints data={parsed} />; break;
       case 'similar_triangles':   content = <SimilarTriangles data={parsed} />; break;
       default:
-        content = <DiagramError msg={fallbackMsg} />;
+        content = <SilentDiagramFallback />;
     }
   } catch (e: any) {
-    content = <DiagramError msg={fallbackMsg} />;
+    content = <SilentDiagramFallback />;
   }
 
   return (
@@ -2083,10 +2082,8 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
   );
 };
 
-function DiagramError({ msg }: { msg: string }) {
-  return (
-    <text x={W / 2} y={H / 2} textAnchor="middle" fill="#f59e0b" fontSize={13}>{msg}</text>
-  );
+function SilentDiagramFallback() {
+  return <g aria-hidden="true" />;
 }
 
 export default MathDiagram;

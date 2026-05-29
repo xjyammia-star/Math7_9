@@ -18,6 +18,7 @@
 const EXPLICIT_DRAW_CUES = [
   /(?:如图所示|如图|图中|图示|示意图|展开图|侧面展开图|正视图|俯视图|左视图|主视图|直观图|截面|剖面|坐标系|坐标轴|平面直角坐标系|函数图像|函数图象|图像)/u,
   /(?:补全|构造|描出).{0,8}(?:图|示意图|坐标系|图像|函数图像|函数图象)/u,
+  /(?:as shown|in the figure|in the diagram|draw the figure|sketch the figure|graph|coordinate plane|coordinate axes)/i,
 ];
 
 const GEOMETRIC_OBJECTS = [
@@ -26,10 +27,11 @@ const GEOMETRIC_OBJECTS = [
   /(?:长|宽|高)(?:为|是|约|≈|=)?\s*(?:\d|[A-Za-z])/u,
   /点\s*[A-Za-z]/u,
   /(?:A|B|C|D|E|F|G|H)\s*\([^)]*\)/u,
+  /(?:triangle|quadrilateral|pentagon|hexagon|polygon|circle|sector|arc|angle|segment|line|ray|parallel lines|perpendicular line|trapezoid|parallelogram|rectangle|rhombus|square|cylinder|cone|prism|pyramid|sphere|center|radius|diameter|chord|tangent|inscribed|cyclic|coordinates|coordinate point)/i,
 ];
 
 const RELATION_CUES = [
-  /(?:平行|垂直|相交|全等|相似|中点|距离|面积|周长|体积|弧长|扇形面积|角平分线|中垂线|切线|相切|斜率|截距|坐标|函数图像|函数图象)/u,
+  /(?:平行|垂直|相交|全等|相似|中点|距离|面积|周长|体积|弧长|扇形面积|角平分线|中垂线|切线|相切|斜率|截距|坐标|函数图像|函数图象|intersect|parallel|perpendicular|midpoint|distance|area|perimeter|arc length|sector area|tangent|slope|intercept|coordinate|graph)/i,
 ];
 
 const STRONG_NO_DRAW_CUES = [
@@ -89,11 +91,28 @@ function buildPolicySignals(text) {
   };
 }
 
+function scoreDiagramConfidence(text) {
+  const source = normalizeText(text);
+  if (!source) return 0;
+
+  let score = 0;
+  if (matchesAny(EXPLICIT_DRAW_CUES, source)) score += 3;
+  if (matchesAny(GEOMETRIC_OBJECTS, source)) score += 1;
+  if (matchesAny(RELATION_CUES, source)) score += 1;
+  if (/\b[A-Z]\s*\([^)]*\)/.test(source) || /\b点\s*[A-Za-z]/u.test(source)) score += 1;
+  return score;
+}
+
 export function classifyDiagramNeed({ conceptId = '', conceptTitle = '', conceptDesc = '', prompt = '', requirement = '' } = {}) {
   const text = normalizeText([conceptTitle, conceptDesc, prompt, requirement].filter(Boolean).join(' '));
   if (!text) return 'must_not_draw';
   if (isWhitelistedDiagramConcept(conceptId, conceptTitle)) return 'must_not_draw';
-  if (hasDiagramTriggerKeywords(text)) return 'must_draw';
+
+  const signals = buildPolicySignals(text);
+  const confidence = scoreDiagramConfidence(text);
+  if (signals.noDrawHints && confidence < 3) return 'must_not_draw';
+  if (matchesAny(EXPLICIT_DRAW_CUES, text)) return 'must_draw';
+  if (confidence >= 2) return 'must_draw';
   return 'must_not_draw';
 }
 

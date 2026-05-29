@@ -441,6 +441,7 @@ Rules:
 - Diagram policy for this task: ${enforcedDiagramPolicy}.
 - If diagram policy is must_not_draw, do not include any diagram, figure, math-diagram block, template JSON, or visual payload.
 - If diagram policy is must_draw, include exactly one matching fenced block with the math-diagram template and valid JSON when the problem genuinely depends on a figure, and do not return a text-only fallback.
+- Only include a diagram when the critical geometric roles are explicit in the statement. If any required point, line, relation, or arc side would need to be guessed, prefer no diagram over a guessed diagram.
 - Hard rule: if the question asks for an unknown quantity, that quantity must not appear as a numeric label anywhere in the final diagram JSON. Use "?" or omit it, even if the model previously wrote a number.
 - Hard rule: every numeric angle shown in the diagram, in any template, must come from an explicit angle value stated in the problem text. If the problem says ∠QAB = 62°, do not output 42° or any other number for that angle.
 - Never leave diagram JSON outside a fenced math-diagram block. Raw objects like {"template":"..."} in prose are invalid and must be wrapped or removed.
@@ -510,6 +511,28 @@ Rules:
       modelId
     );
     repairedText = limitGeneratedExercises(sanitizeMath(secondRepair || repairedText), count);
+    repairedText = maskQuestionAnswerLeaks({
+      conceptTitle,
+      conceptDesc,
+      generatedText: repairedText,
+      diagramPolicy,
+    });
+  }
+
+  const finalIssues = detectOutputIssues(repairedText, conceptTitle, conceptDesc, diagramPolicy);
+  const hasDiagramIssues = finalIssues.some((issue) =>
+    issue.includes("diagram") ||
+    issue.includes("template_mismatch") ||
+    issue.includes("semantic_mismatch") ||
+    issue.includes("missing_central_angle_ray") ||
+    issue.includes("circle_diameter_line_mismatch") ||
+    issue.includes("circle_chord_semantic_mismatch")
+  );
+  if (hasDiagramIssues) {
+    repairedText = limitGeneratedExercises(
+      stripDiagramArtifacts(normalizeMarkdownTables(repairedText)),
+      count
+    );
     repairedText = maskQuestionAnswerLeaks({
       conceptTitle,
       conceptDesc,
@@ -1278,6 +1301,7 @@ export async function generateExercises(
     (diagramPolicy === "must_not_draw"
       ? `Hard constraint: do not include any diagram, figure, math-diagram block, template JSON, or visual payload.\n`
         : `Hard constraint: include exactly one valid math-diagram block whenever a clean standard diagram can be drawn from the given information.\n`) +
+    `Hard constraint: only draw a diagram when the critical geometric roles are explicit in the statement. If any required point, line, relation, or arc side would need to be guessed, do not draw a diagram.\n` +
     `Hard constraint: output exactly ${count} exercise(s) and nothing extra.\n` +
     `Formatting rule: if any exercise needs a figure, include a matching fenced math-diagram block and keep all math commands properly wrapped in $...$.\n` +
     `Formatting rule: never use Markdown tables or pipe-separated rows in the question text. If a problem lists coordinates, vertices, or known values, rewrite them as clear sentences or bullet points so they remain readable in this renderer.\n` +
