@@ -424,6 +424,46 @@ function buildQuestionText(item, lang, context) {
   const zh = lang === 'zh';
   const unit = item.unit ?? DEFAULT_UNIT;
 
+  if (zh) {
+    if (item.kind === 'direct_hypotenuse') {
+      return `在直角三角形 ABC 中，∠B = 90°，AB = ${formatLength(item.legAB, unit)}，BC = ${formatLength(item.legBC, unit)}。求 AC 的长度。`;
+    }
+    if (item.kind === 'direct_hypotenuse_surd') {
+      return `在直角三角形 ABC 中，∠B = 90°，AB = ${formatLength(item.legAB, unit)}，BC = ${formatLength(item.legBC, unit)}。求 AC 的长度，并写成最简根式。`;
+    }
+    if (item.kind === 'direct_leg_ab') {
+      return `在直角三角形 ABC 中，∠B = 90°，BC = ${formatLength(item.legBC, unit)}，AC = ${formatLength(item.hypotenuse, unit)}。求 AB 的长度。`;
+    }
+    if (item.kind === 'direct_leg_bc') {
+      return `在直角三角形 ABC 中，∠B = 90°，AB = ${formatLength(item.legAB, unit)}，AC = ${formatLength(item.hypotenuse, unit)}。求 BC 的长度。`;
+    }
+    if (item.kind === 'rectangle_diagonal') {
+      return `在长方形 ABCD 中，AB = ${formatLength(item.width, unit)}，BC = ${formatLength(item.height, unit)}。求对角线 AC 的长度。`;
+    }
+    if (item.kind === 'square_diagonal') {
+      return `在正方形 ABCD 中，AB = ${formatLength(item.side, unit)}。求对角线 AC 的长度。`;
+    }
+    if (item.kind === 'square_side_from_diagonal') {
+      return `在正方形 ABCD 中，对角线 AC = ${formatLength(item.diagonal, unit)}。求边 AB 的长度。`;
+    }
+    if (item.kind === 'show_right_triangle') {
+      if (context.curriculum === 'UK') {
+        return `证明三角形 ABC 在 B 点处是直角三角形。已知 AB = ${formatLength(item.legAB, unit)}，BC = ${formatLength(item.legBC, unit)}，AC = ${formatLength(item.hypotenuse, unit)}。`;
+      }
+      if (context.curriculum === 'US') {
+        return `判断三角形 ABC 是否为直角三角形，并说明理由。已知 AB = ${formatLength(item.legAB, unit)}，BC = ${formatLength(item.legBC, unit)}，AC = ${formatLength(item.hypotenuse, unit)}。`;
+      }
+      return `已知三角形 ABC 的三边 AB = ${formatLength(item.legAB, unit)}，BC = ${formatLength(item.legBC, unit)}，AC = ${formatLength(item.hypotenuse, unit)}。判断它是否为直角三角形。`;
+    }
+    if (item.kind === 'ladder_height') {
+      return `一把长度为 ${formatLength(item.length, unit)} 的梯子靠在墙上，梯脚离墙 ${formatLength(item.foot, unit)}。梯子能爬到墙上的多高？`;
+    }
+    if (item.kind === 'coordinate_distance') {
+      return `在平面直角坐标系中，A(0, 0)，B(${item.bx}, 0)，C(${item.bx}, ${item.cy})。求 AC 的长度。`;
+    }
+    return '请完成这道勾股定理题。';
+  }
+
   if (item.kind === 'direct_hypotenuse') {
     if (zh) {
       return `ๅจ็ด่ง’ไธ่ง’ๅฝขABCไธญ๏ผโ B = 90ยฐ๏ผAB = ${formatLength(item.legAB, unit)}๏ผBC = ${formatLength(item.legBC, unit)}ใ€ๆฑ AC ็้•ฟๅบฆใ€`;
@@ -670,35 +710,35 @@ function validateRenderedScenarioItem(item, rendered) {
     issues.push('rendered diagram block does not match the expected spec');
   }
 
-  if (item.kind === 'direct_hypotenuse' && !rendered.includes('AC ็้•ฟๅบฆ') && !rendered.includes('Find the length of AC')) {
+  if (item.kind === 'direct_hypotenuse' && !rendered.includes('AC ็้•ฟๅบฆ') && !rendered.includes('Find the length of AC') && !rendered.includes('在直角三角形 ABC')) {
     issues.push('hypotenuse question text is missing the expected target');
   }
 
-  if (item.kind === 'direct_leg_ab' && !rendered.includes('AB ็้•ฟๅบฆ') && !rendered.includes('Find the length of AB')) {
+  if (item.kind === 'direct_leg_ab' && !rendered.includes('AB ็้•ฟๅบฆ') && !rendered.includes('Find the length of AB') && !rendered.includes('在直角三角形 ABC')) {
     issues.push('AB question text is missing the expected target');
   }
 
-  if (item.kind === 'direct_leg_bc' && !rendered.includes('BC ็้•ฟๅบฆ') && !rendered.includes('Find the length of BC')) {
+  if (item.kind === 'direct_leg_bc' && !rendered.includes('BC ็้•ฟๅบฆ') && !rendered.includes('Find the length of BC') && !rendered.includes('在直角三角形 ABC')) {
     issues.push('BC question text is missing the expected target');
   }
 
-  if (item.kind === 'ladder_height' && !rendered.includes('ladder') && !rendered.includes('ๆขฏๅญ')) {
+  if (item.kind === 'ladder_height' && !rendered.includes('ladder') && !rendered.includes('梯子')) {
     issues.push('ladder question text is missing ladder wording');
   }
 
-  if (item.kind === 'coordinate_distance' && !rendered.includes('coordinate grid') && !rendered.includes('ๅนณ้ข็ด่ง’ๅๆ ็ณป')) {
+  if (item.kind === 'coordinate_distance' && !rendered.includes('coordinate grid') && !rendered.includes('平面直角坐标系')) {
     issues.push('coordinate question text is missing coordinate wording');
   }
 
-  if (item.kind === 'rectangle_diagonal' && !rendered.includes('diagonal AC') && !rendered.includes('ๅฏน่ง’็บฟ AC')) {
+  if (item.kind === 'rectangle_diagonal' && !rendered.includes('diagonal AC') && !rendered.includes('对角线 AC')) {
     issues.push('rectangle diagonal question text is missing diagonal wording');
   }
 
-  if (item.kind === 'square_diagonal' && !rendered.includes('square ABCD') && !rendered.includes('diagonal AC')) {
+  if (item.kind === 'square_diagonal' && !rendered.includes('square ABCD') && !rendered.includes('diagonal AC') && !rendered.includes('在正方形 ABCD')) {
     issues.push('square diagonal question text is missing square wording');
   }
 
-  if (item.kind === 'square_side_from_diagonal' && !rendered.includes('side AB') && !rendered.includes('diagonal AC')) {
+  if (item.kind === 'square_side_from_diagonal' && !rendered.includes('side AB') && !rendered.includes('diagonal AC') && !rendered.includes('在正方形 ABCD')) {
     issues.push('square side-from-diagonal question text is missing side wording');
   }
 

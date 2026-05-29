@@ -56,6 +56,18 @@ assert.match(cnBatch, /"template":"rectangle_diagonal"/);
 assert.match(cnBatch, /"template":"square_diagonal"/);
 assert.match(cnBatch, /Find the length of AC|diagonal AC/);
 
+const cnZhBatch = buildPythagorasExerciseBatch({
+  count: 1,
+  lang: 'zh',
+  curriculum: 'CN',
+  grade: '8',
+  difficulty: 'Challenge',
+  random: makeSequenceRng([0.11, 0.22, 0.33]),
+  persistHistory: false,
+});
+
+assert.match(cnZhBatch, /在直角三角形 ABC|在长方形 ABCD|在正方形 ABCD/);
+
 const cnRepeatItems = buildPythagorasExerciseItems(3, {
   lang: 'en',
   curriculum: 'CN',
