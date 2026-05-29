@@ -75,6 +75,11 @@ function hasDualTangentChordArcPointsCue(text) {
   return /(?:C\s*在[^。\n]{0,18}(?:劣弧|minor arc)[^。\n]{0,18}AB|D\s*在[^。\n]{0,18}(?:优弧|major arc)[^。\n]{0,18}AB|C\s*在[^。\n]{0,18}(?:优弧|major arc)[^。\n]{0,18}AB|D\s*在[^。\n]{0,18}(?:劣弧|minor arc)[^。\n]{0,18}AB)/i.test(source);
 }
 
+function hasArcTypeCue(text) {
+  const source = String(text ?? "");
+  return /(?:优弧|劣弧|minor arc|major arc|on the minor arc|on the major arc)/i.test(source);
+}
+
 function hasCyclicQuadrilateralExtensionCue(text) {
   const source = String(text ?? "");
   return /(?:\u5ef6\u957f.*CD.*E|CD.*\u5ef6\u957f.*E|\u8fde\u63a5.*AE|connect.*AE|(?:\u2220|angle)\s*ADE)/i.test(source);
@@ -153,6 +158,14 @@ function inferArcTypeCueForPoint(text, point) {
   }
 
   return null;
+}
+
+function hasExpectedArcTypeField(text, data, point, field = 'arc_type') {
+  const source = normalizeText(String(text ?? ""));
+  const expected = inferArcTypeCueForPoint(source, point);
+  if (!expected) return true;
+  const actual = String(data?.[field] ?? data?.c_arc ?? data?.arc ?? '').toLowerCase();
+  return actual.includes(expected);
 }
 
 function hasCircleThreePointsCue(text) {
@@ -662,14 +675,14 @@ export function needsTangentChordRepair({ conceptTitle = "", conceptDesc = "", g
   if (wantsDualArcPoints) {
     if (!data || String(data.template ?? "").trim() !== "circle_tangent_chord_dual_points") return true;
     if (!hasExpectedDualTangentChordLabels(generatedText)) return true;
-    if (expectedCArcType && String(data.arc_type ?? data.c_arc ?? data.arc ?? "").toLowerCase().indexOf(expectedCArcType) === -1) return true;
-    if (expectedDArcType && String(data.d_arc_type ?? data.arc_type_d ?? data.arc2_type ?? "").toLowerCase().indexOf(expectedDArcType) === -1) return true;
+    if (expectedCArcType && !hasExpectedArcTypeField(source, data, 'C', 'arc_type')) return true;
+    if (expectedDArcType && !hasExpectedArcTypeField(source, data, 'D', 'd_arc_type')) return true;
     return false;
   }
 
   if (!data || String(data.template ?? "").trim() !== "circle_chord_tangent") return true;
   if (!hasExpectedTangentChordLabels(generatedText, source)) return true;
-  if (expectedArcType && String(data.arc_type ?? data.c_arc ?? data.arc ?? "").toLowerCase().indexOf(expectedArcType) === -1) return true;
+  if (expectedArcType && !hasExpectedArcTypeField(source, data, 'C')) return true;
   return false;
 }
 
