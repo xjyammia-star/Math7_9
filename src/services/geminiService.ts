@@ -2,6 +2,7 @@ import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../ty
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 import { classifyDiagramNeed, shouldRequireDiagramBlock, stripDiagramArtifacts } from "../utils/diagramPolicy";
 import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleChordRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsLinearIntersectionRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
+import { buildPythagorasExerciseBatch, isPythagorasConcept } from "../utils/pythagorasExerciseTemplates.js";
 import { sanitizeMath } from "../utils/mathUtils";
 import { buildChatCompletionBody } from "../utils/modelRequest";
 
@@ -1252,6 +1253,10 @@ export async function generateExercises(
   curriculum: Curriculum | null = null,
   conceptId: string = ""
 ) {
+  if (isPythagorasConcept(conceptId, conceptTitle, conceptDesc)) {
+    return buildPythagorasExerciseBatch({ count, lang });
+  }
+
   const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
   const modelProfile = buildExerciseModelProfile(EXERCISE_MODEL_ID, difficulty, lang);
   const system = SYSTEM_PROMPT_BASE + curriculumInstr + modelProfile.system;
