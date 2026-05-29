@@ -35,11 +35,12 @@ const cnItems = buildPythagorasExerciseItems(3, {
 });
 
 assert.equal(cnItems.length, 3);
-assert.equal(new Set(cnItems.map((item) => item.id)).size, 3);
+assert.equal(new Set(cnItems.map((item) => item.kind)).size, 3);
 assert.deepEqual(validatePythagorasExerciseItems(cnItems), []);
-assert.ok(cnItems.every((item) => item.diagramTemplate === 'right_triangle'));
+assert.ok(cnItems.some((item) => item.kind === 'rectangle_diagonal'));
+assert.ok(cnItems.some((item) => item.diagramTemplate === 'right_triangle'));
 
-const cnBatchA = buildPythagorasExerciseBatch({
+const cnBatch = buildPythagorasExerciseBatch({
   count: 3,
   lang: 'en',
   curriculum: 'CN',
@@ -49,19 +50,26 @@ const cnBatchA = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-const cnBatchB = buildPythagorasExerciseBatch({
-  count: 3,
+assert.match(cnBatch, /"template":"right_triangle"/);
+assert.match(cnBatch, /"template":"coordinate_points"/);
+assert.match(cnBatch, /Find the length of AC|diagonal AC/);
+
+const cnRepeatItems = buildPythagorasExerciseItems(3, {
   lang: 'en',
   curriculum: 'CN',
   grade: '7',
   difficulty: 'Easy',
   random: makeSequenceRng([0.93, 0.72, 0.54, 0.31, 0.11]),
+  recentVariantKeys: new Set(cnItems.map((item) => item.id)),
   persistHistory: false,
 });
 
-assert.notEqual(cnBatchA, cnBatchB);
-assert.match(cnBatchA, /"template":"right_triangle"/);
-assert.match(cnBatchA, /Find the length of AC/);
+assert.equal(cnRepeatItems.length, 3);
+assert.equal(new Set(cnRepeatItems.map((item) => item.id)).size, 3);
+assert.notDeepEqual(
+  cnRepeatItems.map((item) => item.id).sort(),
+  cnItems.map((item) => item.id).sort()
+);
 
 const ukBatch = buildPythagorasExerciseBatch({
   count: 2,
@@ -73,8 +81,8 @@ const ukBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(ukBatch, /Show that triangle ABC is right-angled at B/);
-assert.match(ukBatch, /"template":"right_triangle"/);
+assert.match(ukBatch, /Show that triangle ABC is right-angled at B|Work out the length of diagonal AC/);
+assert.match(ukBatch, /"template":"(right_triangle|coordinate_points)"/);
 
 const usBatch = buildPythagorasExerciseBatch({
   count: 2,

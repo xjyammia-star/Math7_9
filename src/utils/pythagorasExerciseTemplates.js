@@ -37,6 +37,49 @@ const PYTHAGORAS_SCENARIOS = [
     ],
   },
   {
+    id: 'cn_rectangle_diagonal',
+    curricula: ['CN'],
+    grades: ['7', '8', '9'],
+    difficulties: ['Easy', 'Medium'],
+    kind: 'rectangle_diagonal',
+    diagramTemplate: 'coordinate_points',
+    values: [
+      {
+        variantId: '345',
+        width: 3,
+        height: 4,
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 3, y: 0, label: 'B' },
+          { x: 3, y: 4, label: 'C' },
+          { x: 0, y: 4, label: 'D' },
+        ],
+      },
+      {
+        variantId: '6810',
+        width: 6,
+        height: 8,
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 6, y: 0, label: 'B' },
+          { x: 6, y: 8, label: 'C' },
+          { x: 0, y: 8, label: 'D' },
+        ],
+      },
+      {
+        variantId: '51213',
+        width: 5,
+        height: 12,
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 5, y: 0, label: 'B' },
+          { x: 5, y: 12, label: 'C' },
+          { x: 0, y: 12, label: 'D' },
+        ],
+      },
+    ],
+  },
+  {
     id: 'cn_show_right_triangle',
     curricula: ['CN'],
     grades: ['8', '9'],
@@ -72,6 +115,38 @@ const PYTHAGORAS_SCENARIOS = [
       { variantId: '6810', length: 10, foot: 6, height: 8 },
       { variantId: '51213', length: 13, foot: 5, height: 12 },
       { variantId: '81517', length: 17, foot: 8, height: 15 },
+    ],
+  },
+  {
+    id: 'us_rectangle_diagonal',
+    curricula: ['US'],
+    grades: ['7', '8', '9'],
+    difficulties: ['Easy', 'Medium'],
+    kind: 'rectangle_diagonal',
+    diagramTemplate: 'coordinate_points',
+    values: [
+      {
+        variantId: '6810',
+        width: 6,
+        height: 8,
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 6, y: 0, label: 'B' },
+          { x: 6, y: 8, label: 'C' },
+          { x: 0, y: 8, label: 'D' },
+        ],
+      },
+      {
+        variantId: '81517',
+        width: 8,
+        height: 15,
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 8, y: 0, label: 'B' },
+          { x: 8, y: 15, label: 'C' },
+          { x: 0, y: 15, label: 'D' },
+        ],
+      },
     ],
   },
   {
@@ -118,6 +193,38 @@ const PYTHAGORAS_SCENARIOS = [
     ],
   },
   {
+    id: 'uk_rectangle_diagonal',
+    curricula: ['UK'],
+    grades: ['8', '9'],
+    difficulties: ['Easy', 'Medium', 'Hard'],
+    kind: 'rectangle_diagonal',
+    diagramTemplate: 'coordinate_points',
+    values: [
+      {
+        variantId: '81517',
+        width: 8,
+        height: 15,
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 8, y: 0, label: 'B' },
+          { x: 8, y: 15, label: 'C' },
+          { x: 0, y: 15, label: 'D' },
+        ],
+      },
+      {
+        variantId: '72425',
+        width: 7,
+        height: 24,
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 7, y: 0, label: 'B' },
+          { x: 7, y: 24, label: 'C' },
+          { x: 0, y: 24, label: 'D' },
+        ],
+      },
+    ],
+  },
+  {
     id: 'ib_coordinate_distance',
     curricula: ['IB'],
     grades: ['8', '9'],
@@ -159,9 +266,22 @@ const PYTHAGORAS_SCENARIOS = [
       },
     ],
   },
+  {
+    id: 'ib_show_right_triangle',
+    curricula: ['IB'],
+    grades: ['8', '9'],
+    difficulties: ['Medium', 'Hard'],
+    kind: 'show_right_triangle',
+    diagramTemplate: 'right_triangle',
+    values: [
+      { variantId: '51213', legAB: 5, legBC: 12, hypotenuse: 13 },
+      { variantId: '72425', legAB: 7, legBC: 24, hypotenuse: 25 },
+      { variantId: '81517', legAB: 8, legBC: 15, hypotenuse: 17 },
+    ],
+  },
 ];
 
-const HISTORY_KEY = 'math7-9:pythagoras-variant-history:v3';
+const HISTORY_KEY = 'math7-9:pythagoras-variant-history:v4';
 const DIFFICULTY_ORDER = { Easy: 0, Medium: 1, Hard: 2 };
 const GRADE_ORDER = { '6': 6, '7': 7, '8': 8, '9': 9 };
 const DEFAULT_UNIT = 'cm';
@@ -283,12 +403,24 @@ function pickVariants(variantPool, count, randomSource, recentVariantKeys) {
   const ordered = [...shuffle(fresh, randomSource), ...shuffle(stale, randomSource)];
   const selected = [];
   const usedKeys = new Set();
+  const usedKinds = new Set();
 
   for (const variant of ordered) {
     if (selected.length >= count) break;
     if (usedKeys.has(variant.key)) continue;
+    if (usedKinds.has(variant.scenario.kind)) continue;
     selected.push(variant);
     usedKeys.add(variant.key);
+    usedKinds.add(variant.scenario.kind);
+  }
+
+  if (selected.length < count) {
+    for (const variant of ordered) {
+      if (selected.length >= count) break;
+      if (usedKeys.has(variant.key)) continue;
+      selected.push(variant);
+      usedKeys.add(variant.key);
+    }
   }
 
   return selected.slice(0, count);
@@ -324,6 +456,13 @@ function buildQuestionText(item, lang, context) {
       return `在直角三角形ABC中，∠B = 90°，AB = ${formatLength(item.legAB, unit)}，AC = ${formatLength(item.hypotenuse, unit)}。求 BC 的长度。`;
     }
     return `In right triangle ABC, angle B = 90°, AB = ${formatLength(item.legAB, unit)}, and AC = ${formatLength(item.hypotenuse, unit)}. Find the length of BC.`;
+  }
+
+  if (item.kind === 'rectangle_diagonal') {
+    if (zh) {
+      return `在长方形ABCD中，AB = ${formatLength(item.width, unit)}，BC = ${formatLength(item.height, unit)}。求对角线 AC 的长度。`;
+    }
+    return `In rectangle ABCD, AB = ${formatLength(item.width, unit)} and BC = ${formatLength(item.height, unit)}. Find the length of diagonal AC.`;
   }
 
   if (item.kind === 'show_right_triangle') {
@@ -382,9 +521,9 @@ function buildDiagramSpec(item) {
       axes: true,
       points: item.points.map((point) => ({ ...point })),
       segments: [
-        { from: 'A', to: 'B', label: formatLength(item.ab, item.unit) },
-        { from: 'B', to: 'C', label: formatLength(item.bc, item.unit) },
-        { from: 'A', to: 'C', label: item.kind === 'coordinate_distance' ? '?' : formatLength(item.ac, item.unit) },
+        { from: 'A', to: 'B', label: formatLength(item.ab ?? item.width, item.unit) },
+        { from: 'B', to: 'C', label: formatLength(item.bc ?? item.height, item.unit) },
+        { from: 'A', to: 'C', label: item.kind === 'coordinate_distance' || item.kind === 'rectangle_diagonal' ? '?' : formatLength(item.ac, item.unit) },
       ],
     };
   }
@@ -500,6 +639,10 @@ function validateRenderedScenarioItem(item, rendered) {
 
   if (item.kind === 'coordinate_distance' && !rendered.includes('coordinate grid') && !rendered.includes('平面直角坐标系')) {
     issues.push('coordinate question text is missing coordinate wording');
+  }
+
+  if (item.kind === 'rectangle_diagonal' && !rendered.includes('diagonal AC') && !rendered.includes('对角线 AC')) {
+    issues.push('rectangle diagonal question text is missing diagonal wording');
   }
 
   return issues;
