@@ -1259,7 +1259,7 @@ export async function generateExercises(
   }
 
   if (isPythagorasConcept(conceptId, conceptTitle, conceptDesc)) {
-    return buildPythagorasExerciseBatch({ count, lang });
+    return buildPythagorasExerciseBatch({ count, lang, grade, difficulty, curriculum, persistHistory: true });
   }
 
   const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
