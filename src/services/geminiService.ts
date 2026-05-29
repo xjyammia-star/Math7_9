@@ -2,6 +2,7 @@ import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../ty
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 import { classifyDiagramNeed, shouldRequireDiagramBlock, stripDiagramArtifacts } from "../utils/diagramPolicy";
 import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleChordRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsLinearIntersectionRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
+import { buildAreaPerimeterExerciseBatch, isAreaPerimeterConcept } from "../utils/areaPerimeterExerciseTemplates.js";
 import { buildPythagorasExerciseBatch, isPythagorasConcept } from "../utils/pythagorasExerciseTemplates.js";
 import { sanitizeMath } from "../utils/mathUtils";
 import { buildChatCompletionBody } from "../utils/modelRequest";
@@ -1253,6 +1254,10 @@ export async function generateExercises(
   curriculum: Curriculum | null = null,
   conceptId: string = ""
 ) {
+  if (isAreaPerimeterConcept(conceptId, conceptTitle, conceptDesc)) {
+    return buildAreaPerimeterExerciseBatch({ count, lang });
+  }
+
   if (isPythagorasConcept(conceptId, conceptTitle, conceptDesc)) {
     return buildPythagorasExerciseBatch({ count, lang });
   }
