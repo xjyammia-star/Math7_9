@@ -1,4 +1,4 @@
-const PYTHAGORAS_SCENARIOS = [
+﻿const PYTHAGORAS_SCENARIOS = [
   {
     id: 'cn_direct_hypotenuse',
     curricula: ['CN'],
@@ -42,41 +42,37 @@ const PYTHAGORAS_SCENARIOS = [
     grades: ['7', '8', '9'],
     difficulties: ['Easy', 'Medium'],
     kind: 'rectangle_diagonal',
-    diagramTemplate: 'coordinate_points',
+    diagramTemplate: 'rectangle_diagonal',
     values: [
-      {
-        variantId: '345',
-        width: 3,
-        height: 4,
-        points: [
-          { x: 0, y: 0, label: 'A' },
-          { x: 3, y: 0, label: 'B' },
-          { x: 3, y: 4, label: 'C' },
-          { x: 0, y: 4, label: 'D' },
-        ],
-      },
-      {
-        variantId: '6810',
-        width: 6,
-        height: 8,
-        points: [
-          { x: 0, y: 0, label: 'A' },
-          { x: 6, y: 0, label: 'B' },
-          { x: 6, y: 8, label: 'C' },
-          { x: 0, y: 8, label: 'D' },
-        ],
-      },
-      {
-        variantId: '51213',
-        width: 5,
-        height: 12,
-        points: [
-          { x: 0, y: 0, label: 'A' },
-          { x: 5, y: 0, label: 'B' },
-          { x: 5, y: 12, label: 'C' },
-          { x: 0, y: 12, label: 'D' },
-        ],
-      },
+      { variantId: '345', width: 3, height: 4 },
+      { variantId: '6810', width: 6, height: 8 },
+      { variantId: '51213', width: 5, height: 12 },
+    ],
+  },
+  {
+    id: 'cn_square_diagonal',
+    curricula: ['CN'],
+    grades: ['7', '8'],
+    difficulties: ['Easy', 'Medium'],
+    kind: 'square_diagonal',
+    diagramTemplate: 'square_diagonal',
+    values: [
+      { variantId: '4root2', side: 4, diagonal: 4 * Math.SQRT2 },
+      { variantId: '6root2', side: 6, diagonal: 6 * Math.SQRT2 },
+      { variantId: '8root2', side: 8, diagonal: 8 * Math.SQRT2 },
+    ],
+  },
+  {
+    id: 'cn_square_side_from_diagonal',
+    curricula: ['CN'],
+    grades: ['8', '9'],
+    difficulties: ['Medium', 'Hard'],
+    kind: 'square_side_from_diagonal',
+    diagramTemplate: 'square_diagonal',
+    values: [
+      { variantId: '5root2', side: 5, diagonal: 5 * Math.SQRT2 },
+      { variantId: '12root2', side: 12, diagonal: 12 * Math.SQRT2 },
+      { variantId: '13root2', side: 13, diagonal: 13 * Math.SQRT2 },
     ],
   },
   {
@@ -123,30 +119,23 @@ const PYTHAGORAS_SCENARIOS = [
     grades: ['7', '8', '9'],
     difficulties: ['Easy', 'Medium'],
     kind: 'rectangle_diagonal',
-    diagramTemplate: 'coordinate_points',
+    diagramTemplate: 'rectangle_diagonal',
     values: [
-      {
-        variantId: '6810',
-        width: 6,
-        height: 8,
-        points: [
-          { x: 0, y: 0, label: 'A' },
-          { x: 6, y: 0, label: 'B' },
-          { x: 6, y: 8, label: 'C' },
-          { x: 0, y: 8, label: 'D' },
-        ],
-      },
-      {
-        variantId: '81517',
-        width: 8,
-        height: 15,
-        points: [
-          { x: 0, y: 0, label: 'A' },
-          { x: 8, y: 0, label: 'B' },
-          { x: 8, y: 15, label: 'C' },
-          { x: 0, y: 15, label: 'D' },
-        ],
-      },
+      { variantId: '6810', width: 6, height: 8 },
+      { variantId: '81517', width: 8, height: 15 },
+    ],
+  },
+  {
+    id: 'us_square_diagonal',
+    curricula: ['US'],
+    grades: ['7', '8'],
+    difficulties: ['Easy', 'Medium'],
+    kind: 'square_diagonal',
+    diagramTemplate: 'square_diagonal',
+    values: [
+      { variantId: '5root2', side: 5, diagonal: 5 * Math.SQRT2 },
+      { variantId: '7root2', side: 7, diagonal: 7 * Math.SQRT2 },
+      { variantId: '9root2', side: 9, diagonal: 9 * Math.SQRT2 },
     ],
   },
   {
@@ -193,35 +182,40 @@ const PYTHAGORAS_SCENARIOS = [
     ],
   },
   {
+    id: 'sg_square_diagonal',
+    curricula: ['SG'],
+    grades: ['7', '8'],
+    difficulties: ['Easy', 'Medium'],
+    kind: 'square_diagonal',
+    diagramTemplate: 'square_diagonal',
+    values: [
+      { variantId: '4root2', side: 4, diagonal: 4 * Math.SQRT2 },
+      { variantId: '6root2', side: 6, diagonal: 6 * Math.SQRT2 },
+      { variantId: '8root2', side: 8, diagonal: 8 * Math.SQRT2 },
+    ],
+  },
+  {
     id: 'uk_rectangle_diagonal',
     curricula: ['UK'],
     grades: ['8', '9'],
     difficulties: ['Easy', 'Medium', 'Hard'],
     kind: 'rectangle_diagonal',
-    diagramTemplate: 'coordinate_points',
+    diagramTemplate: 'rectangle_diagonal',
     values: [
-      {
-        variantId: '81517',
-        width: 8,
-        height: 15,
-        points: [
-          { x: 0, y: 0, label: 'A' },
-          { x: 8, y: 0, label: 'B' },
-          { x: 8, y: 15, label: 'C' },
-          { x: 0, y: 15, label: 'D' },
-        ],
-      },
-      {
-        variantId: '72425',
-        width: 7,
-        height: 24,
-        points: [
-          { x: 0, y: 0, label: 'A' },
-          { x: 7, y: 0, label: 'B' },
-          { x: 7, y: 24, label: 'C' },
-          { x: 0, y: 24, label: 'D' },
-        ],
-      },
+      { variantId: '81517', width: 8, height: 15 },
+      { variantId: '72425', width: 7, height: 24 },
+    ],
+  },
+  {
+    id: 'uk_square_side_from_diagonal',
+    curricula: ['UK'],
+    grades: ['8', '9'],
+    difficulties: ['Medium', 'Hard'],
+    kind: 'square_side_from_diagonal',
+    diagramTemplate: 'square_diagonal',
+    values: [
+      { variantId: '5root2', side: 5, diagonal: 5 * Math.SQRT2 },
+      { variantId: '12root2', side: 12, diagonal: 12 * Math.SQRT2 },
     ],
   },
   {
@@ -432,72 +426,86 @@ function buildQuestionText(item, lang, context) {
 
   if (item.kind === 'direct_hypotenuse') {
     if (zh) {
-      return `在直角三角形ABC中，∠B = 90°，AB = ${formatLength(item.legAB, unit)}，BC = ${formatLength(item.legBC, unit)}。求 AC 的长度。`;
+      return `ๅจ็ด่ง’ไธ่ง’ๅฝขABCไธญ๏ผโ B = 90ยฐ๏ผAB = ${formatLength(item.legAB, unit)}๏ผBC = ${formatLength(item.legBC, unit)}ใ€ๆฑ AC ็้•ฟๅบฆใ€`;
     }
-    return `In right triangle ABC, angle B = 90°, AB = ${formatLength(item.legAB, unit)}, and BC = ${formatLength(item.legBC, unit)}. Find the length of AC.`;
+    return `In right triangle ABC, angle B = 90ยฐ, AB = ${formatLength(item.legAB, unit)}, and BC = ${formatLength(item.legBC, unit)}. Find the length of AC.`;
   }
 
   if (item.kind === 'direct_hypotenuse_surd') {
     if (zh) {
-      return `在直角三角形ABC中，∠B = 90°，AB = ${formatLength(item.legAB, unit)}，BC = ${formatLength(item.legBC, unit)}。求 AC 的长度，并用最简根式表示。`;
+      return `ๅจ็ด่ง’ไธ่ง’ๅฝขABCไธญ๏ผโ B = 90ยฐ๏ผAB = ${formatLength(item.legAB, unit)}๏ผBC = ${formatLength(item.legBC, unit)}ใ€ๆฑ AC ็้•ฟๅบฆ๏ผๅนถ็”จๆ€็ฎ€ๆ นๅผ่กจ็คบใ€`;
     }
-    return `In right triangle ABC, angle B = 90°, AB = ${formatLength(item.legAB, unit)}, and BC = ${formatLength(item.legBC, unit)}. Find the length of AC in simplest surd form.`;
+    return `In right triangle ABC, angle B = 90ยฐ, AB = ${formatLength(item.legAB, unit)}, and BC = ${formatLength(item.legBC, unit)}. Find the length of AC in simplest surd form.`;
   }
 
   if (item.kind === 'direct_leg_ab') {
     if (zh) {
-      return `在直角三角形ABC中，∠B = 90°，BC = ${formatLength(item.legBC, unit)}，AC = ${formatLength(item.hypotenuse, unit)}。求 AB 的长度。`;
+      return `ๅจ็ด่ง’ไธ่ง’ๅฝขABCไธญ๏ผโ B = 90ยฐ๏ผBC = ${formatLength(item.legBC, unit)}๏ผAC = ${formatLength(item.hypotenuse, unit)}ใ€ๆฑ AB ็้•ฟๅบฆใ€`;
     }
-    return `In right triangle ABC, angle B = 90°, BC = ${formatLength(item.legBC, unit)}, and AC = ${formatLength(item.hypotenuse, unit)}. Find the length of AB.`;
+    return `In right triangle ABC, angle B = 90ยฐ, BC = ${formatLength(item.legBC, unit)}, and AC = ${formatLength(item.hypotenuse, unit)}. Find the length of AB.`;
   }
 
   if (item.kind === 'direct_leg_bc') {
     if (zh) {
-      return `在直角三角形ABC中，∠B = 90°，AB = ${formatLength(item.legAB, unit)}，AC = ${formatLength(item.hypotenuse, unit)}。求 BC 的长度。`;
+      return `ๅจ็ด่ง’ไธ่ง’ๅฝขABCไธญ๏ผโ B = 90ยฐ๏ผAB = ${formatLength(item.legAB, unit)}๏ผAC = ${formatLength(item.hypotenuse, unit)}ใ€ๆฑ BC ็้•ฟๅบฆใ€`;
     }
-    return `In right triangle ABC, angle B = 90°, AB = ${formatLength(item.legAB, unit)}, and AC = ${formatLength(item.hypotenuse, unit)}. Find the length of BC.`;
+    return `In right triangle ABC, angle B = 90ยฐ, AB = ${formatLength(item.legAB, unit)}, and AC = ${formatLength(item.hypotenuse, unit)}. Find the length of BC.`;
   }
 
   if (item.kind === 'rectangle_diagonal') {
     if (zh) {
-      return `在长方形ABCD中，AB = ${formatLength(item.width, unit)}，BC = ${formatLength(item.height, unit)}。求对角线 AC 的长度。`;
+      return `ๅจ้•ฟๆ–นๅฝขABCDไธญ๏ผAB = ${formatLength(item.width, unit)}๏ผBC = ${formatLength(item.height, unit)}ใ€ๆฑๅฏน่ง’็บฟ AC ็้•ฟๅบฆใ€`;
     }
     return `In rectangle ABCD, AB = ${formatLength(item.width, unit)} and BC = ${formatLength(item.height, unit)}. Find the length of diagonal AC.`;
+  }
+
+  if (item.kind === 'square_diagonal') {
+    if (zh) {
+      return `เน…ยเธเนโ€ขเธเนโ€“เธเน…เธเธABCDเนเธเธเนเธยเน…ยยเน…เธ—เธ AB = ${formatLength(item.side, unit)}เนโฌยเน…เธเธเนเธโ€เนเธเธ AC เนยยเนโ€ขเธเน…เธเธเนโฌย`;
+    }
+    return `In square ABCD, AB = ${formatLength(item.side, unit)}. Find the length of diagonal AC.`;
+  }
+
+  if (item.kind === 'square_side_from_diagonal') {
+    if (zh) {
+      return `เน…ยเธเนโ€ขเธเนโ€“เธเน…เธเธABCDเนเธเธเนเธยเน…เธ—ยเนเธย AC = ${formatLength(item.diagonal, unit)}เนโฌยเน…เธเธเนเธโ€เน…ยยเน…เธ—เธ AB เนยยเนโ€ขเธเน…เธเธเนโฌย`;
+    }
+    return `In square ABCD, diagonal AC = ${formatLength(item.diagonal, unit)}. Find the length of side AB.`;
   }
 
   if (item.kind === 'show_right_triangle') {
     if (context.curriculum === 'UK') {
       return zh
-        ? `证明三角形ABC在 B 点是直角三角形。已知 AB = ${formatLength(item.legAB, unit)}，BC = ${formatLength(item.legBC, unit)}，AC = ${formatLength(item.hypotenuse, unit)}。`
+        ? `่ฏๆไธ่ง’ๅฝขABCๅจ B ็นๆฏ็ด่ง’ไธ่ง’ๅฝขใ€ๅทฒ็ฅ AB = ${formatLength(item.legAB, unit)}๏ผBC = ${formatLength(item.legBC, unit)}๏ผAC = ${formatLength(item.hypotenuse, unit)}ใ€`
         : `Show that triangle ABC is right-angled at B. Given AB = ${formatLength(item.legAB, unit)}, BC = ${formatLength(item.legBC, unit)}, and AC = ${formatLength(item.hypotenuse, unit)}.`;
     }
 
     if (context.curriculum === 'US') {
       return zh
-        ? `判断三角形ABC是否为直角三角形，并说明理由。已知 AB = ${formatLength(item.legAB, unit)}，BC = ${formatLength(item.legBC, unit)}，AC = ${formatLength(item.hypotenuse, unit)}。`
+        ? `ๅคๆ–ญไธ่ง’ๅฝขABCๆฏๅฆไธบ็ด่ง’ไธ่ง’ๅฝข๏ผๅนถ่ฏดๆ็็”ฑใ€ๅทฒ็ฅ AB = ${formatLength(item.legAB, unit)}๏ผBC = ${formatLength(item.legBC, unit)}๏ผAC = ${formatLength(item.hypotenuse, unit)}ใ€`
         : `Decide whether triangle ABC is a right triangle, and explain your reasoning. Given AB = ${formatLength(item.legAB, unit)}, BC = ${formatLength(item.legBC, unit)}, and AC = ${formatLength(item.hypotenuse, unit)}.`;
     }
 
     return zh
-      ? `已知三角形ABC的三边分别为 AB = ${formatLength(item.legAB, unit)}，BC = ${formatLength(item.legBC, unit)}，AC = ${formatLength(item.hypotenuse, unit)}。判断它是否为直角三角形。`
+      ? `ๅทฒ็ฅไธ่ง’ๅฝขABC็ไธ่พนๅๅซไธบ AB = ${formatLength(item.legAB, unit)}๏ผBC = ${formatLength(item.legBC, unit)}๏ผAC = ${formatLength(item.hypotenuse, unit)}ใ€ๅคๆ–ญๅฎๆฏๅฆไธบ็ด่ง’ไธ่ง’ๅฝขใ€`
       : `Given triangle ABC with AB = ${formatLength(item.legAB, unit)}, BC = ${formatLength(item.legBC, unit)}, and AC = ${formatLength(item.hypotenuse, unit)}, determine whether it is a right triangle.`;
   }
 
   if (item.kind === 'ladder_height') {
     if (zh) {
-      return `一把长度为 ${formatLength(item.length, unit)} 的梯子靠在墙上，梯脚离墙 ${formatLength(item.foot, unit)}。梯子顶端到地面的高度是多少？`;
+      return `ไธ€ๆ้•ฟๅบฆไธบ ${formatLength(item.length, unit)} ็ๆขฏๅญ้ ๅจๅขไธ๏ผๆขฏ่็ฆปๅข ${formatLength(item.foot, unit)}ใ€ๆขฏๅญ้กถ็ซฏๅฐๅฐ้ข็้ซๅบฆๆฏๅคๅฐ‘๏ผ`;
     }
     return `A ladder of length ${formatLength(item.length, unit)} leans against a wall. The foot of the ladder is ${formatLength(item.foot, unit)} from the wall. How high up the wall does it reach?`;
   }
 
   if (item.kind === 'coordinate_distance') {
     if (zh) {
-      return `在平面直角坐标系中，A(0, 0)，B(${item.bx}, 0)，C(${item.bx}, ${item.cy})。求 AC 的长度。`;
+      return `ๅจๅนณ้ข็ด่ง’ๅๆ ็ณปไธญ๏ผA(0, 0)๏ผB(${item.bx}, 0)๏ผC(${item.bx}, ${item.cy})ใ€ๆฑ AC ็้•ฟๅบฆใ€`;
     }
     return `On a coordinate grid, A(0, 0), B(${item.bx}, 0), and C(${item.bx}, ${item.cy}) are plotted. Find the length of AC.`;
   }
 
-  return zh ? '请解答这个勾股定理题。' : 'Solve this Pythagorean theorem question.';
+  return zh ? '่ฏท่งฃ็ญ”่ฟไธชๅพ่กๅฎ็้ขใ€' : 'Solve this Pythagorean theorem question.';
 }
 
 function buildDiagramSpec(item) {
@@ -512,6 +520,31 @@ function buildDiagramSpec(item) {
       label_top: 'A',
       label_foot_pt: 'B',
       label_corner: 'O',
+    };
+  }
+
+  if (item.diagramTemplate === 'rectangle_diagonal') {
+    return {
+      template: 'rectangle_diagonal',
+      width: item.width,
+      height: item.height,
+      labels: { A: 'A', B: 'B', C: 'C', D: 'D' },
+      label_AB: formatLength(item.width, item.unit),
+      label_BC: formatLength(item.height, item.unit),
+      label_AC: '?',
+    };
+  }
+
+  if (item.diagramTemplate === 'square_diagonal') {
+    return {
+      template: 'square_diagonal',
+      side: item.side,
+      width: item.side,
+      height: item.side,
+      labels: { A: 'A', B: 'B', C: 'C', D: 'D' },
+      label_AB: item.kind === 'square_side_from_diagonal' ? '?' : formatLength(item.side, item.unit),
+      label_BC: formatLength(item.side, item.unit),
+      label_AC: item.kind === 'square_side_from_diagonal' ? formatLength(item.diagonal, item.unit) : '?',
     };
   }
 
@@ -591,6 +624,22 @@ function validateScenarioItem(item) {
     }
   }
 
+  if (item.diagramTemplate === 'rectangle_diagonal') {
+    if (!isFinitePositiveNumber(item.width)) issues.push('width must be a positive finite number');
+    if (!isFinitePositiveNumber(item.height)) issues.push('height must be a positive finite number');
+  }
+
+  if (item.diagramTemplate === 'square_diagonal') {
+    if (!isFinitePositiveNumber(item.side)) issues.push('side must be a positive finite number');
+    if (!isFinitePositiveNumber(item.diagonal)) issues.push('diagonal must be a positive finite number');
+    if (issues.length === 0) {
+      const expected = item.side * Math.SQRT2;
+      if (Math.abs(expected - item.diagonal) > 1e-9) {
+        issues.push('square values do not satisfy the Pythagorean theorem');
+      }
+    }
+  }
+
   if (item.diagramTemplate === 'coordinate_points') {
     if (!Array.isArray(item.points) || item.points.length < 3) {
       issues.push('coordinate_points requires three points');
@@ -621,28 +670,36 @@ function validateRenderedScenarioItem(item, rendered) {
     issues.push('rendered diagram block does not match the expected spec');
   }
 
-  if (item.kind === 'direct_hypotenuse' && !rendered.includes('AC 的长度') && !rendered.includes('Find the length of AC')) {
+  if (item.kind === 'direct_hypotenuse' && !rendered.includes('AC ็้•ฟๅบฆ') && !rendered.includes('Find the length of AC')) {
     issues.push('hypotenuse question text is missing the expected target');
   }
 
-  if (item.kind === 'direct_leg_ab' && !rendered.includes('AB 的长度') && !rendered.includes('Find the length of AB')) {
+  if (item.kind === 'direct_leg_ab' && !rendered.includes('AB ็้•ฟๅบฆ') && !rendered.includes('Find the length of AB')) {
     issues.push('AB question text is missing the expected target');
   }
 
-  if (item.kind === 'direct_leg_bc' && !rendered.includes('BC 的长度') && !rendered.includes('Find the length of BC')) {
+  if (item.kind === 'direct_leg_bc' && !rendered.includes('BC ็้•ฟๅบฆ') && !rendered.includes('Find the length of BC')) {
     issues.push('BC question text is missing the expected target');
   }
 
-  if (item.kind === 'ladder_height' && !rendered.includes('ladder') && !rendered.includes('梯子')) {
+  if (item.kind === 'ladder_height' && !rendered.includes('ladder') && !rendered.includes('ๆขฏๅญ')) {
     issues.push('ladder question text is missing ladder wording');
   }
 
-  if (item.kind === 'coordinate_distance' && !rendered.includes('coordinate grid') && !rendered.includes('平面直角坐标系')) {
+  if (item.kind === 'coordinate_distance' && !rendered.includes('coordinate grid') && !rendered.includes('ๅนณ้ข็ด่ง’ๅๆ ็ณป')) {
     issues.push('coordinate question text is missing coordinate wording');
   }
 
-  if (item.kind === 'rectangle_diagonal' && !rendered.includes('diagonal AC') && !rendered.includes('对角线 AC')) {
+  if (item.kind === 'rectangle_diagonal' && !rendered.includes('diagonal AC') && !rendered.includes('ๅฏน่ง’็บฟ AC')) {
     issues.push('rectangle diagonal question text is missing diagonal wording');
+  }
+
+  if (item.kind === 'square_diagonal' && !rendered.includes('square ABCD') && !rendered.includes('diagonal AC')) {
+    issues.push('square diagonal question text is missing square wording');
+  }
+
+  if (item.kind === 'square_side_from_diagonal' && !rendered.includes('side AB') && !rendered.includes('diagonal AC')) {
+    issues.push('square side-from-diagonal question text is missing side wording');
   }
 
   return issues;
@@ -656,7 +713,7 @@ function renderScenarioItem(item, index, lang, context) {
 
 export function isPythagorasConcept(conceptId = '', conceptTitle = '', conceptDesc = '') {
   const text = `${conceptId} ${conceptTitle} ${conceptDesc}`.toLowerCase();
-  return text.includes('pythagoras') || text.includes('勾股') || text.includes('pythagorean');
+  return text.includes('pythagoras') || text.includes('ๅพ่ก') || text.includes('pythagorean');
 }
 
 export function buildPythagorasExerciseItems(count, options = {}) {
@@ -710,6 +767,16 @@ export function buildPythagorasExerciseItems(count, options = {}) {
       item.ac = Math.hypot(points[2].x - points[0].x, points[2].y - points[0].y);
     }
 
+    if (item.diagramTemplate === 'rectangle_diagonal') {
+      item.diagonal = Math.hypot(item.width, item.height);
+    }
+
+    if (item.diagramTemplate === 'square_diagonal') {
+      item.width = item.side;
+      item.height = item.side;
+      item.diagonal = item.diagonal ?? (item.side * Math.SQRT2);
+    }
+
     validateScenarioItem(item).forEach((issue) => {
       if (issue) {
         throw new Error(`Invalid Pythagoras scenario ${item.id}: ${issue}`);
@@ -755,3 +822,6 @@ export function buildPythagorasExerciseBatch(options = {}) {
 
   return rendered.join('\n\n');
 }
+
+
+

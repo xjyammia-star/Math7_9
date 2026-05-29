@@ -373,6 +373,20 @@ function validateDiagramData(template: string, data: any): string | null {
     }
     case 'rectangle':
       return asFiniteNumber(data.width ?? data.w) !== null && asFiniteNumber(data.height ?? data.h) !== null ? null : 'rectangle requires width and height';
+    case 'rectangle_diagonal': {
+      const w = asFiniteNumber(data.width ?? data.w);
+      const h = asFiniteNumber(data.height ?? data.h);
+      return w !== null && h !== null && w > 0 && h > 0
+        ? null
+        : 'rectangle_diagonal requires positive width and height';
+    }
+    case 'square_diagonal': {
+      const side = asFiniteNumber(data.side ?? data.width ?? data.w ?? data.height ?? data.h);
+      const diagonal = asFiniteNumber(data.diagonal ?? data.label_AC);
+      return side !== null && side > 0 && (diagonal === null || diagonal > 0)
+        ? null
+        : 'square_diagonal requires a positive side and optional positive diagonal';
+    }
     case 'rectangle_fold': {
       const w = asFiniteNumber(data.width);
       const h = asFiniteNumber(data.height);
@@ -675,8 +689,38 @@ function Rectangle({ data }: { data: any }) {
   );
 }
 
+/** rectangle_diagonal / square_diagonal: rectangle or square with diagonal AC */
+function RectangleDiagonal({ data }: { data: any }) {
+  const w: number = data.width ?? data.w ?? data.side ?? 6;
+  const h: number = data.height ?? data.h ?? data.side ?? 4;
+  const labels: string[] = Array.isArray(data.labels) ? data.labels : [];
+  const lAB: string = data.label_AB ?? String(h);
+  const lBC: string = data.label_BC ?? String(w);
+  const lAC: string = data.label_AC ?? '?';
+  const pad = Math.max(w, h) * 0.24;
+  const sc = makeScaler(-pad, w + pad, -pad, h + pad);
+  // A=top-left, B=bottom-left, C=bottom-right, D=top-right
+  const A = sc({ x: 0, y: h }), B = sc({ x: 0, y: 0 });
+  const C = sc({ x: w, y: 0 }), D = sc({ x: w, y: h });
+
+  return (
+    <g>
+      <Poly pts={[A, B, C, D]} />
+      <Seg a={A} b={C} stroke={GOLD} sw={2.6} />
+      <RightAngleMark v={B} a={A} b={C} />
+      <Dot p={A} label={explicitLabel(data.label_A ?? labels[0])} offset={{ x: -18, y: -4 }} />
+      <Dot p={B} label={explicitLabel(data.label_B ?? labels[1])} offset={{ x: -18, y: 12 }} />
+      <Dot p={C} label={explicitLabel(data.label_C ?? labels[2])} offset={{ x: 8, y: 12 }} />
+      <Dot p={D} label={explicitLabel(data.label_D ?? labels[3])} offset={{ x: 8, y: -4 }} />
+      {lAB && <SegLabel a={A} b={B} label={lAB} color={GOLD} />}
+      {lBC && <SegLabel a={B} b={C} label={lBC} color={GOLD} />}
+      {lAC && <SegLabel a={A} b={C} label={lAC} color={GOLD} />}
+    </g>
+  );
+}
+
 /**
- * rectangle_fold — rectangle ABCD with a fold.
+ * rectangle_fold – rectangle ABCD with a fold.
  *
  * Coordinate convention (matches most Chinese textbook problems):
  *   A = top-left,  B = top-right,  C = bottom-right,  D = bottom-left
@@ -2045,6 +2089,8 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'right_triangle':      content = <RightTriangle data={parsed} />; break;
       case 'triangle':            content = <Triangle data={parsed} />; break;
       case 'rectangle':           content = <Rectangle data={parsed} />; break;
+      case 'rectangle_diagonal':
+      case 'square_diagonal':     content = <RectangleDiagonal data={parsed} />; break;
       case 'rectangle_fold':      content = <RectangleFold data={parsed} />; break;
       case 'parallelogram':       content = <Parallelogram data={parsed} />; break;
       case 'ladder':              content = <Ladder data={parsed} />; break;

@@ -38,6 +38,7 @@ assert.equal(cnItems.length, 3);
 assert.equal(new Set(cnItems.map((item) => item.kind)).size, 3);
 assert.deepEqual(validatePythagorasExerciseItems(cnItems), []);
 assert.ok(cnItems.some((item) => item.kind === 'rectangle_diagonal'));
+assert.ok(cnItems.some((item) => item.kind === 'square_diagonal'));
 assert.ok(cnItems.some((item) => item.diagramTemplate === 'right_triangle'));
 
 const cnBatch = buildPythagorasExerciseBatch({
@@ -51,7 +52,8 @@ const cnBatch = buildPythagorasExerciseBatch({
 });
 
 assert.match(cnBatch, /"template":"right_triangle"/);
-assert.match(cnBatch, /"template":"coordinate_points"/);
+assert.match(cnBatch, /"template":"rectangle_diagonal"/);
+assert.match(cnBatch, /"template":"square_diagonal"/);
 assert.match(cnBatch, /Find the length of AC|diagonal AC/);
 
 const cnRepeatItems = buildPythagorasExerciseItems(3, {
@@ -82,7 +84,7 @@ const ukBatch = buildPythagorasExerciseBatch({
 });
 
 assert.match(ukBatch, /Show that triangle ABC is right-angled at B|Work out the length of diagonal AC/);
-assert.match(ukBatch, /"template":"(right_triangle|coordinate_points)"/);
+assert.match(ukBatch, /"template":"(right_triangle|rectangle_diagonal)"/);
 
 const usBatch = buildPythagorasExerciseBatch({
   count: 2,
@@ -95,6 +97,7 @@ const usBatch = buildPythagorasExerciseBatch({
 });
 
 assert.match(usBatch, /"template":"ladder"/);
+assert.match(usBatch, /"template":"square_diagonal"/);
 assert.match(usBatch, /How high up the wall does it reach/);
 
 const ibBatch = buildPythagorasExerciseBatch({
