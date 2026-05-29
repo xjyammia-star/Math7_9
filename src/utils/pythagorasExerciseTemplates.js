@@ -276,7 +276,13 @@
 ];
 
 const HISTORY_KEY = 'math7-9:pythagoras-variant-history:v4';
+const KIND_HISTORY_KEY = 'math7-9:pythagoras-kind-history:v1';
 const DIFFICULTY_ORDER = { Easy: 0, Medium: 1, Hard: 2 };
+const DIFFICULTY_KIND_PRIORITY = {
+  Easy: ['direct_hypotenuse', 'rectangle_diagonal', 'square_diagonal', 'ladder_height'],
+  Medium: ['ladder_height', 'direct_leg_ab', 'direct_leg_bc', 'rectangle_diagonal', 'square_diagonal', 'coordinate_distance'],
+  Hard: ['show_right_triangle', 'direct_hypotenuse_surd', 'square_side_from_diagonal', 'coordinate_distance', 'ladder_height', 'direct_leg_bc'],
+};
 const GRADE_ORDER = { '6': 6, '7': 7, '8': 8, '9': 9 };
 const DEFAULT_UNIT = 'cm';
 
@@ -295,7 +301,19 @@ function normalizeGrade(value) {
 
 function normalizeDifficulty(value) {
   const difficulty = toText(value);
-  return DIFFICULTY_ORDER[difficulty] !== undefined ? difficulty : 'Medium';
+  const alias = {
+    challenge: 'Hard',
+    hard: 'Hard',
+    easy: 'Easy',
+    medium: 'Medium',
+    beginner: 'Easy',
+    intermediate: 'Medium',
+    入门: 'Easy',
+    进阶: 'Medium',
+    挑战: 'Hard',
+  };
+  const mapped = alias[difficulty.toLowerCase()] ?? difficulty;
+  return DIFFICULTY_ORDER[mapped] !== undefined ? mapped : 'Medium';
 }
 
 function normalizeCurriculum(value) {
@@ -364,6 +382,23 @@ function shuffle(values, randomSource) {
   return copy;
 }
 
+function orderVariantsByDifficulty(variants, difficulty, randomSource) {
+  const normalizedDifficulty = normalizeDifficulty(difficulty);
+  const priority = DIFFICULTY_KIND_PRIORITY[normalizedDifficulty] ?? [];
+  const priorityIndex = new Map(priority.map((kind, index) => [kind, index]));
+
+  return [...variants]
+    .map((variant) => ({
+      variant,
+      priority: priorityIndex.has(variant.scenario.kind)
+        ? priorityIndex.get(variant.scenario.kind)
+        : priority.length,
+      tieBreaker: rngValue(randomSource),
+    }))
+    .sort((a, b) => a.priority - b.priority || a.tieBreaker - b.tieBreaker)
+    .map(({ variant }) => variant);
+}
+
 function scenarioMatchesContext(scenario, { curriculum, grade, difficulty }) {
   const normalizedCurriculum = normalizeCurriculum(curriculum);
   const normalizedGrade = normalizeGrade(grade);
@@ -399,10 +434,17 @@ function buildVariantPool(scenarios) {
   );
 }
 
-function pickVariants(variantPool, count, randomSource, recentVariantKeys) {
-  const fresh = variantPool.filter((variant) => !recentVariantKeys.has(variant.key));
-  const stale = variantPool.filter((variant) => recentVariantKeys.has(variant.key));
-  const ordered = [...shuffle(fresh, randomSource), ...shuffle(stale, randomSource)];
+function pickVariants(variantPool, count, randomSource, recentVariantKeys, recentKindKeys, difficulty) {
+  const fresh = variantPool.filter(
+    (variant) => !recentVariantKeys.has(variant.key) && !recentKindKeys.has(variant.scenario.kind)
+  );
+  const stale = variantPool.filter(
+    (variant) => recentVariantKeys.has(variant.key) || recentKindKeys.has(variant.scenario.kind)
+  );
+  const ordered = [
+    ...orderVariantsByDifficulty(fresh, difficulty, randomSource),
+    ...orderVariantsByDifficulty(stale, difficulty, randomSource),
+  ];
   const selected = [];
   const usedKeys = new Set();
   const usedKinds = new Set();
@@ -772,6 +814,7 @@ export function buildPythagorasExerciseItems(count, options = {}) {
     difficulty = 'Medium',
     random = Math.random,
     recentVariantKeys = null,
+    recentKindKeys = null,
     persistHistory = true,
   } = options;
 
@@ -783,10 +826,12 @@ export function buildPythagorasExerciseItems(count, options = {}) {
   };
 
   const historyKey = createHistoryKey(context);
+  const kindHistoryKey = KIND_HISTORY_KEY;
   const recentKeys = recentVariantKeys ?? (persistHistory ? new Set(readRecentVariantKeys(historyKey)) : new Set());
+  const recentKinds = recentKindKeys ?? (persistHistory ? new Set(readRecentVariantKeys(kindHistoryKey)) : new Set());
   const candidates = getCandidateScenarios(context);
   const variantPool = buildVariantPool(candidates);
-  const selectedVariants = pickVariants(variantPool, safeCount, random, recentKeys);
+  const selectedVariants = pickVariants(variantPool, safeCount, random, recentKeys, recentKinds, context.difficulty);
 
   const items = selectedVariants.map(({ scenario, valueSet, key }) => {
     const unit = scenario.unit ?? DEFAULT_UNIT;
@@ -836,6 +881,7 @@ export function buildPythagorasExerciseItems(count, options = {}) {
 
   if (persistHistory) {
     writeRecentVariantKeys(historyKey, items.map((item) => item.id));
+    writeRecentVariantKeys(kindHistoryKey, items.map((item) => item.kind));
   }
 
   return items;

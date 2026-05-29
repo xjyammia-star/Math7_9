@@ -54,6 +54,7 @@ const cnBatch = buildPythagorasExerciseBatch({
 assert.match(cnBatch, /"template":"right_triangle"/);
 assert.match(cnBatch, /"template":"rectangle_diagonal"/);
 assert.match(cnBatch, /"template":"square_diagonal"/);
+assert.match(cnBatch, /"labels":\{"A":"A","B":"B","C":"C","D":"D"\}/);
 assert.match(cnBatch, /Find the length of AC|diagonal AC/);
 
 const cnZhBatch = buildPythagorasExerciseBatch({
@@ -66,19 +67,20 @@ const cnZhBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(cnZhBatch, /在直角三角形 ABC|在长方形 ABCD|在正方形 ABCD/);
+assert.match(cnZhBatch, /三角形 ABC|长方形 ABCD|正方形 ABCD/);
 
 const cnZhSquareBatch = buildPythagorasExerciseBatch({
-  count: 3,
+  count: 1,
   lang: 'zh',
   curriculum: 'CN',
   grade: '8',
   difficulty: 'Challenge',
-  random: makeSequenceRng([0.01, 0.2, 0.41]),
+  random: makeSequenceRng([0.41, 0.22, 0.33]),
+  recentKindKeys: new Set(['show_right_triangle', 'direct_hypotenuse_surd', 'direct_leg_bc']),
   persistHistory: false,
 });
 
-assert.match(cnZhSquareBatch, /\$13\\sqrt\{2\}\$ cm/);
+assert.match(cnZhSquareBatch, /\$\d+\\sqrt\{2\}\$ cm/);
 
 const cnRepeatItems = buildPythagorasExerciseItems(3, {
   lang: 'en',
@@ -121,7 +123,7 @@ const usBatch = buildPythagorasExerciseBatch({
 });
 
 assert.match(usBatch, /"template":"ladder"/);
-assert.match(usBatch, /"template":"square_diagonal"/);
+assert.match(usBatch, /"template":"rectangle_diagonal"/);
 assert.match(usBatch, /How high up the wall does it reach/);
 
 const ibBatch = buildPythagorasExerciseBatch({

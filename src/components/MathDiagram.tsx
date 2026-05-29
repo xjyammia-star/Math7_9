@@ -694,7 +694,9 @@ function Rectangle({ data }: { data: any }) {
 function RectangleDiagonal({ data }: { data: any }) {
   const w: number = data.width ?? data.w ?? data.side ?? 6;
   const h: number = data.height ?? data.h ?? data.side ?? 4;
-  const labels: string[] = Array.isArray(data.labels) ? data.labels : [];
+  const labelMap = Array.isArray(data.labels)
+    ? { A: data.labels[0], B: data.labels[1], C: data.labels[2], D: data.labels[3] }
+    : (data.labels ?? {});
   const lAB: string = data.label_AB ?? String(h);
   const lBC: string = data.label_BC ?? String(w);
   const lAC: string = data.label_AC ?? '?';
@@ -709,10 +711,10 @@ function RectangleDiagonal({ data }: { data: any }) {
       <Poly pts={[A, B, C, D]} />
       <Seg a={A} b={C} stroke={GOLD} sw={2.6} />
       <RightAngleMark v={B} a={A} b={C} />
-      <Dot p={A} label={explicitLabel(data.label_A ?? labels[0])} offset={{ x: -18, y: -4 }} />
-      <Dot p={B} label={explicitLabel(data.label_B ?? labels[1])} offset={{ x: -18, y: 12 }} />
-      <Dot p={C} label={explicitLabel(data.label_C ?? labels[2])} offset={{ x: 8, y: 12 }} />
-      <Dot p={D} label={explicitLabel(data.label_D ?? labels[3])} offset={{ x: 8, y: -4 }} />
+      <Dot p={A} label={explicitLabel(data.label_A ?? labelMap.A)} offset={{ x: -18, y: -4 }} />
+      <Dot p={B} label={explicitLabel(data.label_B ?? labelMap.B)} offset={{ x: -18, y: 12 }} />
+      <Dot p={C} label={explicitLabel(data.label_C ?? labelMap.C)} offset={{ x: 8, y: 12 }} />
+      <Dot p={D} label={explicitLabel(data.label_D ?? labelMap.D)} offset={{ x: 8, y: -4 }} />
       {lAB && <SegLabel a={A} b={B} label={lAB} color={GOLD} />}
       {lBC && <SegLabel a={B} b={C} label={lBC} color={GOLD} />}
       {lAC && <SegLabel a={A} b={C} label={lAC} color={GOLD} />}
