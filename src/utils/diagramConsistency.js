@@ -50,6 +50,23 @@ function hasTangentChordCue(text) {
   return /(?:切线|tangent|切点|弦|chord)/i.test(String(text ?? ""));
 }
 
+function extractTangentPointCue(text) {
+  const source = String(text ?? "");
+  const patterns = [
+    /过顶点\s*([A-Z])\s*的切线/i,
+    /过点\s*([A-Z])\s*的切线/i,
+    /点\s*([A-Z])\s*处的切线/i,
+    /tangent at\s*([A-Z])/i,
+    /tangent through point\s*([A-Z])/i,
+    /at point\s*([A-Z])/i,
+  ];
+  for (const pattern of patterns) {
+    const match = source.match(pattern);
+    if (match?.[1]) return match[1].toUpperCase();
+  }
+  return null;
+}
+
 function hasAngleBACCue(text) {
   return /(?:∠\s*BAC|angle\s*BAC|BAC)/i.test(String(text ?? ""));
 }
@@ -108,12 +125,13 @@ function inferNamedArcType(text, point) {
   return null;
 }
 
-function hasExpectedTangentChordLabels(text, source) {
+function hasExpectedTangentChordLabels(text, source, tangentPointCue = null) {
   const generated = String(text ?? "");
   const sourceText = String(source ?? "");
   const needsDArcPoint = hasTangentChordArcPointDCue(sourceText);
+  const expectedTangentPoint = String(tangentPointCue ?? 'A').toUpperCase();
 
-  if (!/"label_A"\s*:\s*"A"/i.test(generated)) return false;
+  if (!new RegExp(`"label_A"\\s*:\\s*"${escapeRegExp(expectedTangentPoint)}"`, 'i').test(generated)) return false;
 
   if (needsDArcPoint) {
     return /"label_(?:C|D)"\s*:\s*"D"/i.test(generated);
@@ -122,9 +140,10 @@ function hasExpectedTangentChordLabels(text, source) {
   return true;
 }
 
-function hasExpectedDualTangentChordLabels(text) {
+function hasExpectedDualTangentChordLabels(text, tangentPointCue = null) {
   const source = String(text ?? "");
-  return /"label_A"\s*:\s*"A"/i.test(source) &&
+  const expectedTangentPoint = String(tangentPointCue ?? 'A').toUpperCase();
+  return new RegExp(`"label_A"\\s*:\\s*"${escapeRegExp(expectedTangentPoint)}"`, 'i').test(source) &&
     /"label_B"\s*:\s*"B"/i.test(source) &&
     /"label_C"\s*:\s*"C"/i.test(source) &&
     /"label_D"\s*:\s*"D"/i.test(source);
@@ -666,22 +685,27 @@ export function needsTangentChordRepair({ conceptTitle = "", conceptDesc = "", g
   if (!hasTangentChordCue(source) || !hasTangentChordAngleCue(source)) return false;
   if (!hasMathDiagramBlock(generatedText)) return false;
 
+  const tangentPointCue = extractTangentPointCue(problemSource);
   const expectedCArcType = inferArcTypeCueForPoint(problemSource, 'C');
   const expectedDArcType = inferArcTypeCueForPoint(problemSource, 'D');
   const expectedArcType = expectedDArcType ?? expectedCArcType;
   const wantsDualArcPoints = hasDualTangentChordArcPointsCue(source);
   const data = extractDiagramBlockJson(generatedText);
 
+  if (tangentPointCue && (!data || String(data.label_A ?? "").toUpperCase() !== tangentPointCue)) {
+    return true;
+  }
+
   if (wantsDualArcPoints) {
     if (!data || String(data.template ?? "").trim() !== "circle_tangent_chord_dual_points") return true;
-    if (!hasExpectedDualTangentChordLabels(generatedText)) return true;
+    if (!hasExpectedDualTangentChordLabels(generatedText, tangentPointCue)) return true;
     if (expectedCArcType && !hasExpectedArcTypeField(source, data, 'C', 'arc_type')) return true;
     if (expectedDArcType && !hasExpectedArcTypeField(source, data, 'D', 'd_arc_type')) return true;
     return false;
   }
 
   if (!data || String(data.template ?? "").trim() !== "circle_chord_tangent") return true;
-  if (!hasExpectedTangentChordLabels(generatedText, source)) return true;
+  if (!hasExpectedTangentChordLabels(generatedText, source, tangentPointCue)) return true;
   if (expectedArcType && !hasExpectedArcTypeField(source, data, 'C')) return true;
   return false;
 }
