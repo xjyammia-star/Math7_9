@@ -29,10 +29,6 @@ function isGenericPointPlaceholder(value) {
   return GENERIC_POINT_PLACEHOLDERS.has(normalized);
 }
 
-function hasCircleDiameterTemplate(text) {
-  return /"template"\s*:\s*"circle_diameter_points"/i.test(String(text ?? ""));
-}
-
 function hasCircleIntersectingChordsCue(text) {
   const source = String(text ?? "");
   return /(?:相交于圆内一点|两弦相交|intersecting chords|AP\s*[:：\/]\s*PB|CP\s*[:：\/]\s*PD|弦AB与CD相交|圆内一点P)/i.test(source);
@@ -48,6 +44,21 @@ function hasAngleCueNeedingBD(text) {
 
 function hasTangentChordCue(text) {
   return /(?:切线|tangent|切点|弦|chord)/i.test(String(text ?? ""));
+}
+
+function hasCircleChordCue(text) {
+  const source = String(text ?? "");
+  return /(?:弦|chord)/i.test(source) && /(?:圆|circle|⊙|O)/i.test(source);
+}
+
+function hasCenterToChordDistanceCue(text) {
+  const source = String(text ?? "");
+  return /(?:圆心.*到弦|弦.*到圆心|center.*to.*chord|distance.*from.*center.*to.*chord|O.*到.*弦|O.*弦.*距离|圆心O.*弦[A-Z]{2}.*距离)/i.test(source);
+}
+
+function hasChordMidpointCue(text) {
+  const source = String(text ?? "");
+  return /(?:中点|midpoint|mid point)/i.test(source);
 }
 
 function extractTangentPointCue(text) {
@@ -326,35 +337,6 @@ function hasAngleFieldValueMismatch(text, source) {
   return false;
 }
 
-function hasMaskedExplicitAngleStatement(text, source, templateName) {
-  const generated = String(text ?? "");
-  const statements = extractExplicitAngleStatements(source);
-  if (statements.length === 0) return false;
-
-  const data = extractDiagramBlockJson(generated);
-  if (!data || typeof data !== "object") return false;
-
-  const template = String(templateName ?? data.template ?? "").trim();
-  if (template !== "circle_cyclic_quadrilateral") return false;
-
-  const labelForVertex = (vertex) => {
-    const key = `label_${vertex}`;
-    return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : undefined;
-  };
-
-  for (const stmt of statements) {
-    const explicitAngleKey = `label_angle_${stmt.name.toLowerCase()}`;
-    if (Object.prototype.hasOwnProperty.call(data, explicitAngleKey)) {
-      const explicitAngleValue = data[explicitAngleKey];
-      if (explicitAngleValue === undefined || explicitAngleValue === null || explicitAngleValue === "?" || !String(explicitAngleValue).match(/\d/)) {
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
 function hasGenericPointLabelLeak(text) {
   const generated = String(text ?? "");
   const data = extractDiagramBlockJson(generated);
@@ -490,6 +472,42 @@ function collectDiagramPointLabels(data) {
   return labels;
 }
 
+function hasDiagramFieldValue(data, key) {
+  if (!data || typeof data !== "object") return false;
+  const target = String(key ?? "").toLowerCase();
+  let found = false;
+
+  const visit = (node) => {
+    if (!node || typeof node !== "object" || found) return;
+    for (const [nodeKey, value] of Object.entries(node)) {
+      if (String(nodeKey).toLowerCase() === target) {
+        if (value !== undefined && value !== null && value !== "") {
+          found = true;
+          return;
+        }
+      }
+      if (value && typeof value === "object") {
+        if (Array.isArray(value)) {
+          for (const item of value) {
+            if (item && typeof item === "object") visit(item);
+            if (found) return;
+          }
+        } else {
+          visit(value);
+        }
+      }
+      if (found) return;
+    }
+  };
+
+  visit(data);
+  return found;
+}
+
+function hasAnyDiagramField(data, keys) {
+  return keys.some((key) => hasDiagramFieldValue(data, key));
+}
+
 function hasNumericAngleValue(text, key) {
   const source = String(text ?? "");
   const patterns = [
@@ -583,11 +601,56 @@ export function needsCircleDiameterRepair({ conceptTitle = "", conceptDesc = "",
   const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
   if (!hasDiameterCue(source) || !hasAngleCueNeedingBD(source)) return false;
   if (!hasMathDiagramBlock(generatedText)) return false;
-  if (!hasCircleDiameterTemplate(generatedText)) return true;
+
+  const data = extractDiagramBlockJson(generatedText);
+  if (!data || typeof data !== "object") return true;
+
+  const expectedPoints = extractExpectedPointNames(source);
+  const actualPoints = collectDiagramPointLabels(data);
+  if (expectedPoints.some((point) => !actualPoints.has(point))) return true;
+  if (hasDiameterCue(source) && !hasAnyDiagramField(data, ["label_ab", "label_diameter", "diameter"])) return true;
+  if (!hasAnyDiagramField(data, ["radius"])) return true;
 
   const askedAngles = extractAskedTargets(source).angles;
   for (const angle of askedAngles) {
-    if (!hasAngleLabelForAngle(generatedText, angle)) return true;
+    const aliases = getAngleAliases(angle);
+    const found = aliases.some((alias) => hasDiagramFieldValue(data, `label_angle_${alias}`) || hasDiagramFieldValue(data, `angle_${alias}`));
+    if (!found) return true;
+  }
+
+  return false;
+}
+
+export function needsCircleChordRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
+  if (diagramPolicy === "must_not_draw") return false;
+
+  const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
+  if (!hasCircleChordCue(source) && !hasCenterToChordDistanceCue(source)) return false;
+  if (hasDiameterCue(source) || hasCircleSectorCue(source) || hasCircleIntersectingChordsCue(source) || hasCircleThreePointsCue(source) || /cyclic quadrilateral|inscribed in a circle|内接四边形/i.test(source) || (hasTangentChordCue(source) && hasTangentChordAngleCue(source))) return false;
+  if (!hasMathDiagramBlock(generatedText)) return false;
+
+  const data = extractDiagramBlockJson(generatedText);
+  if (!data || typeof data !== "object") return true;
+
+  const expectedPoints = extractExpectedPointNames(source);
+  const actualPoints = collectDiagramPointLabels(data);
+  if (expectedPoints.some((point) => !actualPoints.has(point))) return true;
+
+  if (!hasAnyDiagramField(data, ["radius"])) return true;
+  if (!hasAnyDiagramField(data, ["label_chord", "label_ab", "label_ac"])) return true;
+
+  const needsCenterDistance = hasCenterToChordDistanceCue(source);
+  const showPerpendicular = Object.prototype.hasOwnProperty.call(data, "show_perpendicular") ? String(data.show_perpendicular).toLowerCase() !== "false" : false;
+  const hasCenterDistanceMark = hasAnyDiagramField(data, ["label_oc", "show_oc", "label_angle_aoc"]) || showPerpendicular;
+  const usesWaterDepthSemantics = hasAnyDiagramField(data, ["water_depth", "depth", "label_depth", "label_water_depth"]);
+
+  if (needsCenterDistance) {
+    if (!hasCenterDistanceMark) return true;
+    if (usesWaterDepthSemantics && !hasDiagramFieldValue(data, "label_oc")) return true;
+  }
+
+  if (hasChordMidpointCue(source)) {
+    if (!actualPoints.has("C")) return true;
   }
 
   return false;
@@ -599,17 +662,17 @@ export function needsCircleSectorRepair({ conceptTitle = "", conceptDesc = "", g
   const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
   if (!hasCircleSectorCue(source)) return false;
   if (!hasMathDiagramBlock(generatedText)) return false;
-  if (!/"template"\s*:\s*"circle_sector"/i.test(String(generatedText ?? ""))) return true;
+  const data = extractDiagramBlockJson(generatedText);
+  if (!data || typeof data !== "object") return true;
 
-  const rendered = String(generatedText ?? "");
-  const hasRadius = /"(?:radius|outer_radius|radius_outer|label_radius|label_outer_radius|label_radius_outer)"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered);
-  const hasAngle = /"angle"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered) ||
-    /"angle_deg"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered) ||
-    /"label_angle"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered);
-  const hasMinutes = /"(?:minutes|time_minutes|label_minutes)"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered);
-  const hasSectorCount = /"sector_count"\s*:\s*(?!null)(?:-?\d+(?:\.\d+)?|"[^"]+")/i.test(rendered);
+  const hasRadius = hasAnyDiagramField(data, ["radius", "outer_radius", "radius_outer", "label_radius", "label_outer_radius", "label_radius_outer"]);
+  const hasAngle = hasAnyDiagramField(data, ["angle", "angle_deg", "label_angle"]);
+  const hasMinutes = hasAnyDiagramField(data, ["minutes", "time_minutes", "label_minutes"]);
+  const hasSectorCount = hasAnyDiagramField(data, ["sector_count"]);
+  const expectedPoints = extractExpectedPointNames(source);
+  const actualPoints = collectDiagramPointLabels(data);
 
-  return !(hasRadius && (hasAngle || hasMinutes || hasSectorCount));
+  return !(hasRadius && (hasAngle || hasMinutes || hasSectorCount) && expectedPoints.every((point) => actualPoints.has(point)));
 }
 
 export function needsPointLabelRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
@@ -626,8 +689,7 @@ export function needsPointLabelRepair({ conceptTitle = "", conceptDesc = "", gen
   if (!data || typeof data !== "object") return false;
 
   const actualPoints = collectDiagramPointLabels(data);
-  if (expectedPoints.some((point) => !actualPoints.has(point))) return true;
-  return [...actualPoints].some((point) => !expectedPoints.includes(point));
+  return expectedPoints.some((point) => !actualPoints.has(point));
 }
 
 export function needsCircleIntersectingChordsRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
@@ -638,7 +700,7 @@ export function needsCircleIntersectingChordsRepair({ conceptTitle = "", concept
   if (!hasMathDiagramBlock(generatedText)) return false;
 
   const data = extractDiagramBlockJson(generatedText);
-  if (!data || String(data.template ?? "").trim() !== "circle_intersecting_chords") return true;
+  if (!data || typeof data !== "object") return true;
 
   const ap = Number(data.ap ?? data.AP);
   const pb = Number(data.pb ?? data.PB);
@@ -662,7 +724,7 @@ export function needsLinearIntersectionRepair({ conceptTitle = "", conceptDesc =
   if (!hasMathDiagramBlock(generatedText)) return false;
 
   const data = extractDiagramBlockJson(generatedText);
-  if (!data || String(data.template ?? "").trim() !== "linear_function") return true;
+  if (!data || typeof data !== "object") return true;
 
   const hasPrimary = Number.isFinite(Number(data.slope ?? data.k)) &&
     Number.isFinite(Number(data.xmin)) &&
@@ -697,14 +759,14 @@ export function needsTangentChordRepair({ conceptTitle = "", conceptDesc = "", g
   }
 
   if (wantsDualArcPoints) {
-    if (!data || String(data.template ?? "").trim() !== "circle_tangent_chord_dual_points") return true;
+    if (!data || typeof data !== "object") return true;
     if (!hasExpectedDualTangentChordLabels(generatedText, tangentPointCue)) return true;
     if (expectedCArcType && !hasExpectedArcTypeField(source, data, 'C', 'arc_type')) return true;
     if (expectedDArcType && !hasExpectedArcTypeField(source, data, 'D', 'd_arc_type')) return true;
     return false;
   }
 
-  if (!data || String(data.template ?? "").trim() !== "circle_chord_tangent") return true;
+  if (!data || typeof data !== "object") return true;
   if (!hasExpectedTangentChordLabels(generatedText, source, tangentPointCue)) return true;
   if (expectedArcType && !hasExpectedArcTypeField(source, data, 'C')) return true;
   return false;
@@ -777,7 +839,7 @@ export function needsCircleCyclicQuadrilateralRepair({ conceptTitle = "", concep
   if (!hasMathDiagramBlock(generatedText)) return false;
 
   const data = extractDiagramBlockJson(generatedText);
-  if (!data || String(data.template ?? "").trim() !== "circle_cyclic_quadrilateral") return true;
+  if (!data || typeof data !== "object") return true;
 
   const labels = Array.isArray(data.labels) ? data.labels : [];
   if (labels.length < 4 && !(data.label_A && data.label_B && data.label_C && data.label_D)) return true;
@@ -900,54 +962,26 @@ export function needsCentralAngleRayRepair({ conceptTitle = "", conceptDesc = ""
   if (centralAngles.length === 0) return false;
   if (!hasMathDiagramBlock(generatedText)) return false;
 
-  const templateMatch = String(generatedText ?? "").match(/"template"\s*:\s*"([^"]+)"/i);
-  const template = String(templateMatch?.[1] ?? "");
-  const sourceText = String(generatedText ?? "");
-  const hasShowOC = /"show_oc"\s*:\s*true/i.test(sourceText) ||
-    /"show_center_rays"\s*:\s*true/i.test(sourceText) ||
-    /"show_radii"\s*:\s*true/i.test(sourceText) ||
-    /"label_angle_aoc"\s*:/i.test(sourceText) ||
-    /"label_oc"\s*:/i.test(sourceText);
-  const hasShowArcTangent = /"show_arc_tangent"\s*:\s*true/i.test(sourceText) || /"show_tangent_at_C"\s*:\s*true/i.test(sourceText);
-  const hasPerpHidden = /"show_perpendicular"\s*:\s*false/i.test(sourceText);
-  const hasPerpShown = /"show_perpendicular"\s*:\s*true/i.test(sourceText) || !hasPerpHidden;
+  const data = extractDiagramBlockJson(generatedText);
+  if (!data || typeof data !== "object") return true;
+
+  const hasShowOC = hasAnyDiagramField(data, ["show_oc", "show_center_rays", "show_radii", "label_oc"]);
+  const hasShowArcTangent = hasAnyDiagramField(data, ["show_arc_tangent", "show_tangent_at_C"]);
+  const hasPerpShown = hasAnyDiagramField(data, ["show_perpendicular"]) ? String(data.show_perpendicular).toLowerCase() !== "false" : false;
 
   for (const angle of centralAngles) {
     const [, first = "", third = ""] = angle.match(/^([A-Z])O([A-Z])$/i) ?? [];
     const needsC = first === "C" || third === "C";
 
-    if (template === "circle_sector") {
-      continue;
+    if (!hasAnyDiagramField(data, [`label_angle_${angle.toLowerCase()}`, `angle_${angle.toLowerCase()}`])) {
+      return true;
     }
 
-    if (template === "circle_chord") {
-      if (!(hasPerpShown || hasShowOC)) return true;
-      continue;
+    if (first === "D" || third === "D") {
+      return true;
     }
 
-    if (template === "circle_diameter_points") {
-      if ((first === "D" || third === "D")) return true;
-      if (needsC && !hasShowOC) {
-        return true;
-      }
-      continue;
-    }
-
-    if (template === "circle_tangent" || template === "circle_chord_tangent") {
-      if (needsC && !(hasShowOC || hasShowArcTangent)) {
-        return true;
-      }
-      continue;
-    }
-
-    if (template === "circle_cyclic_quadrilateral") {
-      if (!(hasShowOC || /"label_angle_aob"\s*:\s*/i.test(sourceText) || /"label_angle_aoc"\s*:\s*/i.test(sourceText))) {
-        return true;
-      }
-      continue;
-    }
-
-    if (template) {
+    if (needsC && !(hasShowOC || hasShowArcTangent || hasPerpShown)) {
       return true;
     }
   }
@@ -962,8 +996,14 @@ export function needsCircleThreePointsRepair({ conceptTitle = "", conceptDesc = 
   if (!hasCircleThreePointsCue(source)) return false;
   if (!hasMathDiagramBlock(generatedText)) return false;
 
-  const templateMatch = String(generatedText ?? "").match(/"template"\s*:\s*"([^"]+)"/i);
-  const template = String(templateMatch?.[1] ?? "");
-  return template !== "circle_three_points";
+  const data = extractDiagramBlockJson(generatedText);
+  if (!data || typeof data !== "object") return true;
+
+  const labels = Array.isArray(data.labels) ? data.labels : [];
+  const hasABC = labels.length >= 3 || (data.label_A && data.label_B && data.label_C);
+  const sourceMentionsO = /\bO\b|circle\s*O|center\s*O|centre\s*O|圆心O/i.test(source);
+  const hasO = sourceMentionsO ? hasAnyDiagramField(data, ["label_O"]) : true;
+
+  return !(hasABC && hasO);
 }
 

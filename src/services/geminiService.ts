@@ -1,7 +1,7 @@
 import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 import { classifyDiagramNeed, shouldRequireDiagramBlock, stripDiagramArtifacts } from "../utils/diagramPolicy";
-import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsLinearIntersectionRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
+import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleChordRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsLinearIntersectionRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
 import { sanitizeMath } from "../utils/mathUtils";
 import { buildChatCompletionBody } from "../utils/modelRequest";
 
@@ -136,6 +136,9 @@ export function detectOutputIssues(
   if (needsDiagramRepair(text, conceptTitle, conceptDesc, diagramPolicy)) issues.push("missing_diagram_block");
   if (needsCircleDiameterRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("circle_diameter_line_mismatch");
+  }
+  if (needsCircleChordRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
+    issues.push("circle_chord_semantic_mismatch");
   }
   if (needsCircleSectorRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("circle_sector_template_mismatch");
@@ -452,6 +455,7 @@ Rules:
 - For tangent-chord theorem problems with a tangent at A and a chord from A to B, such as ∠PAB or ∠ADB, use template "circle_chord_tangent" instead of "circle_tangent". If the problem names one named arc point D only, keep that point visible with label_D and the matching arc-point flag. If the problem names both C and D on the circle (for example C on the minor arc AB and D on the major arc AB), use template "circle_tangent_chord_dual_points" so both points are visible.
 - For tangent-chord problems, never guess the arc side. If the statement says C is on the minor arc AB and D is on the major arc AB, set arc_type:"minor" and d_arc_type:"major" exactly. If the statement reverses them, reverse the fields. Do not swap minor and major arc points.
 - For the same tangent-chord pattern, map the tangent point named in the statement to label_A, and map the chord endpoint labels to the actual chord in the statement. If the statement says the tangent is at C, label_A must be "C". Do not force the visible tangent point to literally be A if the problem names a different point.
+- For circle chord problems, if the problem says the distance from the center to the chord, represent that as the actual center-to-chord perpendicular segment and label it as OC (or the named center-to-chord segment). Do not misuse water_depth or label_depth for a center-to-chord distance.
 - For two-tangent plus one extra tangent problems, if the statement only gives a tangent length such as PA=12 cm, that is enough to build the figure. Use tangent_length/label_pa and show_arc_tangent:true; do not require angle_apb unless it is explicitly given.
 - If the question asks for a specific unknown value, do not print that unknown as a numeric label in the diagram. Use "?" or omit the label, and only annotate the given conditions.
 - If a diagram uses any numeric angle field or label in any template, make sure the value appears explicitly in the problem statement; never invent a nearby-looking angle such as 42° when the statement says 62°.
