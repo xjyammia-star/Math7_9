@@ -307,6 +307,10 @@ function formatLength(value, unit = DEFAULT_UNIT) {
   return `${value} ${unit}`;
 }
 
+function formatSquareDiagonalLength(side, unit = DEFAULT_UNIT) {
+  return `${side}√2 ${unit}`;
+}
+
 function createHistoryKey({ curriculum, grade, difficulty }) {
   return `${HISTORY_KEY}:${curriculum ?? 'ANY'}:${normalizeGrade(grade)}:${normalizeDifficulty(difficulty)}`;
 }
@@ -444,7 +448,7 @@ function buildQuestionText(item, lang, context) {
       return `在正方形 ABCD 中，AB = ${formatLength(item.side, unit)}。求对角线 AC 的长度。`;
     }
     if (item.kind === 'square_side_from_diagonal') {
-      return `在正方形 ABCD 中，对角线 AC = ${formatLength(item.diagonal, unit)}。求边 AB 的长度。`;
+      return `在正方形 ABCD 中，对角线 AC = ${formatSquareDiagonalLength(item.side, unit)}。求边 AB 的长度。`;
     }
     if (item.kind === 'show_right_triangle') {
       if (context.curriculum === 'UK') {
@@ -510,7 +514,7 @@ function buildQuestionText(item, lang, context) {
     if (zh) {
       return `เน…ยเธเนโ€ขเธเนโ€“เธเน…เธเธABCDเนเธเธเนเธยเน…เธ—ยเนเธย AC = ${formatLength(item.diagonal, unit)}เนโฌยเน…เธเธเนเธโ€เน…ยยเน…เธ—เธ AB เนยยเนโ€ขเธเน…เธเธเนโฌย`;
     }
-    return `In square ABCD, diagonal AC = ${formatLength(item.diagonal, unit)}. Find the length of side AB.`;
+    return `In square ABCD, diagonal AC = ${formatSquareDiagonalLength(item.side, unit)}. Find the length of side AB.`;
   }
 
   if (item.kind === 'show_right_triangle') {
@@ -584,7 +588,7 @@ function buildDiagramSpec(item) {
       labels: { A: 'A', B: 'B', C: 'C', D: 'D' },
       label_AB: item.kind === 'square_side_from_diagonal' ? '?' : formatLength(item.side, item.unit),
       label_BC: formatLength(item.side, item.unit),
-      label_AC: item.kind === 'square_side_from_diagonal' ? formatLength(item.diagonal, item.unit) : '?',
+      label_AC: item.kind === 'square_side_from_diagonal' ? formatSquareDiagonalLength(item.side, item.unit) : '?',
     };
   }
 
