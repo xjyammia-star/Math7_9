@@ -114,6 +114,19 @@
     ],
   },
   {
+    id: 'us_show_right_triangle',
+    curricula: ['US'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'show_right_triangle',
+    diagramTemplate: 'right_triangle',
+    values: [
+      { variantId: '51213', legAB: 5, legBC: 12, hypotenuse: 13 },
+      { variantId: '81517', legAB: 8, legBC: 15, hypotenuse: 17 },
+      { variantId: '94041', legAB: 9, legBC: 40, hypotenuse: 41 },
+    ],
+  },
+  {
     id: 'us_rectangle_diagonal',
     curricula: ['US'],
     grades: ['7', '8', '9'],
@@ -121,6 +134,19 @@
     kind: 'rectangle_diagonal',
     diagramTemplate: 'rectangle_diagonal',
     values: [
+      { variantId: '6810', width: 6, height: 8 },
+      { variantId: '81517', width: 8, height: 15 },
+    ],
+  },
+  {
+    id: 'us_rectangle_diagonal_hard',
+    curricula: ['US'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangle_diagonal',
+    diagramTemplate: 'rectangle_diagonal',
+    values: [
+      { variantId: '51213', width: 5, height: 12 },
       { variantId: '6810', width: 6, height: 8 },
       { variantId: '81517', width: 8, height: 15 },
     ],
@@ -139,6 +165,19 @@
     ],
   },
   {
+    id: 'us_square_side_from_diagonal',
+    curricula: ['US'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'square_side_from_diagonal',
+    diagramTemplate: 'square_diagonal',
+    values: [
+      { variantId: '5root2', side: 5, diagonal: 5 * Math.SQRT2 },
+      { variantId: '12root2', side: 12, diagonal: 12 * Math.SQRT2 },
+      { variantId: '13root2', side: 13, diagonal: 13 * Math.SQRT2 },
+    ],
+  },
+  {
     id: 'us_ladder_hard',
     curricula: ['US'],
     grades: ['8', '9'],
@@ -149,6 +188,42 @@
     values: [
       { variantId: '91715', length: 15, foot: 9, height: 12 },
       { variantId: '72524', length: 25, foot: 7, height: 24 },
+      { variantId: '101725', length: 25, foot: 10, height: 24 },
+      { variantId: '132435', length: 35, foot: 13, height: 32 },
+    ],
+  },
+  {
+    id: 'us_coordinate_distance',
+    curricula: ['US'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'coordinate_distance',
+    diagramTemplate: 'coordinate_points',
+    values: [
+      {
+        variantId: '068',
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 6, y: 0, label: 'B' },
+          { x: 6, y: 8, label: 'C' },
+        ],
+      },
+      {
+        variantId: '0912',
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 9, y: 0, label: 'B' },
+          { x: 9, y: 12, label: 'C' },
+        ],
+      },
+      {
+        variantId: '1220',
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 12, y: 0, label: 'B' },
+          { x: 12, y: 16, label: 'C' },
+        ],
+      },
     ],
   },
   {

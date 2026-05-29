@@ -138,6 +138,17 @@ assert.match(usBatch, /"template":"ladder"/);
 assert.match(usBatch, /"template":"rectangle_diagonal"/);
 assert.match(usBatch, /How high up the wall does it reach/);
 
+const usHardItems = buildPythagorasExerciseItems(4, {
+  lang: 'en',
+  curriculum: 'US',
+  grade: '8',
+  difficulty: 'Hard',
+  random: makeSequenceRng([0.14, 0.31, 0.52, 0.73, 0.88]),
+  persistHistory: false,
+});
+
+assert.ok(new Set(usHardItems.map((item) => item.kind)).size >= 3);
+
 const ibBatch = buildPythagorasExerciseBatch({
   count: 2,
   lang: 'en',
