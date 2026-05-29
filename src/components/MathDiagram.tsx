@@ -116,6 +116,7 @@ function cleanDiagramLabelText(value: unknown): string {
   if (!text) return '';
 
   text = text.replace(/\\+frac\{([^{}]+)\}\{([^{}]+)\}/g, '$1/$2');
+  text = text.replace(/\\+sqrt\{([^{}]+)\}/g, '√$1');
   text = text.replace(/\\+pi\b/g, '\u03c0');
   text = text.replace(/\\+circ\b/g, '\u00b0');
   text = text.replace(/\\+angle\b/g, '\u2220');

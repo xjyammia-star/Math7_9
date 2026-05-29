@@ -68,6 +68,18 @@ const cnZhBatch = buildPythagorasExerciseBatch({
 
 assert.match(cnZhBatch, /在直角三角形 ABC|在长方形 ABCD|在正方形 ABCD/);
 
+const cnZhSquareBatch = buildPythagorasExerciseBatch({
+  count: 3,
+  lang: 'zh',
+  curriculum: 'CN',
+  grade: '8',
+  difficulty: 'Challenge',
+  random: makeSequenceRng([0.01, 0.2, 0.41]),
+  persistHistory: false,
+});
+
+assert.match(cnZhSquareBatch, /\$13\\sqrt\{2\}\$ cm/);
+
 const cnRepeatItems = buildPythagorasExerciseItems(3, {
   lang: 'en',
   curriculum: 'CN',
