@@ -621,6 +621,30 @@ export function needsCircleIntersectingChordsRepair({ conceptTitle = "", concept
   return !(hasAp && hasPb && (hasCp || hasCd || hasRatio || hasDiff));
 }
 
+export function needsLinearIntersectionRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
+  if (diagramPolicy === "must_not_draw") return false;
+
+  const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
+  const hasTwoLineCue = /(?:两条直线|两条线|两直线|two lines|line intersection|intersection of two lines|直线.*交点|交点.*直线|相交直线|一次函数.*交点|正比例函数.*交点|过点[A-Z].*过点[A-Z])/i.test(source);
+  if (!hasTwoLineCue) return false;
+  if (!hasMathDiagramBlock(generatedText)) return false;
+
+  const data = extractDiagramBlockJson(generatedText);
+  if (!data || String(data.template ?? "").trim() !== "linear_function") return true;
+
+  const hasPrimary = Number.isFinite(Number(data.slope ?? data.k)) &&
+    Number.isFinite(Number(data.xmin)) &&
+    Number.isFinite(Number(data.xmax));
+  const hasSecondary = Number.isFinite(Number(data.secondary_slope ?? data.k2 ?? data.m2 ?? data.slope_2 ?? data.slope2)) &&
+    Number.isFinite(Number(data.secondary_intercept ?? data.b2 ?? data.c2 ?? data.intercept_2 ?? data.intercept2));
+  const hasA = !!(data.label_A || data.label_x_intercept);
+  const hasB = !!(data.label_B || data.label_y_intercept);
+  const asksIntersection = /(?:交点|intersection|相交|求.*交点)/i.test(source);
+  const hasIntersection = !!(data.show_intersection || data.label_intersection || data.label_P);
+
+  return !(hasPrimary && hasSecondary && hasA && hasB && (!asksIntersection || hasIntersection));
+}
+
 export function needsTangentChordRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
   if (diagramPolicy === "must_not_draw") return false;
 

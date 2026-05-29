@@ -1,7 +1,7 @@
 import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 import { classifyDiagramNeed, shouldRequireDiagramBlock, stripDiagramArtifacts } from "../utils/diagramPolicy";
-import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
+import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsLinearIntersectionRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
 import { sanitizeMath } from "../utils/mathUtils";
 import { buildChatCompletionBody } from "../utils/modelRequest";
 
@@ -145,6 +145,9 @@ export function detectOutputIssues(
   }
   if (needsCircleIntersectingChordsRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("circle_intersecting_chords_template_mismatch");
+  }
+  if (needsLinearIntersectionRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
+    issues.push("linear_intersection_template_mismatch");
   }
   if (needsTangentChordRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("tangent_chord_template_mismatch");
@@ -440,6 +443,7 @@ Rules:
 - Never leave diagram JSON outside a fenced math-diagram block. Raw objects like {"template":"..."} in prose are invalid and must be wrapped or removed.
 - For intersecting chords inside a circle, use template "circle_intersecting_chords" with ap, pb and exactly the given CD/CP/PD relation.
 - For intersecting chords with AP:PB given as a ratio such as 2:3, solve the actual numeric AP and PB values for the diagram before outputting JSON. Do not leave them as a ratio string; the template needs positive numeric ap and pb.
+- For two-line / line-intersection problems, use template "linear_function" with secondary_slope and secondary_intercept so both lines are drawn. If the problem names intercept points, label the x-intercept as A and the y-intercept as B via label_A and label_B. If the problem asks for the intersection point, set show_intersection:true and label_intersection:"P" (or the actual point name).
 - For problems that place exactly three named points A, B, C on the same circle and ask about angles such as ∠AOB, ∠ACB, or their relationship/sum, use template "circle_three_points". Do not use circle_chord for this pattern.
 - For circle-sector / wheel / clock-sweep problems, use template "circle_sector" and provide the OUTER radius plus one of: angle, minutes, or sector_count. Do not leave the template without the numerical parameters it needs. If the wording mentions a fan or annular-sector style inner edge, still keep the outer radius as the required radius field.
 - For cyclic quadrilateral problems that mention C on the minor arc AB and D on the major arc AB, use template "circle_cyclic_quadrilateral" with explicit c_arc_type and d_arc_type fields, keep labels A/B/C/D visible, and use label_angle_aob for the requested central angle AOB when needed. Do not leave D off the circle or swap the arc sides.
@@ -634,6 +638,7 @@ STRICT PRINCIPLES:
    For intersecting chords with a difference such as CP is 2 longer than PD / CP比PD长2, use cp_minus_pd and label_difference. Do NOT invent cd, label_cd, label_cp, or label_pd.
    For intersecting chords with a ratio such as CP:PD=2, use cp_pd_ratio and label_ratio. Do NOT invent cd, label_cd, label_cp, or label_pd.
    Never label derived tangent lengths such as PA, PB, OP, or radius unless those values are explicitly given in the problem statement.
+   For two-line / line-intersection problems, use linear_function with a secondary_slope and secondary_intercept so both lines are drawn. If the problem names intercept points, label the x-intercept as A and the y-intercept as B via label_A and label_B. If the problem asks for the intersection point, set show_intersection:true and label_intersection:"P" (or the actual point name).
    For linear_function and quadratic_function diagrams, do not add derived coordinate labels such as intercept coordinates or vertex coordinates unless the problem explicitly asks for them.
    In circle_tangent, radius/op_dist may be used as invisible layout values. Do NOT set label_radius or label_op unless the problem explicitly gives those values; if you must show them, also set show_radius_label:true or show_op_label:true.
    If a tangent problem gives PA and angle APB, use tangent_length and angle_apb with label_pa and label_angle_apb; do NOT invent radius or OP labels.
@@ -708,9 +713,14 @@ STRICT PRINCIPLES:
    {"template":"linear_function","slope":2,"intercept":-1,"xmin":-3,"xmax":3,"label":"y=2x-1"}
    ${BT}
 
+   Two-line intersection / intercept points:
+   ${BT}math-diagram
+   {"template":"linear_function","slope":-4,"intercept":12,"secondary_slope":2,"secondary_intercept":0,"xmin":-1,"xmax":5,"show_intercepts":true,"show_intersection":true,"label_A":"A","label_B":"B","label_intersection":"P","label":"y=kx+b","secondary_label":"y=2x"}
+   ${BT}
+
    Quadratic function (二次函数):
    ${BT}math-diagram
-   {"template":"quadratic_function","a":1,"b":-2,"c":-3,"xmin":-3,"xmax":5,"label":"y=x²-2x-3"}
+   {"template":"quadratic_function","a":1,"b":-2,"c":-3,"xmin":-3,"xmax":5,"label":"y=x^2-2x-3"}
    ${BT}
 
    Number line (数轴):

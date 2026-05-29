@@ -966,13 +966,22 @@ function RectangularPrismNet({ data }: { data: any }) {
 function LinearFunction({ data }: { data: any }) {
   const k: number = data.slope ?? data.k ?? 1;
   const b: number = data.intercept ?? data.b ?? 0;
+  const k2: number | null = asFiniteNumber(data.secondary_slope ?? data.k2 ?? data.m2 ?? data.slope_2 ?? data.slope2);
+  const b2: number | null = asFiniteNumber(data.secondary_intercept ?? data.b2 ?? data.c2 ?? data.intercept_2 ?? data.intercept2);
   const xMin: number = data.xmin ?? -5, xMax: number = data.xmax ?? 5;
-  const yMin: number = data.ymin ?? (k * xMin + b - 2);
-  const yMax: number = data.ymax ?? (k * xMax + b + 2);
+  const yValues = [k * xMin + b, k * xMax + b];
+  if (k2 !== null && b2 !== null) {
+    yValues.push(k2 * xMin + b2, k2 * xMax + b2);
+  }
+  const yMin: number = data.ymin ?? (Math.min(...yValues) - 2);
+  const yMax: number = data.ymax ?? (Math.max(...yValues) + 2);
   const sc = makeScaler(xMin, xMax, yMin, yMax);
   const p1 = sc({ x: xMin, y: k * xMin + b });
   const p2 = sc({ x: xMax, y: k * xMax + b });
+  const p1b = k2 !== null && b2 !== null ? sc({ x: xMin, y: k2 * xMin + b2 }) : null;
+  const p2b = k2 !== null && b2 !== null ? sc({ x: xMax, y: k2 * xMax + b2 }) : null;
   const label: string = data.label ?? `y = ${k}x${b >= 0 ? '+' + b : b}`;
+  const label2: string = data.secondary_label ?? data.label_2 ?? (k2 !== null && b2 !== null ? `y = ${k2}x${b2 >= 0 ? '+' + b2 : b2}` : '');
   const { xInterceptLabel, yInterceptLabel, showInterceptDots } = getLinearFunctionAnnotations(data);
   const extras: React.ReactNode[] = [];
   if (showInterceptDots) {
@@ -987,12 +996,35 @@ function LinearFunction({ data }: { data: any }) {
       extras.push(<Dot key="yi" p={p} label={yInterceptLabel} color={GREY} offset={{ x: 8, y: -10 }} />);
     }
   }
+  const showIntersection = data.show_intersection !== false && k2 !== null && b2 !== null && k !== k2;
+  if (showIntersection) {
+    const xInt = (b2 - b) / (k - k2);
+    const yInt = k * xInt + b;
+    if (xInt >= xMin && xInt <= xMax && yInt >= yMin && yInt <= yMax) {
+      extras.push(
+        <Dot
+          key="intersection"
+          p={sc({ x: xInt, y: yInt })}
+          label={data.label_intersection ?? data.label_P ?? ''}
+          color="#10b981"
+          offset={{ x: 10, y: -12 }}
+        />
+      );
+    }
+  }
   return (
     <g>
       <Axes sc={sc} xMin={xMin} xMax={xMax} yMin={yMin} yMax={yMax} />
       <Seg a={p1} b={p2} stroke={GOLD} sw={2.5} />
+      {p1b && p2b && (
+        <Seg a={p1b} b={p2b} stroke="#10b981" sw={2.5} />
+      )}
       <text x={p2.x - 8} y={p2.y - 12} fontSize={12} fill={GOLD} fontWeight="700"
         textAnchor="end">{label}</text>
+      {p2b && (
+        <text x={p2b.x - 8} y={p2b.y - 12} fontSize={12} fill="#10b981" fontWeight="700"
+          textAnchor="end">{label2}</text>
+      )}
       {extras}
     </g>
   );
