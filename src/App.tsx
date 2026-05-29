@@ -195,7 +195,6 @@ const App: React.FC = () => {
   }, [searchQuery]);
 
   const activeCurriculum = curriculum ? CURRICULA.find(c => c.id === curriculum) : null;
-  const modelRoutingNote = '出题：GLM 4.7 · 讲解/引导：豆包';
 
   return (
     <div className="flex h-screen bg-[var(--color-brand-bg)] text-slate-100 font-sans">
@@ -251,16 +250,6 @@ const App: React.FC = () => {
             })}
           </div>
           <div className="mt-3 space-y-2">
-            <div className="flex items-center justify-between px-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.18em] flex items-center gap-1.5">
-                <Settings2 className="w-3 h-3 text-[var(--color-brand-accent)]" />
-                模型路由
-              </span>
-              <span className="text-[9px] text-slate-600">{modelRoutingNote}</span>
-            </div>
-            <p className="px-1 text-[10px] leading-relaxed text-slate-500">
-              出题默认走 GLM 4.7，讲解、引导解题和聊天默认走豆包。路由已固定，不再支持页面手动切换。
-            </p>
           </div>
           <AnimatePresence>
             {activeCurriculum && (
@@ -428,10 +417,6 @@ const App: React.FC = () => {
                 <span>{activeCurriculum.label[lang]}</span>
               </div>
             )}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border border-[var(--color-brand-border)] bg-[var(--color-brand-card)] text-slate-300">
-              <span className="uppercase tracking-widest text-[9px] text-slate-500">Model</span>
-              <span>{modelRoutingNote}</span>
-            </div>
             {selectedConcept && activeView === 'knowledge' && (
               <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500 bg-[var(--color-brand-card)] border border-[var(--color-brand-border)] px-4 py-1.5 rounded-full uppercase tracking-widest min-w-0 overflow-hidden">
                 <span className="flex items-center gap-1 flex-shrink-0">
