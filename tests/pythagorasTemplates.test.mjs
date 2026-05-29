@@ -76,11 +76,23 @@ const cnZhSquareBatch = buildPythagorasExerciseBatch({
   grade: '8',
   difficulty: 'Challenge',
   random: makeSequenceRng([0.41, 0.22, 0.33]),
-  recentKindKeys: new Set(['show_right_triangle', 'direct_hypotenuse_surd', 'direct_leg_bc']),
+  recentKindKeys: ['show_right_triangle', 'direct_leg_bc', 'square_side_from_diagonal'],
   persistHistory: false,
 });
 
 assert.match(cnZhSquareBatch, /\$\d+\\sqrt\{2\}\$ cm/);
+
+const cnHardRotation = buildPythagorasExerciseItems(1, {
+  lang: 'en',
+  curriculum: 'CN',
+  grade: '8',
+  difficulty: 'Hard',
+  random: makeSequenceRng([0.17, 0.29, 0.43]),
+  recentKindKeys: ['show_right_triangle', 'square_side_from_diagonal', 'direct_leg_bc'],
+  persistHistory: false,
+});
+
+assert.equal(cnHardRotation[0].kind, 'direct_leg_bc');
 
 const cnRepeatItems = buildPythagorasExerciseItems(3, {
   lang: 'en',

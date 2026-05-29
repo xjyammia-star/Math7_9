@@ -382,10 +382,22 @@ function shuffle(values, randomSource) {
   return copy;
 }
 
-function orderVariantsByDifficulty(variants, difficulty, randomSource) {
+function normalizeRecentKindOrder(value) {
+  if (Array.isArray(value)) {
+    return value.filter((entry) => typeof entry === 'string' && entry.trim());
+  }
+  if (value instanceof Set) {
+    return Array.from(value).filter((entry) => typeof entry === 'string' && entry.trim());
+  }
+  return [];
+}
+
+function orderVariantsByDifficulty(variants, difficulty, randomSource, recentKindOrder = []) {
   const normalizedDifficulty = normalizeDifficulty(difficulty);
   const priority = DIFFICULTY_KIND_PRIORITY[normalizedDifficulty] ?? [];
   const priorityIndex = new Map(priority.map((kind, index) => [kind, index]));
+  const recentIndex = new Map(recentKindOrder.map((kind, index) => [kind, index]));
+  const recentOrderSize = recentKindOrder.length;
 
   return [...variants]
     .map((variant) => ({
@@ -393,9 +405,16 @@ function orderVariantsByDifficulty(variants, difficulty, randomSource) {
       priority: priorityIndex.has(variant.scenario.kind)
         ? priorityIndex.get(variant.scenario.kind)
         : priority.length,
+      kindRecency: recentIndex.has(variant.scenario.kind)
+        ? 1 + (recentOrderSize - recentIndex.get(variant.scenario.kind))
+        : 0,
       tieBreaker: rngValue(randomSource),
     }))
-    .sort((a, b) => a.priority - b.priority || a.tieBreaker - b.tieBreaker)
+    .sort((a, b) =>
+      a.kindRecency - b.kindRecency ||
+      a.priority - b.priority ||
+      a.tieBreaker - b.tieBreaker
+    )
     .map(({ variant }) => variant);
 }
 
@@ -434,16 +453,16 @@ function buildVariantPool(scenarios) {
   );
 }
 
-function pickVariants(variantPool, count, randomSource, recentVariantKeys, recentKindKeys, difficulty) {
+function pickVariants(variantPool, count, randomSource, recentVariantKeys, recentKindOrder, difficulty) {
   const fresh = variantPool.filter(
-    (variant) => !recentVariantKeys.has(variant.key) && !recentKindKeys.has(variant.scenario.kind)
+    (variant) => !recentVariantKeys.has(variant.key) && !recentKindOrder.includes(variant.scenario.kind)
   );
   const stale = variantPool.filter(
-    (variant) => recentVariantKeys.has(variant.key) || recentKindKeys.has(variant.scenario.kind)
+    (variant) => recentVariantKeys.has(variant.key) || recentKindOrder.includes(variant.scenario.kind)
   );
   const ordered = [
-    ...orderVariantsByDifficulty(fresh, difficulty, randomSource),
-    ...orderVariantsByDifficulty(stale, difficulty, randomSource),
+    ...orderVariantsByDifficulty(fresh, difficulty, randomSource, recentKindOrder),
+    ...orderVariantsByDifficulty(stale, difficulty, randomSource, recentKindOrder),
   ];
   const selected = [];
   const usedKeys = new Set();
@@ -828,10 +847,12 @@ export function buildPythagorasExerciseItems(count, options = {}) {
   const historyKey = createHistoryKey(context);
   const kindHistoryKey = KIND_HISTORY_KEY;
   const recentKeys = recentVariantKeys ?? (persistHistory ? new Set(readRecentVariantKeys(historyKey)) : new Set());
-  const recentKinds = recentKindKeys ?? (persistHistory ? new Set(readRecentVariantKeys(kindHistoryKey)) : new Set());
+  const recentKindOrder = normalizeRecentKindOrder(
+    recentKindKeys ?? (persistHistory ? readRecentVariantKeys(kindHistoryKey) : [])
+  );
   const candidates = getCandidateScenarios(context);
   const variantPool = buildVariantPool(candidates);
-  const selectedVariants = pickVariants(variantPool, safeCount, random, recentKeys, recentKinds, context.difficulty);
+  const selectedVariants = pickVariants(variantPool, safeCount, random, recentKeys, recentKindOrder, context.difficulty);
 
   const items = selectedVariants.map(({ scenario, valueSet, key }) => {
     const unit = scenario.unit ?? DEFAULT_UNIT;
