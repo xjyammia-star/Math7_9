@@ -149,6 +149,35 @@ const usHardItems = buildPythagorasExerciseItems(4, {
 
 assert.ok(new Set(usHardItems.map((item) => item.kind)).size >= 3);
 
+const previousLocalStorage = globalThis.localStorage;
+try {
+  const memory = new Map();
+  globalThis.localStorage = {
+    getItem(key) {
+      return memory.has(key) ? memory.get(key) : null;
+    },
+    setItem(key, value) {
+      memory.set(key, String(value));
+    },
+  };
+
+  const seenKinds = new Set();
+  for (let i = 0; i < 12; i += 1) {
+    const batch = buildPythagorasExerciseItems(1, {
+      lang: 'en',
+      curriculum: 'US',
+      grade: '8',
+      difficulty: 'Hard',
+      persistHistory: true,
+    });
+    seenKinds.add(batch[0].kind);
+  }
+
+  assert.ok(seenKinds.size >= 4);
+} finally {
+  globalThis.localStorage = previousLocalStorage;
+}
+
 const ibBatch = buildPythagorasExerciseBatch({
   count: 2,
   lang: 'en',

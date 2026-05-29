@@ -188,8 +188,21 @@
     values: [
       { variantId: '91715', length: 15, foot: 9, height: 12 },
       { variantId: '72524', length: 25, foot: 7, height: 24 },
-      { variantId: '101725', length: 25, foot: 10, height: 24 },
-      { variantId: '132435', length: 35, foot: 13, height: 32 },
+      { variantId: '102426', length: 26, foot: 10, height: 24 },
+      { variantId: '123537', length: 37, foot: 12, height: 35 },
+    ],
+  },
+  {
+    id: 'us_exact_surd',
+    curricula: ['US'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'direct_hypotenuse_surd',
+    diagramTemplate: 'right_triangle',
+    values: [
+      { variantId: '79root130', legAB: 7, legBC: 9, hypotenuse: Math.sqrt(130) },
+      { variantId: '1013root269', legAB: 10, legBC: 13, hypotenuse: Math.sqrt(269) },
+      { variantId: '1116root377', legAB: 11, legBC: 16, hypotenuse: Math.sqrt(377) },
     ],
   },
   {
