@@ -164,6 +164,37 @@ assert.match(usBatch, /"template":"ladder"/);
 assert.match(usBatch, /"template":"rectangle_diagonal"/);
 assert.match(usBatch, /How high up the wall does it reach/);
 
+for (const [curriculum, grade, difficulty] of [
+  ['US', '9', 'Easy'],
+  ['US', '9', 'Medium'],
+  ['UK', '8', 'Easy'],
+  ['UK', '9', 'Easy'],
+]) {
+  const items = buildPythagorasExerciseItems(3, {
+    lang: 'en',
+    curriculum,
+    grade,
+    difficulty,
+    random: makeSequenceRng([0.12, 0.34, 0.56, 0.78, 0.9]),
+    persistHistory: false,
+  });
+
+  assert.equal(items.length, 3, `${curriculum} ${grade} ${difficulty} should return 3 items`);
+  assert.equal(new Set(items.map((item) => item.id)).size, 3, `${curriculum} ${grade} ${difficulty} should not repeat ids`);
+
+  const batch = buildPythagorasExerciseBatch({
+    count: 3,
+    lang: 'en',
+    curriculum,
+    grade,
+    difficulty,
+    random: makeSequenceRng([0.12, 0.34, 0.56, 0.78, 0.9]),
+    persistHistory: false,
+  });
+
+  assert.equal((batch.match(/```math-diagram/g) ?? []).length, 3, `${curriculum} ${grade} ${difficulty} should render 3 exercises`);
+}
+
 const usHardBatch = buildPythagorasExerciseBatch({
   count: 3,
   lang: 'en',

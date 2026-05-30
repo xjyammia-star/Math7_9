@@ -841,8 +841,26 @@ function getHardCandidateScenarios(context) {
   return advanced.length > 0 ? advanced : allCandidates;
 }
 
+function getHardCandidateScenarioTiers(context) {
+  const tiers = getCandidateScenarioTiers(context)
+    .map((tier) => tier.filter((scenario) => HARD_ADVANCED_KINDS.has(scenario.kind)))
+    .filter((tier) => tier.length > 0);
+
+  return tiers.length > 0 ? tiers : getCandidateScenarioTiers(context);
+}
+
 function scenarioVariantKey(scenario, valueSet) {
   return `${scenario.id}:${valueSet.variantId}`;
+}
+
+function uniqueScenariosById(scenarios, seenIds = new Set()) {
+  const unique = [];
+  for (const scenario of scenarios) {
+    if (!scenario || seenIds.has(scenario.id)) continue;
+    seenIds.add(scenario.id);
+    unique.push(scenario);
+  }
+  return unique;
 }
 
 function buildVariantPool(scenarios) {
@@ -853,6 +871,45 @@ function buildVariantPool(scenarios) {
       valueSet,
     }))
   );
+}
+
+function getCandidateScenarioTiers(context) {
+  const tiers = [];
+  const seenIds = new Set();
+
+  const exact = uniqueScenariosById(
+    PYTHAGORAS_SCENARIOS.filter((scenario) => scenarioMatchesContext(scenario, context)),
+    seenIds
+  );
+  if (exact.length > 0) {
+    tiers.push(exact);
+  }
+
+  const normalizedCurriculum = normalizeCurriculum(context.curriculum);
+  if (normalizedCurriculum) {
+    const curriculumFallback = uniqueScenariosById(
+      PYTHAGORAS_SCENARIOS.filter((scenario) => scenario.curricula.includes(normalizedCurriculum)),
+      seenIds
+    );
+    if (curriculumFallback.length > 0) {
+      tiers.push(curriculumFallback);
+    }
+  }
+
+  const gradeFallback = uniqueScenariosById(
+    PYTHAGORAS_SCENARIOS.filter((scenario) => scenario.grades.includes(normalizeGrade(context.grade))),
+    seenIds
+  );
+  if (gradeFallback.length > 0) {
+    tiers.push(gradeFallback);
+  }
+
+  const allFallback = uniqueScenariosById(PYTHAGORAS_SCENARIOS, seenIds);
+  if (allFallback.length > 0) {
+    tiers.push(allFallback);
+  }
+
+  return tiers;
 }
 
 function pickVariants(variantPool, count, randomSource, recentVariantKeys, recentKindOrder, difficulty) {
@@ -1411,11 +1468,42 @@ export function buildPythagorasExerciseItems(count, options = {}) {
   const recentKindOrder = normalizeRecentKindOrder(
     recentKindKeys ?? (persistHistory ? readRecentVariantKeys(kindHistoryKey) : [])
   );
-  const candidates = context.difficulty === 'Hard'
-    ? getHardCandidateScenarios(context)
-    : getCandidateScenarios(context);
-  const variantPool = buildVariantPool(candidates);
-  const selectedVariants = pickVariants(variantPool, safeCount, random, recentKeys, recentKindOrder, context.difficulty);
+  const scenarioTiers = context.difficulty === 'Hard'
+    ? getHardCandidateScenarioTiers(context)
+    : getCandidateScenarioTiers(context);
+  const selectedVariants = [];
+  const usedKeys = new Set();
+  const usedKinds = new Set();
+
+  const appendSelectedVariants = (variantPool, remainingCount) => {
+    if (remainingCount <= 0 || variantPool.length === 0) {
+      return;
+    }
+
+    const preferredPool = variantPool.filter((variant) => !usedKinds.has(variant.scenario.kind));
+    const poolToUse = preferredPool.length > 0 ? preferredPool : variantPool;
+    const picked = pickVariants(poolToUse, remainingCount, random, recentKeys, recentKindOrder, context.difficulty);
+
+    for (const variant of picked) {
+      if (selectedVariants.length >= safeCount) break;
+      if (usedKeys.has(variant.key)) continue;
+      selectedVariants.push(variant);
+      usedKeys.add(variant.key);
+      usedKinds.add(variant.scenario.kind);
+    }
+  };
+
+  for (const tier of scenarioTiers) {
+    if (selectedVariants.length >= safeCount) break;
+    const tierPool = buildVariantPool(tier).filter((variant) => !usedKeys.has(variant.key));
+    appendSelectedVariants(tierPool, safeCount - selectedVariants.length);
+  }
+
+  if (selectedVariants.length < safeCount) {
+    const allScenarios = scenarioTiers.flat();
+    const fallbackPool = buildVariantPool(allScenarios).filter((variant) => !usedKeys.has(variant.key));
+    appendSelectedVariants(fallbackPool, safeCount - selectedVariants.length);
+  }
 
   const items = selectedVariants.map(({ scenario, valueSet, key }) => {
     const unit = scenario.unit ?? DEFAULT_UNIT;
