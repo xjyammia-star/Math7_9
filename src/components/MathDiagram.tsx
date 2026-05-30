@@ -700,6 +700,7 @@ function RectangleDiagonal({ data }: { data: any }) {
   const lAB: string = data.label_AB ?? String(h);
   const lBC: string = data.label_BC ?? String(w);
   const lAC: string = data.label_AC ?? '?';
+  const lArea: string = cleanDiagramLabelText(data.label_area ?? '');
   const pad = Math.max(w, h) * 0.24;
   const sc = makeScaler(-pad, w + pad, -pad, h + pad);
   // A=top-left, B=bottom-left, C=bottom-right, D=top-right
@@ -718,6 +719,10 @@ function RectangleDiagonal({ data }: { data: any }) {
       {lAB && <SegLabel a={A} b={B} label={lAB} color={GOLD} />}
       {lBC && <SegLabel a={B} b={C} label={lBC} color={GOLD} />}
       {lAC && <SegLabel a={A} b={C} label={lAC} color={GOLD} />}
+      {lArea && (
+        <text x={(A.x + C.x) / 2} y={(A.y + C.y) / 2 + 8} fontSize={12} fontWeight="700"
+          textAnchor="middle" fill={GOLD}>{lArea}</text>
+      )}
     </g>
   );
 }

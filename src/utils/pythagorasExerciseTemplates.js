@@ -1229,6 +1229,19 @@ function buildQuestionText(item, lang, context) {
 }
 
 function buildDiagramSpec(item) {
+  if (item.kind === 'rectangle_area_diagonal') {
+    return {
+      template: 'rectangle_diagonal',
+      width: item.width,
+      height: item.height,
+      labels: { A: 'A', B: 'B', C: 'C', D: 'D' },
+      label_AB: formatLength(item.width, item.unit),
+      label_BC: '?',
+      label_AC: '?',
+      label_area: `${item.area} ${item.unit}²`,
+    };
+  }
+
   if (item.diagramTemplate === 'ladder') {
     return {
       template: 'ladder',
@@ -1265,19 +1278,6 @@ function buildDiagramSpec(item) {
       label_BC: '?',
       label_AC: '?',
       label_perimeter: formatLength(item.perimeter, item.unit),
-    };
-  }
-
-  if (item.kind === 'rectangle_area_diagonal') {
-    return {
-      template: 'rectangle_diagonal',
-      width: item.width,
-      height: item.height,
-      labels: { A: 'A', B: 'B', C: 'C', D: 'D' },
-      label_AB: formatLength(item.width, item.unit),
-      label_BC: '?',
-      label_AC: '?',
-      label_area: `${item.area} ${item.unit}²`,
     };
   }
 
