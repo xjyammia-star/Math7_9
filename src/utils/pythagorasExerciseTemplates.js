@@ -609,6 +609,29 @@ function formatSquareDiagonalLatex(side) {
   return `${side}\\sqrt{2}`;
 }
 
+function formatSimplifiedRadical(n) {
+  if (!Number.isInteger(n) || n <= 0) return null;
+  let outside = 1;
+  let inside = n;
+  for (let factor = 2; factor * factor <= inside; factor += 1) {
+    while (inside % (factor * factor) === 0) {
+      inside /= factor * factor;
+      outside *= factor;
+    }
+  }
+  if (inside === 1) return `${outside}`;
+  if (outside === 1) return `√${inside}`;
+  return `${outside}√${inside}`;
+}
+
+function formatCoordinateDistanceLabel(dx, dy, unit = DEFAULT_UNIT) {
+  const squared = dx * dx + dy * dy;
+  const radical = formatSimplifiedRadical(squared);
+  if (radical) return `${radical} ${unit}`;
+  const approx = Math.sqrt(squared);
+  return `${+approx.toFixed(1)} ${unit}`;
+}
+
 function createHistoryKey({ curriculum, grade, difficulty }) {
   return `${HISTORY_KEY}:${curriculum ?? 'ANY'}:${normalizeGrade(grade)}:${normalizeDifficulty(difficulty)}`;
 }
@@ -1012,27 +1035,56 @@ function buildDiagramSpec(item) {
   }
 
   if (item.diagramTemplate === 'coordinate_points') {
+    const points = item.points ?? [];
+    const A = points[0];
+    const B = points[1];
+    const C = points[2];
+    const abDx = Number.isFinite(A?.x) && Number.isFinite(B?.x) ? Math.abs(B.x - A.x) : null;
+    const abDy = Number.isFinite(A?.y) && Number.isFinite(B?.y) ? Math.abs(B.y - A.y) : null;
+    const bcDx = Number.isFinite(B?.x) && Number.isFinite(C?.x) ? Math.abs(C.x - B.x) : null;
+    const bcDy = Number.isFinite(B?.y) && Number.isFinite(C?.y) ? Math.abs(C.y - B.y) : null;
+    const acDx = Number.isFinite(A?.x) && Number.isFinite(C?.x) ? Math.abs(C.x - A.x) : null;
+    const acDy = Number.isFinite(A?.y) && Number.isFinite(C?.y) ? Math.abs(C.y - A.y) : null;
     return {
       template: 'coordinate_points',
       axes: true,
-      points: item.points.map((point) => ({ ...point })),
+      points: points.map((point) => ({ ...point })),
       segments: [
         { from: 'A', to: 'B', label: formatLength(item.ab ?? item.width, item.unit) },
         { from: 'B', to: 'C', label: formatLength(item.bc ?? item.height, item.unit) },
-        { from: 'A', to: 'C', label: item.kind === 'coordinate_distance' || item.kind === 'rectangle_diagonal' ? '?' : formatLength(item.ac, item.unit) },
+        {
+          from: 'A',
+          to: 'C',
+          label:
+            item.kind === 'coordinate_distance' || item.kind === 'rectangle_diagonal'
+              ? '?'
+              : (acDx !== null && acDy !== null
+                  ? formatCoordinateDistanceLabel(acDx, acDy, item.unit)
+                  : formatLength(item.ac, item.unit)),
+        },
       ],
     };
   }
 
   if (item.kind === 'coordinate_distance_shifted') {
+    const points = item.points ?? [];
+    const A = points[0];
+    const B = points[1];
+    const C = points[2];
+    const acDx = Number.isFinite(A?.x) && Number.isFinite(C?.x) ? Math.abs(C.x - A.x) : null;
+    const acDy = Number.isFinite(A?.y) && Number.isFinite(C?.y) ? Math.abs(C.y - A.y) : null;
     return {
       template: 'coordinate_points',
       axes: true,
-      points: item.points.map((point) => ({ ...point })),
+      points: points.map((point) => ({ ...point })),
       segments: [
         { from: 'A', to: 'B', label: formatLength(item.ab, item.unit) },
         { from: 'B', to: 'C', label: formatLength(item.bc, item.unit) },
-        { from: 'A', to: 'C', label: '?' },
+        {
+          from: 'A',
+          to: 'C',
+          label: acDx !== null && acDy !== null ? formatCoordinateDistanceLabel(acDx, acDy, item.unit) : '?',
+        },
       ],
     };
   }
