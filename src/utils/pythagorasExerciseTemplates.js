@@ -614,14 +614,14 @@ const KIND_HISTORY_KEY = 'math7-9:pythagoras-kind-history:v1';
 const DIFFICULTY_ORDER = { Easy: 0, Medium: 1, Hard: 2 };
 const DIFFICULTY_KIND_PRIORITY = {
   Easy: ['direct_hypotenuse', 'rectangle_diagonal', 'square_diagonal', 'ladder_height'],
-  Medium: ['ladder_height', 'direct_leg_ab', 'direct_leg_bc', 'rectangle_diagonal', 'square_diagonal', 'coordinate_distance'],
+  Medium: ['direct_leg_ab', 'direct_leg_bc', 'square_side_from_diagonal', 'coordinate_distance', 'ladder_height'],
   Hard: [
-    'rectangle_perimeter_diagonal',
-    'ladder_foot',
     'coordinate_distance_shifted',
     'direct_hypotenuse_surd',
     'square_side_from_diagonal',
     'show_right_triangle',
+    'ladder_foot',
+    'rectangle_perimeter_diagonal',
     'coordinate_distance',
     'ladder_height',
     'direct_leg_bc',
@@ -637,16 +637,16 @@ const KIND_COMPLEXITY = {
   coordinate_distance: 1,
   square_side_from_diagonal: 2,
   show_right_triangle: 2,
-  ladder_foot: 2,
+  ladder_foot: 3,
   rectangle_perimeter_diagonal: 3,
-  coordinate_distance_shifted: 3,
+  coordinate_distance_shifted: 4,
   direct_hypotenuse_surd: 4,
 };
-const MAX_COMPLEXITY_BY_GRADE_AND_DIFFICULTY = {
-  '6': { Easy: 0, Medium: 1, Hard: 2 },
-  '7': { Easy: 0, Medium: 1, Hard: 2 },
-  '8': { Easy: 1, Medium: 2, Hard: 3 },
-  '9': { Easy: 1, Medium: 2, Hard: 4 },
+const COMPLEXITY_WINDOW_BY_GRADE_AND_DIFFICULTY = {
+  '6': { Easy: [0, 0], Medium: [1, 2], Hard: [2, 3] },
+  '7': { Easy: [0, 0], Medium: [1, 2], Hard: [2, 3] },
+  '8': { Easy: [0, 0], Medium: [1, 2], Hard: [3, 4] },
+  '9': { Easy: [0, 0], Medium: [1, 2], Hard: [3, 4] },
 };
 const HARD_ADVANCED_KINDS = new Set([
   'rectangle_perimeter_diagonal',
@@ -690,7 +690,11 @@ function normalizeDifficulty(value) {
 
 function normalizeCurriculum(value) {
   const curriculum = toText(value).toUpperCase();
-  return ['CN', 'US', 'UK', 'SG', 'IB'].includes(curriculum) ? curriculum : null;
+  const alias = {
+    GB: 'UK',
+  };
+  const mapped = alias[curriculum] ?? curriculum;
+  return ['CN', 'US', 'UK', 'SG', 'IB'].includes(mapped) ? mapped : null;
 }
 
 function formatLength(value, unit = DEFAULT_UNIT) {
@@ -728,14 +732,14 @@ function formatCoordinateDistanceLabel(dx, dy, unit = DEFAULT_UNIT) {
   return `${+approx.toFixed(1)} ${unit}`;
 }
 
-function getMaxScenarioComplexity(grade, difficulty) {
+function getComplexityWindow(grade, difficulty) {
   const gradeKey = normalizeGrade(grade);
   const normalizedDifficulty = normalizeDifficulty(difficulty);
-  const byGrade = MAX_COMPLEXITY_BY_GRADE_AND_DIFFICULTY[gradeKey];
-  if (byGrade && byGrade[normalizedDifficulty] !== undefined) {
+  const byGrade = COMPLEXITY_WINDOW_BY_GRADE_AND_DIFFICULTY[gradeKey];
+  if (byGrade && byGrade[normalizedDifficulty]) {
     return byGrade[normalizedDifficulty];
   }
-  return MAX_COMPLEXITY_BY_GRADE_AND_DIFFICULTY['7'][normalizedDifficulty] ?? 1;
+  return COMPLEXITY_WINDOW_BY_GRADE_AND_DIFFICULTY['7'][normalizedDifficulty] ?? [1, 2];
 }
 
 function scenarioComplexity(kind) {
@@ -851,14 +855,15 @@ function scenarioMatchesContext(scenario, { curriculum, grade, difficulty }) {
   const normalizedCurriculum = normalizeCurriculum(curriculum);
   const normalizedGrade = normalizeGrade(grade);
   const normalizedDifficulty = normalizeDifficulty(difficulty);
-  const maxComplexity = getMaxScenarioComplexity(normalizedGrade, normalizedDifficulty);
+  const [minComplexity, maxComplexity] = getComplexityWindow(normalizedGrade, normalizedDifficulty);
 
   const curriculumOk =
     !normalizedCurriculum || scenario.curricula.includes(normalizedCurriculum);
 
   const gradeOk = scenario.grades.includes(normalizedGrade);
   const difficultyOk = scenario.difficulties.includes(normalizedDifficulty);
-  const complexityOk = scenarioComplexity(scenario.kind) <= maxComplexity;
+  const complexity = scenarioComplexity(scenario.kind);
+  const complexityOk = complexity >= minComplexity && complexity <= maxComplexity;
 
   return curriculumOk && gradeOk && difficultyOk && complexityOk;
 }
@@ -922,8 +927,11 @@ function getCandidateScenarioTiers(context) {
   const seenIds = new Set();
   const normalizedCurriculum = normalizeCurriculum(context.curriculum);
   const normalizedGrade = normalizeGrade(context.grade);
-  const maxComplexity = getMaxScenarioComplexity(normalizedGrade, normalizeDifficulty(context.difficulty));
-  const complexityOk = (scenario) => scenarioComplexity(scenario.kind) <= maxComplexity;
+  const [minComplexity, maxComplexity] = getComplexityWindow(normalizedGrade, normalizeDifficulty(context.difficulty));
+  const complexityOk = (scenario) => {
+    const complexity = scenarioComplexity(scenario.kind);
+    return complexity >= minComplexity && complexity <= maxComplexity;
+  };
 
   const exact = uniqueScenariosById(
     PYTHAGORAS_SCENARIOS.filter((scenario) => scenarioMatchesContext(scenario, context)),
