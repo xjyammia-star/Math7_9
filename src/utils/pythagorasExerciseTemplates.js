@@ -627,6 +627,27 @@ const DIFFICULTY_KIND_PRIORITY = {
     'direct_leg_bc',
   ],
 };
+const KIND_COMPLEXITY = {
+  direct_hypotenuse: 0,
+  rectangle_diagonal: 0,
+  square_diagonal: 0,
+  ladder_height: 0,
+  direct_leg_ab: 1,
+  direct_leg_bc: 1,
+  coordinate_distance: 1,
+  square_side_from_diagonal: 2,
+  show_right_triangle: 2,
+  ladder_foot: 2,
+  rectangle_perimeter_diagonal: 3,
+  coordinate_distance_shifted: 3,
+  direct_hypotenuse_surd: 4,
+};
+const MAX_COMPLEXITY_BY_GRADE_AND_DIFFICULTY = {
+  '6': { Easy: 0, Medium: 1, Hard: 2 },
+  '7': { Easy: 0, Medium: 1, Hard: 2 },
+  '8': { Easy: 1, Medium: 2, Hard: 3 },
+  '9': { Easy: 1, Medium: 2, Hard: 4 },
+};
 const HARD_ADVANCED_KINDS = new Set([
   'rectangle_perimeter_diagonal',
   'ladder_foot',
@@ -707,6 +728,20 @@ function formatCoordinateDistanceLabel(dx, dy, unit = DEFAULT_UNIT) {
   return `${+approx.toFixed(1)} ${unit}`;
 }
 
+function getMaxScenarioComplexity(grade, difficulty) {
+  const gradeKey = normalizeGrade(grade);
+  const normalizedDifficulty = normalizeDifficulty(difficulty);
+  const byGrade = MAX_COMPLEXITY_BY_GRADE_AND_DIFFICULTY[gradeKey];
+  if (byGrade && byGrade[normalizedDifficulty] !== undefined) {
+    return byGrade[normalizedDifficulty];
+  }
+  return MAX_COMPLEXITY_BY_GRADE_AND_DIFFICULTY['7'][normalizedDifficulty] ?? 1;
+}
+
+function scenarioComplexity(kind) {
+  return KIND_COMPLEXITY[kind] ?? 99;
+}
+
 function createHistoryKey({ curriculum, grade, difficulty }) {
   return `${HISTORY_KEY}:${curriculum ?? 'ANY'}:${normalizeGrade(grade)}:${normalizeDifficulty(difficulty)}`;
 }
@@ -777,12 +812,19 @@ function orderVariantsByDifficulty(variants, difficulty, randomSource, recentKin
     return [...variants]
       .map((variant) => ({
         variant,
+        priority: priorityIndex.has(variant.scenario.kind)
+          ? priorityIndex.get(variant.scenario.kind)
+          : priority.length,
         kindRecency: recentIndex.has(variant.scenario.kind)
           ? 1 + (recentOrderSize - recentIndex.get(variant.scenario.kind))
           : 0,
         tieBreaker: rngValue(randomSource),
       }))
-      .sort((a, b) => a.kindRecency - b.kindRecency || a.tieBreaker - b.tieBreaker)
+      .sort((a, b) =>
+        a.priority - b.priority ||
+        a.kindRecency - b.kindRecency ||
+        a.tieBreaker - b.tieBreaker
+      )
       .map(({ variant }) => variant);
   }
 
@@ -809,14 +851,16 @@ function scenarioMatchesContext(scenario, { curriculum, grade, difficulty }) {
   const normalizedCurriculum = normalizeCurriculum(curriculum);
   const normalizedGrade = normalizeGrade(grade);
   const normalizedDifficulty = normalizeDifficulty(difficulty);
+  const maxComplexity = getMaxScenarioComplexity(normalizedGrade, normalizedDifficulty);
 
   const curriculumOk =
     !normalizedCurriculum || scenario.curricula.includes(normalizedCurriculum);
 
   const gradeOk = scenario.grades.includes(normalizedGrade);
   const difficultyOk = scenario.difficulties.includes(normalizedDifficulty);
+  const complexityOk = scenarioComplexity(scenario.kind) <= maxComplexity;
 
-  return curriculumOk && gradeOk && difficultyOk;
+  return curriculumOk && gradeOk && difficultyOk && complexityOk;
 }
 
 function getCandidateScenarios(context) {
@@ -876,6 +920,10 @@ function buildVariantPool(scenarios) {
 function getCandidateScenarioTiers(context) {
   const tiers = [];
   const seenIds = new Set();
+  const normalizedCurriculum = normalizeCurriculum(context.curriculum);
+  const normalizedGrade = normalizeGrade(context.grade);
+  const maxComplexity = getMaxScenarioComplexity(normalizedGrade, normalizeDifficulty(context.difficulty));
+  const complexityOk = (scenario) => scenarioComplexity(scenario.kind) <= maxComplexity;
 
   const exact = uniqueScenariosById(
     PYTHAGORAS_SCENARIOS.filter((scenario) => scenarioMatchesContext(scenario, context)),
@@ -885,10 +933,9 @@ function getCandidateScenarioTiers(context) {
     tiers.push(exact);
   }
 
-  const normalizedCurriculum = normalizeCurriculum(context.curriculum);
   if (normalizedCurriculum) {
     const curriculumFallback = uniqueScenariosById(
-      PYTHAGORAS_SCENARIOS.filter((scenario) => scenario.curricula.includes(normalizedCurriculum)),
+      PYTHAGORAS_SCENARIOS.filter((scenario) => scenario.curricula.includes(normalizedCurriculum) && complexityOk(scenario)),
       seenIds
     );
     if (curriculumFallback.length > 0) {
@@ -897,14 +944,14 @@ function getCandidateScenarioTiers(context) {
   }
 
   const gradeFallback = uniqueScenariosById(
-    PYTHAGORAS_SCENARIOS.filter((scenario) => scenario.grades.includes(normalizeGrade(context.grade))),
+    PYTHAGORAS_SCENARIOS.filter((scenario) => scenario.grades.includes(normalizedGrade) && complexityOk(scenario)),
     seenIds
   );
   if (gradeFallback.length > 0) {
     tiers.push(gradeFallback);
   }
 
-  const allFallback = uniqueScenariosById(PYTHAGORAS_SCENARIOS, seenIds);
+  const allFallback = uniqueScenariosById(PYTHAGORAS_SCENARIOS.filter((scenario) => complexityOk(scenario)), seenIds);
   if (allFallback.length > 0) {
     tiers.push(allFallback);
   }

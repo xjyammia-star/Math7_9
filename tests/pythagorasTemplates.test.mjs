@@ -121,8 +121,9 @@ const ukBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(ukBatch, /Show that triangle ABC is right-angled at B|Work out the length of diagonal AC/);
-assert.match(ukBatch, /"template":"(right_triangle|rectangle_diagonal)"/);
+assert.match(ukBatch, /perimeter is|the perimeter is/);
+assert.match(ukBatch, /How far is the foot of the ladder from the wall/);
+assert.match(ukBatch, /"template":"(rectangle_diagonal|ladder)"/);
 
 const ukGrade6Fallback = buildPythagorasExerciseBatch({
   count: 1,
