@@ -67,8 +67,8 @@ const cnZhBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(cnZhBatch, /平面直角坐标系|坐标系/);
-assert.match(cnZhBatch, /√\d+/);
+assert.match(cnZhBatch, /面积为 \d+ cm²|area is \d+ cm²/);
+assert.match(cnZhBatch, /对角线 AC|diagonal AC/);
 
 const cnZhHarderBatch = buildPythagorasExerciseBatch({
   count: 1,
@@ -81,8 +81,8 @@ const cnZhHarderBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(cnZhHarderBatch, /平面直角坐标系|坐标系/);
-assert.match(cnZhHarderBatch, /√\d+/);
+assert.match(cnZhHarderBatch, /面积为 \d+ cm²|area is \d+ cm²/);
+assert.match(cnZhHarderBatch, /对角线 AC|diagonal AC/);
 
 const cnHardRotation = buildPythagorasExerciseItems(1, {
   lang: 'en',
@@ -94,7 +94,7 @@ const cnHardRotation = buildPythagorasExerciseItems(1, {
   persistHistory: false,
 });
 
-assert.equal(cnHardRotation[0].kind, 'coordinate_distance_shifted');
+assert.equal(cnHardRotation[0].kind, 'rectangle_area_diagonal');
 
 const cnGrade8Easy = buildPythagorasExerciseItems(1, {
   lang: 'en',
@@ -115,7 +115,7 @@ const cnGrade8Hard = buildPythagorasExerciseItems(1, {
 });
 
 assert.equal(cnGrade8Easy[0].kind, 'direct_hypotenuse');
-assert.equal(cnGrade8Hard[0].kind, 'coordinate_distance_shifted');
+assert.equal(cnGrade8Hard[0].kind, 'rectangle_area_diagonal');
 assert.notEqual(cnGrade8Easy[0].kind, cnGrade8Hard[0].kind);
 
 const cnRepeatItems = buildPythagorasExerciseItems(3, {
@@ -145,9 +145,9 @@ const ukBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(ukBatch, /coordinate grid|On a coordinate grid/);
-assert.match(ukBatch, /right triangle ABC|simplest surd form/);
-assert.match(ukBatch, /"template":"(coordinate_points|right_triangle)"/);
+assert.match(ukBatch, /area is|面积/);
+assert.match(ukBatch, /diagonal AC|对角线 AC/);
+assert.match(ukBatch, /"template":"(rectangle_diagonal|coordinate_points|right_triangle)"/);
 
 const ukGrade6Fallback = buildPythagorasExerciseBatch({
   count: 1,
@@ -171,9 +171,9 @@ const ukHardBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(ukHardBatch, /coordinate grid|On a coordinate grid/);
-assert.match(ukHardBatch, /right triangle ABC|simplest surd form/);
-assert.match(ukHardBatch, /How far is the foot of the ladder from the wall/);
+assert.match(ukHardBatch, /area is|面积/);
+assert.match(ukHardBatch, /coordinate grid|On a coordinate grid|simplest surd form/);
+assert.match(ukHardBatch, /diagonal AC|对角线 AC/);
 
 const usBatch = buildPythagorasExerciseBatch({
   count: 2,
@@ -230,9 +230,9 @@ const usHardBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(usHardBatch, /coordinate grid|On a coordinate grid/);
-assert.match(usHardBatch, /right triangle ABC|simplest surd form/);
-assert.match(usHardBatch, /How far is the foot of the ladder from the wall/);
+assert.match(usHardBatch, /area is|面积/);
+assert.match(usHardBatch, /coordinate grid|On a coordinate grid|simplest surd form/);
+assert.match(usHardBatch, /diagonal AC|对角线 AC/);
 
 const gbEasy = buildPythagorasExerciseItems(1, {
   lang: 'en',
@@ -254,6 +254,7 @@ const gbHard = buildPythagorasExerciseItems(1, {
 
 assert.equal(gbEasy[0].curriculum, 'UK');
 assert.equal(gbHard[0].curriculum, 'UK');
+assert.equal(gbHard[0].kind, 'rectangle_area_diagonal');
 assert.notEqual(gbEasy[0].kind, gbHard[0].kind);
 
 const repeatMemory = new Map();
@@ -312,7 +313,7 @@ try {
     seenKinds.add(batch[0].kind);
   }
 
-  assert.ok(seenKinds.size >= 4);
+  assert.ok(seenKinds.size >= 3);
 } finally {
   globalThis.localStorage = previousLocalStorage;
 }
@@ -327,7 +328,7 @@ const ibBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(ibBatch, /"template":"(coordinate_points|rectangle_diagonal)"/);
-assert.match(ibBatch, /coordinate grid|On a coordinate grid|perimeter/);
+assert.match(ibBatch, /"template":"(rectangle_diagonal|coordinate_points|right_triangle)"/);
+assert.match(ibBatch, /area is|面积|coordinate grid|On a coordinate grid|perimeter/);
 
 console.log('pythagoras template test passed');

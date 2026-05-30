@@ -113,6 +113,19 @@
     ],
   },
   {
+    id: 'cn_rectangle_area_diagonal',
+    curricula: ['CN'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangle_area_diagonal',
+    diagramTemplate: 'rectangle_diagonal',
+    values: [
+      { variantId: '45213', width: 4, height: 13, area: 52, diagonal: Math.sqrt(185) },
+      { variantId: '78412', width: 7, height: 12, area: 84, diagonal: Math.sqrt(193) },
+      { variantId: '89612', width: 8, height: 12, area: 96, diagonal: Math.sqrt(208) },
+    ],
+  },
+  {
     id: 'cn_ladder_foot',
     curricula: ['CN'],
     grades: ['8', '9'],
@@ -186,6 +199,19 @@
       { variantId: '36213', width: 5, height: 13, perimeter: 36, diagonal: Math.sqrt(194) },
       { variantId: '40216', width: 8, height: 12, perimeter: 40, diagonal: Math.sqrt(208) },
       { variantId: '52218', width: 10, height: 16, perimeter: 52, diagonal: Math.sqrt(356) },
+    ],
+  },
+  {
+    id: 'us_rectangle_area_diagonal',
+    curricula: ['US'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangle_area_diagonal',
+    diagramTemplate: 'rectangle_diagonal',
+    values: [
+      { variantId: '45213', width: 4, height: 13, area: 52, diagonal: Math.sqrt(185) },
+      { variantId: '78412', width: 7, height: 12, area: 84, diagonal: Math.sqrt(193) },
+      { variantId: '89612', width: 8, height: 12, area: 96, diagonal: Math.sqrt(208) },
     ],
   },
   {
@@ -392,6 +418,19 @@
     ],
   },
   {
+    id: 'uk_rectangle_area_diagonal',
+    curricula: ['UK'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangle_area_diagonal',
+    diagramTemplate: 'rectangle_diagonal',
+    values: [
+      { variantId: '45213', width: 4, height: 13, area: 52, diagonal: Math.sqrt(185) },
+      { variantId: '78412', width: 7, height: 12, area: 84, diagonal: Math.sqrt(193) },
+      { variantId: '89612', width: 8, height: 12, area: 96, diagonal: Math.sqrt(208) },
+    ],
+  },
+  {
     id: 'uk_ladder_foot',
     curricula: ['UK'],
     grades: ['8', '9'],
@@ -561,6 +600,19 @@
     ],
   },
   {
+    id: 'ib_rectangle_area_diagonal',
+    curricula: ['IB'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangle_area_diagonal',
+    diagramTemplate: 'rectangle_diagonal',
+    values: [
+      { variantId: '45213', width: 4, height: 13, area: 52, diagonal: Math.sqrt(185) },
+      { variantId: '78412', width: 7, height: 12, area: 84, diagonal: Math.sqrt(193) },
+      { variantId: '89612', width: 8, height: 12, area: 96, diagonal: Math.sqrt(208) },
+    ],
+  },
+  {
     id: 'ib_show_right_triangle',
     curricula: ['IB'],
     grades: ['8', '9'],
@@ -616,6 +668,7 @@ const DIFFICULTY_KIND_PRIORITY = {
   Easy: ['direct_hypotenuse', 'rectangle_diagonal', 'square_diagonal', 'ladder_height'],
   Medium: ['direct_leg_ab', 'direct_leg_bc', 'square_side_from_diagonal', 'coordinate_distance', 'ladder_height'],
   Hard: [
+    'rectangle_area_diagonal',
     'coordinate_distance_shifted',
     'direct_hypotenuse_surd',
     'square_side_from_diagonal',
@@ -639,16 +692,18 @@ const KIND_COMPLEXITY = {
   show_right_triangle: 2,
   ladder_foot: 3,
   rectangle_perimeter_diagonal: 3,
+  rectangle_area_diagonal: 4,
   coordinate_distance_shifted: 4,
   direct_hypotenuse_surd: 4,
 };
 const COMPLEXITY_WINDOW_BY_GRADE_AND_DIFFICULTY = {
   '6': { Easy: [0, 0], Medium: [1, 2], Hard: [2, 3] },
   '7': { Easy: [0, 0], Medium: [1, 2], Hard: [2, 3] },
-  '8': { Easy: [0, 0], Medium: [1, 2], Hard: [3, 4] },
-  '9': { Easy: [0, 0], Medium: [1, 2], Hard: [3, 4] },
+  '8': { Easy: [0, 0], Medium: [1, 2], Hard: [4, 4] },
+  '9': { Easy: [0, 0], Medium: [1, 2], Hard: [4, 4] },
 };
 const HARD_ADVANCED_KINDS = new Set([
+  'rectangle_area_diagonal',
   'rectangle_perimeter_diagonal',
   'ladder_foot',
   'coordinate_distance_shifted',
@@ -1026,6 +1081,9 @@ function buildQuestionText(item, lang, context) {
     if (item.kind === 'rectangle_perimeter_diagonal') {
       return `在长方形 ABCD 中，周长为 ${formatLength(item.perimeter, unit)}，且 AB = ${formatLength(item.width, unit)}。求对角线 AC 的长度。`;
     }
+    if (item.kind === 'rectangle_area_diagonal') {
+      return `在长方形 ABCD 中，AB = ${formatLength(item.width, unit)}，面积为 ${item.area} ${unit}²。求对角线 AC 的长度。`;
+    }
     if (item.kind === 'square_diagonal') {
       return `在正方形 ABCD 中，AB = ${formatLength(item.side, unit)}。求对角线 AC 的长度。`;
     }
@@ -1097,6 +1155,13 @@ function buildQuestionText(item, lang, context) {
       return `ๅจ้•ฟๆ–นๅฝขABCDไธญ๏ผๅฝูๅงๅฃฃๅทฑ ${formatLength(item.perimeter, unit)}๏ผAB = ${formatLength(item.width, unit)}ใ€ๆฑๅฏน่ง’็บฟ AC ็้•ฟๅบฆใ€`;
     }
     return `In rectangle ABCD, the perimeter is ${formatLength(item.perimeter, unit)} and AB = ${formatLength(item.width, unit)}. Find the length of diagonal AC.`;
+  }
+
+  if (item.kind === 'rectangle_area_diagonal') {
+    if (zh) {
+      return `ๅจ้•ฟๆ–นๅฝขABCDไธญ๏ผAB = ${formatLength(item.width, unit)}๏ผๅผๅ็ฒๅโพ ${item.area} ${unit}²ใ€ๆฑๅฏน่ง’็บฟ AC ็้•ฟๅบฆใ€`;
+    }
+    return `In rectangle ABCD, AB = ${formatLength(item.width, unit)} and the area is ${item.area} ${unit}². Find the length of diagonal AC.`;
   }
 
   if (item.kind === 'square_diagonal') {
@@ -1200,6 +1265,19 @@ function buildDiagramSpec(item) {
       label_BC: '?',
       label_AC: '?',
       label_perimeter: formatLength(item.perimeter, item.unit),
+    };
+  }
+
+  if (item.kind === 'rectangle_area_diagonal') {
+    return {
+      template: 'rectangle_diagonal',
+      width: item.width,
+      height: item.height,
+      labels: { A: 'A', B: 'B', C: 'C', D: 'D' },
+      label_AB: formatLength(item.width, item.unit),
+      label_BC: '?',
+      label_AC: '?',
+      label_area: `${item.area} ${item.unit}²`,
     };
   }
 
@@ -1380,6 +1458,18 @@ function validateScenarioItem(item) {
     }
   }
 
+  if (item.kind === 'rectangle_area_diagonal') {
+    if (!isFinitePositiveNumber(item.width)) issues.push('width must be a positive finite number');
+    if (!isFinitePositiveNumber(item.height)) issues.push('height must be a positive finite number');
+    if (!isFinitePositiveNumber(item.area)) issues.push('area must be a positive finite number');
+    if (issues.length === 0) {
+      const expectedArea = item.width * item.height;
+      if (Math.abs(expectedArea - item.area) > 1e-9) {
+        issues.push('rectangle area values do not match the side lengths');
+      }
+    }
+  }
+
   if (item.diagramTemplate === 'square_diagonal') {
     if (!isFinitePositiveNumber(item.side)) issues.push('side must be a positive finite number');
     if (!isFinitePositiveNumber(item.diagonal)) issues.push('diagonal must be a positive finite number');
@@ -1470,6 +1560,10 @@ function validateRenderedScenarioItem(item, rendered) {
 
   if (item.kind === 'rectangle_perimeter_diagonal' && !rendered.includes('perimeter') && !rendered.includes('周长')) {
     issues.push('rectangle perimeter question text is missing perimeter wording');
+  }
+
+  if (item.kind === 'rectangle_area_diagonal' && !rendered.includes('area') && !rendered.includes('面积')) {
+    issues.push('rectangle area question text is missing area wording');
   }
 
   if (item.kind === 'square_diagonal' && !rendered.includes('square ABCD') && !rendered.includes('diagonal AC') && !rendered.includes('在正方形 ABCD')) {
