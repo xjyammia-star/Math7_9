@@ -816,17 +816,17 @@ function orderVariantsByDifficulty(variants, difficulty, randomSource, recentKin
     return [...variants]
       .map((variant) => ({
         variant,
-        priority: priorityIndex.has(variant.scenario.kind)
-          ? priorityIndex.get(variant.scenario.kind)
-          : priority.length,
         kindRecency: recentIndex.has(variant.scenario.kind)
           ? 1 + (recentOrderSize - recentIndex.get(variant.scenario.kind))
           : 0,
+        priority: priorityIndex.has(variant.scenario.kind)
+          ? priorityIndex.get(variant.scenario.kind)
+          : priority.length,
         tieBreaker: rngValue(randomSource),
       }))
       .sort((a, b) =>
-        a.priority - b.priority ||
         a.kindRecency - b.kindRecency ||
+        a.priority - b.priority ||
         a.tieBreaker - b.tieBreaker
       )
       .map(({ variant }) => variant);

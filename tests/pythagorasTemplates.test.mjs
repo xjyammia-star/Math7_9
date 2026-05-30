@@ -256,6 +256,37 @@ assert.equal(gbEasy[0].curriculum, 'UK');
 assert.equal(gbHard[0].curriculum, 'UK');
 assert.notEqual(gbEasy[0].kind, gbHard[0].kind);
 
+const repeatMemory = new Map();
+const previousLocalStorageForRepeat = globalThis.localStorage;
+try {
+  globalThis.localStorage = {
+    getItem(key) {
+      return repeatMemory.has(key) ? repeatMemory.get(key) : null;
+    },
+    setItem(key, value) {
+      repeatMemory.set(key, String(value));
+    },
+  };
+
+  const repeatedKinds = [];
+  for (let i = 0; i < 10; i += 1) {
+    const items = buildPythagorasExerciseItems(1, {
+      lang: 'en',
+      curriculum: 'GB',
+      grade: '8',
+      difficulty: 'Hard',
+      random: makeSequenceRng([0.11, 0.22, 0.33, 0.44, 0.55]),
+      persistHistory: true,
+    });
+    repeatedKinds.push(items[0].kind);
+  }
+
+  assert.ok(new Set(repeatedKinds).size >= 3);
+  assert.ok(repeatedKinds.some((kind) => kind !== repeatedKinds[0]));
+} finally {
+  globalThis.localStorage = previousLocalStorageForRepeat;
+}
+
 const previousLocalStorage = globalThis.localStorage;
 try {
   const memory = new Map();
