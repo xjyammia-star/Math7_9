@@ -124,6 +124,18 @@ const ukBatch = buildPythagorasExerciseBatch({
 assert.match(ukBatch, /Show that triangle ABC is right-angled at B|Work out the length of diagonal AC/);
 assert.match(ukBatch, /"template":"(right_triangle|rectangle_diagonal)"/);
 
+const ukGrade6Fallback = buildPythagorasExerciseBatch({
+  count: 1,
+  lang: 'en',
+  curriculum: 'UK',
+  grade: '6',
+  difficulty: 'Medium',
+  random: makeSequenceRng([0.21, 0.43, 0.65]),
+  persistHistory: false,
+});
+
+assert.match(ukGrade6Fallback, /"template":"(right_triangle|rectangle_diagonal|square_diagonal|ladder)"/);
+
 const ukHardBatch = buildPythagorasExerciseBatch({
   count: 3,
   lang: 'en',

@@ -823,7 +823,16 @@ function getCandidateScenarios(context) {
   const filtered = PYTHAGORAS_SCENARIOS.filter((scenario) => scenarioMatchesContext(scenario, context));
   if (filtered.length > 0) return filtered;
 
-  return PYTHAGORAS_SCENARIOS.filter((scenario) => scenario.grades.includes(normalizeGrade(context.grade)));
+  const normalizedCurriculum = normalizeCurriculum(context.curriculum);
+  if (normalizedCurriculum) {
+    const curriculumFallback = PYTHAGORAS_SCENARIOS.filter((scenario) => scenario.curricula.includes(normalizedCurriculum));
+    if (curriculumFallback.length > 0) return curriculumFallback;
+  }
+
+  const gradeFallback = PYTHAGORAS_SCENARIOS.filter((scenario) => scenario.grades.includes(normalizeGrade(context.grade)));
+  if (gradeFallback.length > 0) return gradeFallback;
+
+  return PYTHAGORAS_SCENARIOS;
 }
 
 function getHardCandidateScenarios(context) {
