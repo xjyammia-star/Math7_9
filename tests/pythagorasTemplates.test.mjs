@@ -124,6 +124,20 @@ const ukBatch = buildPythagorasExerciseBatch({
 assert.match(ukBatch, /Show that triangle ABC is right-angled at B|Work out the length of diagonal AC/);
 assert.match(ukBatch, /"template":"(right_triangle|rectangle_diagonal)"/);
 
+const ukHardBatch = buildPythagorasExerciseBatch({
+  count: 3,
+  lang: 'en',
+  curriculum: 'UK',
+  grade: '8',
+  difficulty: 'Hard',
+  random: makeSequenceRng([0.13, 0.27, 0.49, 0.61, 0.83]),
+  persistHistory: false,
+});
+
+assert.match(ukHardBatch, /perimeter is|the perimeter is/);
+assert.match(ukHardBatch, /How far is the foot of the ladder from the wall/);
+assert.match(ukHardBatch, /coordinate grid|right triangle|Show that triangle ABC/);
+
 const usBatch = buildPythagorasExerciseBatch({
   count: 2,
   lang: 'en',

@@ -379,6 +379,81 @@
     ],
   },
   {
+    id: 'uk_rectangle_perimeter_diagonal',
+    curricula: ['UK'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangle_perimeter_diagonal',
+    diagramTemplate: 'rectangle_diagonal',
+    values: [
+      { variantId: '36213', width: 5, height: 13, perimeter: 36, diagonal: Math.sqrt(194) },
+      { variantId: '40216', width: 8, height: 12, perimeter: 40, diagonal: Math.sqrt(208) },
+      { variantId: '52218', width: 10, height: 16, perimeter: 52, diagonal: Math.sqrt(356) },
+    ],
+  },
+  {
+    id: 'uk_ladder_foot',
+    curricula: ['UK'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'ladder_foot',
+    diagramTemplate: 'ladder',
+    unit: 'm',
+    values: [
+      { variantId: '13125', length: 13, height: 12, foot: 5 },
+      { variantId: '17158', length: 17, height: 15, foot: 8 },
+      { variantId: '201612', length: 20, height: 16, foot: 12 },
+      { variantId: '25724', length: 25, height: 24, foot: 7 },
+    ],
+  },
+  {
+    id: 'uk_coordinate_distance_shifted',
+    curricula: ['UK'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'coordinate_distance_shifted',
+    diagramTemplate: 'coordinate_points',
+    values: [
+      {
+        variantId: '23815',
+        points: [
+          { x: 2, y: 3, label: 'A' },
+          { x: 8, y: 3, label: 'B' },
+          { x: 8, y: 15, label: 'C' },
+        ],
+      },
+      {
+        variantId: '14211',
+        points: [
+          { x: 1, y: 4, label: 'A' },
+          { x: 5, y: 4, label: 'B' },
+          { x: 5, y: 13, label: 'C' },
+        ],
+      },
+      {
+        variantId: '37613',
+        points: [
+          { x: 3, y: 7, label: 'A' },
+          { x: 10, y: 7, label: 'B' },
+          { x: 10, y: 20, label: 'C' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'uk_exact_surd',
+    curricula: ['UK'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'direct_hypotenuse_surd',
+    diagramTemplate: 'right_triangle',
+    values: [
+      { variantId: '79root130', legAB: 7, legBC: 9, hypotenuse: Math.sqrt(130) },
+      { variantId: '1013root269', legAB: 10, legBC: 13, hypotenuse: Math.sqrt(269) },
+      { variantId: '1116root377', legAB: 11, legBC: 16, hypotenuse: Math.sqrt(377) },
+    ],
+  },
+  {
     id: 'sg_ladder_context',
     curricula: ['SG'],
     grades: ['7', '8', '9'],
