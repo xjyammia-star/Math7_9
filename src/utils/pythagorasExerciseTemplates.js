@@ -100,6 +100,68 @@
     ],
   },
   {
+    id: 'cn_rectangle_perimeter_diagonal',
+    curricula: ['CN'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangle_perimeter_diagonal',
+    diagramTemplate: 'rectangle_diagonal',
+    values: [
+      { variantId: '36213', width: 5, height: 13, perimeter: 36, diagonal: Math.sqrt(194) },
+      { variantId: '40216', width: 8, height: 12, perimeter: 40, diagonal: Math.sqrt(208) },
+      { variantId: '44218', width: 10, height: 12, perimeter: 44, diagonal: Math.sqrt(244) },
+    ],
+  },
+  {
+    id: 'cn_ladder_foot',
+    curricula: ['CN'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'ladder_foot',
+    diagramTemplate: 'ladder',
+    unit: 'm',
+    values: [
+      { variantId: '13125', length: 13, height: 12, foot: 5 },
+      { variantId: '17158', length: 17, height: 15, foot: 8 },
+      { variantId: '201612', length: 20, height: 16, foot: 12 },
+      { variantId: '25724', length: 25, height: 24, foot: 7 },
+    ],
+  },
+  {
+    id: 'cn_coordinate_distance_shifted',
+    curricula: ['CN'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'coordinate_distance_shifted',
+    diagramTemplate: 'coordinate_points',
+    values: [
+      {
+        variantId: '23815',
+        points: [
+          { x: 2, y: 3, label: 'A' },
+          { x: 8, y: 3, label: 'B' },
+          { x: 8, y: 15, label: 'C' },
+        ],
+      },
+      {
+        variantId: '14211',
+        points: [
+          { x: 1, y: 4, label: 'A' },
+          { x: 5, y: 4, label: 'B' },
+          { x: 5, y: 13, label: 'C' },
+        ],
+      },
+      {
+        variantId: '37613',
+        points: [
+          { x: 3, y: 7, label: 'A' },
+          { x: 10, y: 7, label: 'B' },
+          { x: 10, y: 20, label: 'C' },
+        ],
+      },
+    ],
+  },
+  {
     id: 'us_ladder_easy',
     curricula: ['US'],
     grades: ['7', '8'],
@@ -111,6 +173,34 @@
       { variantId: '6810', length: 10, foot: 6, height: 8 },
       { variantId: '51213', length: 13, foot: 5, height: 12 },
       { variantId: '81517', length: 17, foot: 8, height: 15 },
+    ],
+  },
+  {
+    id: 'us_rectangle_perimeter_diagonal',
+    curricula: ['US'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangle_perimeter_diagonal',
+    diagramTemplate: 'rectangle_diagonal',
+    values: [
+      { variantId: '36213', width: 5, height: 13, perimeter: 36, diagonal: Math.sqrt(194) },
+      { variantId: '40216', width: 8, height: 12, perimeter: 40, diagonal: Math.sqrt(208) },
+      { variantId: '52218', width: 10, height: 16, perimeter: 52, diagonal: Math.sqrt(356) },
+    ],
+  },
+  {
+    id: 'us_ladder_foot',
+    curricula: ['US'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'ladder_foot',
+    diagramTemplate: 'ladder',
+    unit: 'm',
+    values: [
+      { variantId: '13125', length: 13, height: 12, foot: 5 },
+      { variantId: '17158', length: 17, height: 15, foot: 8 },
+      { variantId: '201612', length: 20, height: 16, foot: 12 },
+      { variantId: '25724', length: 25, height: 24, foot: 7 },
     ],
   },
   {
@@ -203,6 +293,40 @@
       { variantId: '79root130', legAB: 7, legBC: 9, hypotenuse: Math.sqrt(130) },
       { variantId: '1013root269', legAB: 10, legBC: 13, hypotenuse: Math.sqrt(269) },
       { variantId: '1116root377', legAB: 11, legBC: 16, hypotenuse: Math.sqrt(377) },
+    ],
+  },
+  {
+    id: 'us_coordinate_distance_shifted',
+    curricula: ['US'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'coordinate_distance_shifted',
+    diagramTemplate: 'coordinate_points',
+    values: [
+      {
+        variantId: '23815',
+        points: [
+          { x: 2, y: 3, label: 'A' },
+          { x: 8, y: 3, label: 'B' },
+          { x: 8, y: 15, label: 'C' },
+        ],
+      },
+      {
+        variantId: '14211',
+        points: [
+          { x: 1, y: 4, label: 'A' },
+          { x: 5, y: 4, label: 'B' },
+          { x: 5, y: 13, label: 'C' },
+        ],
+      },
+      {
+        variantId: '37613',
+        points: [
+          { x: 3, y: 7, label: 'A' },
+          { x: 10, y: 7, label: 'B' },
+          { x: 10, y: 20, label: 'C' },
+        ],
+      },
     ],
   },
   {
@@ -349,6 +473,19 @@
     ],
   },
   {
+    id: 'ib_rectangle_perimeter_diagonal',
+    curricula: ['IB'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangle_perimeter_diagonal',
+    diagramTemplate: 'rectangle_diagonal',
+    values: [
+      { variantId: '36213', width: 5, height: 13, perimeter: 36, diagonal: Math.sqrt(194) },
+      { variantId: '40216', width: 8, height: 12, perimeter: 40, diagonal: Math.sqrt(208) },
+      { variantId: '52218', width: 10, height: 16, perimeter: 52, diagonal: Math.sqrt(356) },
+    ],
+  },
+  {
     id: 'ib_show_right_triangle',
     curricula: ['IB'],
     grades: ['8', '9'],
@@ -361,6 +498,40 @@
       { variantId: '81517', legAB: 8, legBC: 15, hypotenuse: 17 },
     ],
   },
+  {
+    id: 'ib_coordinate_distance_shifted',
+    curricula: ['IB'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'coordinate_distance_shifted',
+    diagramTemplate: 'coordinate_points',
+    values: [
+      {
+        variantId: '23815',
+        points: [
+          { x: 2, y: 3, label: 'A' },
+          { x: 8, y: 3, label: 'B' },
+          { x: 8, y: 15, label: 'C' },
+        ],
+      },
+      {
+        variantId: '14211',
+        points: [
+          { x: 1, y: 4, label: 'A' },
+          { x: 5, y: 4, label: 'B' },
+          { x: 5, y: 13, label: 'C' },
+        ],
+      },
+      {
+        variantId: '37613',
+        points: [
+          { x: 3, y: 7, label: 'A' },
+          { x: 10, y: 7, label: 'B' },
+          { x: 10, y: 20, label: 'C' },
+        ],
+      },
+    ],
+  },
 ];
 
 const HISTORY_KEY = 'math7-9:pythagoras-variant-history:v4';
@@ -369,8 +540,25 @@ const DIFFICULTY_ORDER = { Easy: 0, Medium: 1, Hard: 2 };
 const DIFFICULTY_KIND_PRIORITY = {
   Easy: ['direct_hypotenuse', 'rectangle_diagonal', 'square_diagonal', 'ladder_height'],
   Medium: ['ladder_height', 'direct_leg_ab', 'direct_leg_bc', 'rectangle_diagonal', 'square_diagonal', 'coordinate_distance'],
-  Hard: ['show_right_triangle', 'direct_hypotenuse_surd', 'square_side_from_diagonal', 'coordinate_distance', 'ladder_height', 'direct_leg_bc'],
+  Hard: [
+    'rectangle_perimeter_diagonal',
+    'ladder_foot',
+    'coordinate_distance_shifted',
+    'direct_hypotenuse_surd',
+    'square_side_from_diagonal',
+    'show_right_triangle',
+    'coordinate_distance',
+    'ladder_height',
+    'direct_leg_bc',
+  ],
 };
+const HARD_ADVANCED_KINDS = new Set([
+  'rectangle_perimeter_diagonal',
+  'ladder_foot',
+  'coordinate_distance_shifted',
+  'direct_hypotenuse_surd',
+  'show_right_triangle',
+]);
 const GRADE_ORDER = { '6': 6, '7': 7, '8': 8, '9': 9 };
 const DEFAULT_UNIT = 'cm';
 
@@ -487,6 +675,19 @@ function orderVariantsByDifficulty(variants, difficulty, randomSource, recentKin
   const recentIndex = new Map(recentKindOrder.map((kind, index) => [kind, index]));
   const recentOrderSize = recentKindOrder.length;
 
+  if (normalizedDifficulty === 'Hard') {
+    return [...variants]
+      .map((variant) => ({
+        variant,
+        kindRecency: recentIndex.has(variant.scenario.kind)
+          ? 1 + (recentOrderSize - recentIndex.get(variant.scenario.kind))
+          : 0,
+        tieBreaker: rngValue(randomSource),
+      }))
+      .sort((a, b) => a.kindRecency - b.kindRecency || a.tieBreaker - b.tieBreaker)
+      .map(({ variant }) => variant);
+  }
+
   return [...variants]
     .map((variant) => ({
       variant,
@@ -525,6 +726,12 @@ function getCandidateScenarios(context) {
   if (filtered.length > 0) return filtered;
 
   return PYTHAGORAS_SCENARIOS.filter((scenario) => scenario.grades.includes(normalizeGrade(context.grade)));
+}
+
+function getHardCandidateScenarios(context) {
+  const allCandidates = getCandidateScenarios(context);
+  const advanced = allCandidates.filter((scenario) => HARD_ADVANCED_KINDS.has(scenario.kind));
+  return advanced.length > 0 ? advanced : allCandidates;
 }
 
 function scenarioVariantKey(scenario, valueSet) {
@@ -597,6 +804,9 @@ function buildQuestionText(item, lang, context) {
     if (item.kind === 'rectangle_diagonal') {
       return `在长方形 ABCD 中，AB = ${formatLength(item.width, unit)}，BC = ${formatLength(item.height, unit)}。求对角线 AC 的长度。`;
     }
+    if (item.kind === 'rectangle_perimeter_diagonal') {
+      return `在长方形 ABCD 中，周长为 ${formatLength(item.perimeter, unit)}，且 AB = ${formatLength(item.width, unit)}。求对角线 AC 的长度。`;
+    }
     if (item.kind === 'square_diagonal') {
       return `在正方形 ABCD 中，AB = ${formatLength(item.side, unit)}。求对角线 AC 的长度。`;
     }
@@ -615,8 +825,15 @@ function buildQuestionText(item, lang, context) {
     if (item.kind === 'ladder_height') {
       return `一把长度为 ${formatLength(item.length, unit)} 的梯子靠在墙上，梯脚离墙 ${formatLength(item.foot, unit)}。梯子能爬到墙上的多高？`;
     }
+    if (item.kind === 'ladder_foot') {
+      return `一把长度为 ${formatLength(item.length, unit)} 的梯子靠在墙上，梯子顶端离地 ${formatLength(item.height, unit)}。梯脚离墙多远？`;
+    }
     if (item.kind === 'coordinate_distance') {
       return `在平面直角坐标系中，A(0, 0)，B(${item.bx}, 0)，C(${item.bx}, ${item.cy})。求 AC 的长度。`;
+    }
+    if (item.kind === 'coordinate_distance_shifted') {
+      const [A, B, C] = item.points ?? [];
+      return `在平面直角坐标系中，A(${A?.x}, ${A?.y})，B(${B?.x}, ${B?.y})，C(${C?.x}, ${C?.y})。求 AC 的长度。`;
     }
     return '请完成这道勾股定理题。';
   }
@@ -654,6 +871,13 @@ function buildQuestionText(item, lang, context) {
       return `ๅจ้•ฟๆ–นๅฝขABCDไธญ๏ผAB = ${formatLength(item.width, unit)}๏ผBC = ${formatLength(item.height, unit)}ใ€ๆฑๅฏน่ง’็บฟ AC ็้•ฟๅบฆใ€`;
     }
     return `In rectangle ABCD, AB = ${formatLength(item.width, unit)} and BC = ${formatLength(item.height, unit)}. Find the length of diagonal AC.`;
+  }
+
+  if (item.kind === 'rectangle_perimeter_diagonal') {
+    if (zh) {
+      return `ๅจ้•ฟๆ–นๅฝขABCDไธญ๏ผๅฝูๅงๅฃฃๅทฑ ${formatLength(item.perimeter, unit)}๏ผAB = ${formatLength(item.width, unit)}ใ€ๆฑๅฏน่ง’็บฟ AC ็้•ฟๅบฆใ€`;
+    }
+    return `In rectangle ABCD, the perimeter is ${formatLength(item.perimeter, unit)} and AB = ${formatLength(item.width, unit)}. Find the length of diagonal AC.`;
   }
 
   if (item.kind === 'square_diagonal') {
@@ -695,11 +919,26 @@ function buildQuestionText(item, lang, context) {
     return `A ladder of length ${formatLength(item.length, unit)} leans against a wall. The foot of the ladder is ${formatLength(item.foot, unit)} from the wall. How high up the wall does it reach?`;
   }
 
+  if (item.kind === 'ladder_foot') {
+    if (zh) {
+      return `ไธ€ๆ้•ฟๅบฆไธบ ${formatLength(item.length, unit)} ็ๆขฏๅญ้ ๅจๅขไธ๏ผ梯子顶端离地 ${formatLength(item.height, unit)}。梯脚离墙多远？`;
+    }
+    return `A ladder of length ${formatLength(item.length, unit)} leans against a wall. The top of the ladder is ${formatLength(item.height, unit)} above the ground. How far is the foot of the ladder from the wall?`;
+  }
+
   if (item.kind === 'coordinate_distance') {
     if (zh) {
       return `ๅจๅนณ้ข็ด่ง’ๅๆ ็ณปไธญ๏ผA(0, 0)๏ผB(${item.bx}, 0)๏ผC(${item.bx}, ${item.cy})ใ€ๆฑ AC ็้•ฟๅบฆใ€`;
     }
     return `On a coordinate grid, A(0, 0), B(${item.bx}, 0), and C(${item.bx}, ${item.cy}) are plotted. Find the length of AC.`;
+  }
+
+  if (item.kind === 'coordinate_distance_shifted') {
+    const [A, B, C] = item.points ?? [];
+    if (zh) {
+      return `ๅจๅนณ้ข็ด่ง’ๅๆ ็ณปไธญ๏ผA(${A?.x}, ${A?.y})๏ผB(${B?.x}, ${B?.y})๏ผC(${C?.x}, ${C?.y})ใ€ๆฑ AC ็้•ฟๅบฆใ€`;
+    }
+    return `On a coordinate grid, A(${A?.x}, ${A?.y}), B(${B?.x}, ${B?.y}), and C(${C?.x}, ${C?.y}) are plotted. Find the length of AC.`;
   }
 
   return zh ? '่ฏท่งฃ็ญ”่ฟไธชๅพ่กๅฎ็้ขใ€' : 'Solve this Pythagorean theorem question.';
@@ -732,6 +971,19 @@ function buildDiagramSpec(item) {
     };
   }
 
+  if (item.kind === 'rectangle_perimeter_diagonal') {
+    return {
+      template: 'rectangle_diagonal',
+      width: item.width,
+      height: item.height,
+      labels: { A: 'A', B: 'B', C: 'C', D: 'D' },
+      label_AB: formatLength(item.width, item.unit),
+      label_BC: '?',
+      label_AC: '?',
+      label_perimeter: formatLength(item.perimeter, item.unit),
+    };
+  }
+
   if (item.diagramTemplate === 'square_diagonal') {
     return {
       template: 'square_diagonal',
@@ -745,6 +997,20 @@ function buildDiagramSpec(item) {
     };
   }
 
+  if (item.kind === 'ladder_foot') {
+    return {
+      template: 'ladder',
+      length: item.length,
+      foot_dist: item.foot,
+      label_ladder: formatLength(item.length, item.unit),
+      label_foot: '?',
+      label_wall: formatLength(item.height, item.unit),
+      label_top: 'A',
+      label_foot_pt: 'B',
+      label_corner: 'O',
+    };
+  }
+
   if (item.diagramTemplate === 'coordinate_points') {
     return {
       template: 'coordinate_points',
@@ -754,6 +1020,19 @@ function buildDiagramSpec(item) {
         { from: 'A', to: 'B', label: formatLength(item.ab ?? item.width, item.unit) },
         { from: 'B', to: 'C', label: formatLength(item.bc ?? item.height, item.unit) },
         { from: 'A', to: 'C', label: item.kind === 'coordinate_distance' || item.kind === 'rectangle_diagonal' ? '?' : formatLength(item.ac, item.unit) },
+      ],
+    };
+  }
+
+  if (item.kind === 'coordinate_distance_shifted') {
+    return {
+      template: 'coordinate_points',
+      axes: true,
+      points: item.points.map((point) => ({ ...point })),
+      segments: [
+        { from: 'A', to: 'B', label: formatLength(item.ab, item.unit) },
+        { from: 'B', to: 'C', label: formatLength(item.bc, item.unit) },
+        { from: 'A', to: 'C', label: '?' },
       ],
     };
   }
@@ -821,9 +1100,36 @@ function validateScenarioItem(item) {
     }
   }
 
+  if (item.kind === 'ladder_foot') {
+    if (!isFinitePositiveNumber(item.length)) issues.push('length must be a positive finite number');
+    if (!isFinitePositiveNumber(item.height)) issues.push('height must be a positive finite number');
+    if (!isFinitePositiveNumber(item.foot)) issues.push('foot must be a positive finite number');
+    if (issues.length === 0 && item.length <= item.height) {
+      issues.push('ladder length must be greater than the wall height');
+    }
+    if (issues.length === 0) {
+      const expected = Math.sqrt(item.length ** 2 - item.height ** 2);
+      if (Math.abs(expected - item.foot) > 1e-9) {
+        issues.push('ladder foot values do not satisfy the Pythagorean theorem');
+      }
+    }
+  }
+
   if (item.diagramTemplate === 'rectangle_diagonal') {
     if (!isFinitePositiveNumber(item.width)) issues.push('width must be a positive finite number');
     if (!isFinitePositiveNumber(item.height)) issues.push('height must be a positive finite number');
+  }
+
+  if (item.kind === 'rectangle_perimeter_diagonal') {
+    if (!isFinitePositiveNumber(item.width)) issues.push('width must be a positive finite number');
+    if (!isFinitePositiveNumber(item.height)) issues.push('height must be a positive finite number');
+    if (!isFinitePositiveNumber(item.perimeter)) issues.push('perimeter must be a positive finite number');
+    if (issues.length === 0) {
+      const expectedPerimeter = 2 * (item.width + item.height);
+      if (Math.abs(expectedPerimeter - item.perimeter) > 1e-9) {
+        issues.push('rectangle perimeter values do not match the side lengths');
+      }
+    }
   }
 
   if (item.diagramTemplate === 'square_diagonal') {
@@ -851,6 +1157,25 @@ function validateScenarioItem(item) {
         const ac = Math.hypot(C.x - A.x, C.y - A.y);
         if (Math.abs((ab ** 2) + (bc ** 2) - (ac ** 2)) > 1e-9) {
           issues.push('coordinate points do not form a right triangle');
+        }
+      }
+    }
+  }
+
+  if (item.kind === 'coordinate_distance_shifted') {
+    if (!Array.isArray(item.points) || item.points.length < 3) {
+      issues.push('coordinate_distance_shifted requires three points');
+    } else {
+      const [A, B, C] = item.points;
+      const pointsValid = [A, B, C].every((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
+      if (!pointsValid) {
+        issues.push('coordinate_distance_shifted contains invalid point coordinates');
+      } else {
+        const ab = Math.hypot(B.x - A.x, B.y - A.y);
+        const bc = Math.hypot(C.x - B.x, C.y - B.y);
+        const ac = Math.hypot(C.x - A.x, C.y - A.y);
+        if (Math.abs((ab ** 2) + (bc ** 2) - (ac ** 2)) > 1e-9) {
+          issues.push('shifted coordinate points do not form a right triangle');
         }
       }
     }
@@ -887,8 +1212,16 @@ function validateRenderedScenarioItem(item, rendered) {
     issues.push('coordinate question text is missing coordinate wording');
   }
 
+  if (item.kind === 'coordinate_distance_shifted' && !rendered.includes('coordinate grid') && !rendered.includes('平面直角坐标系')) {
+    issues.push('shifted coordinate question text is missing coordinate wording');
+  }
+
   if (item.kind === 'rectangle_diagonal' && !rendered.includes('diagonal AC') && !rendered.includes('对角线 AC')) {
     issues.push('rectangle diagonal question text is missing diagonal wording');
+  }
+
+  if (item.kind === 'rectangle_perimeter_diagonal' && !rendered.includes('perimeter') && !rendered.includes('周长')) {
+    issues.push('rectangle perimeter question text is missing perimeter wording');
   }
 
   if (item.kind === 'square_diagonal' && !rendered.includes('square ABCD') && !rendered.includes('diagonal AC') && !rendered.includes('在正方形 ABCD')) {
@@ -897,6 +1230,10 @@ function validateRenderedScenarioItem(item, rendered) {
 
   if (item.kind === 'square_side_from_diagonal' && !rendered.includes('side AB') && !rendered.includes('diagonal AC') && !rendered.includes('在正方形 ABCD')) {
     issues.push('square side-from-diagonal question text is missing side wording');
+  }
+
+  if (item.kind === 'ladder_foot' && !rendered.includes('How far is the foot of the ladder from the wall') && !rendered.includes('梯脚离墙多远')) {
+    issues.push('ladder-foot question text is missing inverse wording');
   }
 
   return issues;
@@ -938,7 +1275,9 @@ export function buildPythagorasExerciseItems(count, options = {}) {
   const recentKindOrder = normalizeRecentKindOrder(
     recentKindKeys ?? (persistHistory ? readRecentVariantKeys(kindHistoryKey) : [])
   );
-  const candidates = getCandidateScenarios(context);
+  const candidates = context.difficulty === 'Hard'
+    ? getHardCandidateScenarios(context)
+    : getCandidateScenarios(context);
   const variantPool = buildVariantPool(candidates);
   const selectedVariants = pickVariants(variantPool, safeCount, random, recentKeys, recentKindOrder, context.difficulty);
 
@@ -973,10 +1312,31 @@ export function buildPythagorasExerciseItems(count, options = {}) {
       item.diagonal = Math.hypot(item.width, item.height);
     }
 
+    if (item.kind === 'rectangle_perimeter_diagonal') {
+      item.diagonal = Math.hypot(item.width, item.height);
+    }
+
     if (item.diagramTemplate === 'square_diagonal') {
       item.width = item.side;
       item.height = item.side;
       item.diagonal = item.diagonal ?? (item.side * Math.SQRT2);
+    }
+
+    if (item.kind === 'ladder_foot') {
+      item.foot = item.foot ?? Math.sqrt(item.length ** 2 - item.height ** 2);
+    }
+
+    if (item.kind === 'coordinate_distance_shifted') {
+      const points = item.points ?? [];
+      item.ax = points[0].x;
+      item.ay = points[0].y;
+      item.bx = points[1].x;
+      item.by = points[1].y;
+      item.cx = points[2].x;
+      item.cy = points[2].y;
+      item.ab = Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y);
+      item.bc = Math.hypot(points[2].x - points[1].x, points[2].y - points[1].y);
+      item.ac = Math.hypot(points[2].x - points[0].x, points[2].y - points[0].y);
     }
 
     validateScenarioItem(item).forEach((issue) => {
