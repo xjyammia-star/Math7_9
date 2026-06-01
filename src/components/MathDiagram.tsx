@@ -13,6 +13,7 @@
  *   rectangle_fold        – rectangle with a fold line (EF) and reflected vertex
  *   parallelogram         – parallelogram with base, side, angle
  *   circle                – circle with optional radius label, tangent from external pt
+ *   circle_annulus        – concentric circles with outer/inner radius labels
  *   circle_intersecting_chords – two chords intersecting inside a circle
  *   linear_function       – y = kx + b on a coordinate grid
  *   quadratic_function    – y = ax² + bx + c on a coordinate grid
@@ -378,6 +379,13 @@ function validateDiagramData(template: string, data: any): string | null {
     case 'circle': {
       const radius = asFiniteNumber(data.radius ?? data.r);
       return radius !== null && radius > 0 ? null : 'circle requires a positive radius';
+    }
+    case 'circle_annulus': {
+      const outer = asFiniteNumber(data.outer_radius ?? data.radius ?? data.r);
+      const inner = asFiniteNumber(data.inner_radius ?? data.r_inner ?? data.radius_inner);
+      return outer !== null && inner !== null && outer > inner && inner > 0
+        ? null
+        : 'circle_annulus requires positive outer_radius greater than inner_radius';
     }
     case 'rectangle_diagonal': {
       const w = asFiniteNumber(data.width ?? data.w);
@@ -749,6 +757,48 @@ function Circle({ data }: { data: any }) {
       {lCirc && (
         <text x={sO.x} y={sO.y + 12} fontSize={12} fontWeight="700"
           textAnchor="middle" fill={GOLD}>{lCirc}</text>
+      )}
+    </g>
+  );
+}
+
+/** circle_annulus: concentric circles for ring area problems */
+function CircleAnnulus({ data }: { data: any }) {
+  const outer: number = data.outer_radius ?? data.radius ?? 6;
+  const inner: number = data.inner_radius ?? data.r_inner ?? 3;
+  const O: Pt = { x: 0, y: 0 };
+  const A: Pt = { x: outer, y: 0 };
+  const B: Pt = { x: inner, y: 0 };
+  const pad = outer * 0.3;
+  const sc = makeScaler(-outer - pad, outer + pad, -outer - pad, outer + pad);
+  const sO = sc(O);
+  const sA = sc(A);
+  const sB = sc(B);
+  const outerR = Math.abs(sc({ x: outer, y: 0 }).x - sO.x);
+  const innerR = Math.abs(sc({ x: inner, y: 0 }).x - sO.x);
+  const lO = explicitLabel(data.label_O ?? 'O');
+  const lA = explicitLabel(data.label_A ?? 'A');
+  const lB = explicitLabel(data.label_B ?? 'B');
+  const lOuter = cleanDiagramLabelText(data.label_outer_radius ?? data.label_radius ?? '');
+  const lInner = cleanDiagramLabelText(data.label_inner_radius ?? '');
+  const lArea = cleanDiagramLabelText(data.label_area ?? '');
+
+  return (
+    <g>
+      <circle cx={sO.x} cy={sO.y} r={outerR}
+        fill={FILL} stroke={GREY} strokeWidth={2} strokeOpacity={0.65} />
+      <circle cx={sO.x} cy={sO.y} r={innerR}
+        fill="#020617" stroke={GREY} strokeWidth={2} strokeOpacity={0.65} />
+      <Seg a={sO} b={sA} stroke={GOLD} sw={2.4} />
+      <Seg a={sO} b={sB} stroke={GREY} sw={2.0} dash="4,3" />
+      <Dot p={sO} label={lO} offset={{ x: 8, y: 12 }} color={WHITE} />
+      <Dot p={sA} label={lA} offset={{ x: 10, y: -10 }} />
+      <Dot p={sB} label={lB} offset={{ x: 10, y: 10 }} />
+      {lOuter && <SegLabel a={sO} b={sA} label={lOuter} color={GOLD} />}
+      {lInner && <SegLabel a={sO} b={sB} label={lInner} color={GREY} />}
+      {lArea && (
+        <text x={sO.x} y={sO.y + 6} fontSize={12} fontWeight="700"
+          textAnchor="middle" fill={GOLD}>{lArea}</text>
       )}
     </g>
   );
@@ -2235,6 +2285,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'rectangular_prism_net': content = <RectangularPrismNet data={parsed} />; break;
       case 'circle_chord':        content = <CircleChord data={parsed} />; break;
       case 'circle_sector':       content = <CircleSector data={parsed} />; break;
+      case 'circle_annulus':      content = <CircleAnnulus data={parsed} />; break;
       case 'circle_tangent':      content = <CircleTangent data={parsed} />; break;
       case 'circle_chord_tangent': content = <CircleChordTangent data={parsed} />; break;
       case 'circle_tangent_chord_dual_points': content = <CircleTangentChordDualPoints data={parsed} />; break;
