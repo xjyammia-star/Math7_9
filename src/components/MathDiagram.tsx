@@ -1456,7 +1456,9 @@ function Parallelogram({ data }: { data: any }) {
   const lBase = data.label_base ?? String(base);
   const lSide = data.label_side ?? String(side);
   const lH    = data.label_height ?? '';
+  const lPerimeter = cleanDiagramLabelText(data.label_perimeter ?? '');
   const height = side * Math.sin(theta);
+  const center = sc({ x: (A.x + C.x) / 2, y: (A.y + C.y) / 2 });
   return (
     <g>
       <Poly pts={all.map(sc)} />
@@ -1476,6 +1478,10 @@ function Parallelogram({ data }: { data: any }) {
       <SegLabel a={sc(B)} b={sc(C)} label={lBase} />
       <SegLabel a={sc(A)} b={sc(B)} label={lSide} />
       <AngleMark v={sc(B)} a={sc(A)} b={sc(C)} label={`${angleDeg}°`} r={22} />
+      {lPerimeter && (
+        <text x={center.x} y={center.y + 4} fontSize={12} fontWeight="700"
+          textAnchor="middle" fill={GOLD}>{lPerimeter}</text>
+      )}
     </g>
   );
 }
