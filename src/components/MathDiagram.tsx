@@ -950,6 +950,10 @@ function RectangularPrismNet({ data }: { data: any }) {
   const lLabel = data.label_length ?? data.label_l ?? data.label_a ?? String(length);
   const wLabel = data.label_width ?? data.label_w ?? data.label_b ?? String(width);
   const hLabel = data.label_height ?? data.label_h ?? data.label_c ?? String(height);
+  const pathStart = data.path_start ?? data.surface_path_start ?? null;
+  const pathEnd = data.path_end ?? data.surface_path_end ?? null;
+  const pathLabel = data.label_path ?? data.surface_path_label ?? '';
+  const showPathLine = data.path_show_line !== false && data.surface_path_show_line !== false;
 
   const left = -width;
   const right = length + width;
@@ -1011,6 +1015,21 @@ function RectangularPrismNet({ data }: { data: any }) {
         fontSize={12} fontWeight="700" textAnchor="middle" fill={GREY}>上</text>
       <text x={sc({ x: length / 2, y: height + width + height / 2 }).x} y={sc({ x: length / 2, y: height + width + height / 2 }).y}
         fontSize={12} fontWeight="700" textAnchor="middle" fill={GREY}>后</text>
+
+      {pathStart && pathEnd && showPathLine && (() => {
+        const start = sc({ x: Number(pathStart.x), y: Number(pathStart.y) });
+        const end = sc({ x: Number(pathEnd.x), y: Number(pathEnd.y) });
+        const startLabel = explicitLabel(pathStart.label ?? pathStart.name ?? '');
+        const endLabel = explicitLabel(pathEnd.label ?? pathEnd.name ?? '');
+        return (
+          <g>
+            <Seg a={start} b={end} stroke={GREY} sw={2.4} dash="6,4" />
+            {pathLabel && <SegLabel a={start} b={end} label={String(pathLabel)} color={GREY} />}
+            {startLabel && <Dot p={start} label={startLabel} color={GREY} offset={{ x: -18, y: 14 }} />}
+            {endLabel && <Dot p={end} label={endLabel} color={GREY} offset={{ x: 8, y: -10 }} />}
+          </g>
+        );
+      })()}
     </g>
   );
 }
@@ -1175,6 +1194,18 @@ function CoordinatePoints({ data }: { data: any }) {
   const rawPts: { x: number; y: number; label?: string }[] = data.points ?? [];
   const segs: ([string, string] | { from: string; to: string; dash?: boolean; label?: string })[] =
     data.segments ?? data.lines ?? [];
+  const angleMarks: Array<{
+    vertex?: string;
+    at?: string;
+    from?: string;
+    to?: string;
+    a?: string;
+    b?: string;
+    label?: string;
+    kind?: string;
+    right?: boolean;
+    r?: number;
+  }> = data.angleMarks ?? [];
   const showAxes: boolean = data.axes !== false; // default true, set axes:false for pure geometry
   const showCircle: { cx?: number; cy?: number; r?: number } | null = data.circle ?? null;
 
@@ -1219,6 +1250,20 @@ function CoordinatePoints({ data }: { data: any }) {
         <Dot key={i} p={sc({ x: p.x, y: p.y })} label={p.label}
           offset={(p as any).offset ?? { x: 8, y: -12 }} />
       ))}
+      {angleMarks.map((mark, i) => {
+        const vertexLabel = mark.vertex ?? mark.at;
+        const fromLabel = mark.from ?? mark.a;
+        const toLabel = mark.to ?? mark.b;
+        if (!vertexLabel || !fromLabel || !toLabel) return null;
+        const v = ptMap[vertexLabel];
+        const a = ptMap[fromLabel];
+        const b = ptMap[toLabel];
+        if (!v || !a || !b) return null;
+        if (mark.right || mark.kind === 'right') {
+          return <RightAngleMark key={`am-${i}`} v={v} a={a} b={b} size={mark.r ?? 10} color={GREY} />;
+        }
+        return <AngleMark key={`am-${i}`} v={v} a={a} b={b} r={mark.r ?? 18} label={mark.label} color={GREY} />;
+      })}
     </g>
   );
 }

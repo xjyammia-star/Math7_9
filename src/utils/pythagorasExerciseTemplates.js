@@ -128,6 +128,41 @@
     ],
   },
   {
+    id: 'cn_rectangle_fold_reflection_corner',
+    curricula: ['CN'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangle_fold_reflection_corner',
+    diagramTemplate: 'rectangle_fold',
+    unit: 'cm',
+    values: [
+      {
+        variantId: '1284',
+        width: 12,
+        height: 8,
+        E_side: 'AB',
+        E_ratio: 1 / 3,
+        F_side: 'CD',
+        F_ratio: 1 / 6,
+        fold_land_x: 5.12,
+        fold_land_y: 11.84,
+        aPrimeB: Math.hypot(12 - 5.12, 8 - 11.84),
+      },
+      {
+        variantId: '1068',
+        width: 10,
+        height: 6,
+        E_side: 'AB',
+        E_ratio: 0.4,
+        F_side: 'CD',
+        F_ratio: 0.2,
+        fold_land_x: 5.538461538461538,
+        fold_land_y: 9.692307692307693,
+        aPrimeB: Math.hypot(10 - 5.538461538461538, 6 - 9.692307692307693),
+      },
+    ],
+  },
+  {
     id: 'cn_ladder_foot',
     curricula: ['CN'],
     grades: ['8', '9'],
@@ -177,6 +212,91 @@
     ],
   },
   {
+    id: 'cn_auxiliary_angle_hidden_segment',
+    curricula: ['CN'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'auxiliary_angle_hidden_segment',
+    diagramTemplate: 'coordinate_points',
+    unit: 'cm',
+    values: [
+      { variantId: '345', bd: 3, ce: 4, de: 5 },
+      { variantId: '51213', bd: 5, ce: 12, de: 13 },
+      { variantId: '81517', bd: 8, ce: 15, de: 17 },
+      { variantId: '72425', bd: 7, ce: 24, de: 25 },
+    ],
+  },
+  {
+    id: 'cn_auxiliary_angle_hidden_leg',
+    curricula: ['CN'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'auxiliary_angle_hidden_leg',
+    diagramTemplate: 'coordinate_points',
+    unit: 'cm',
+    values: [
+      { variantId: '345', bd: 3, ce: 4, de: 5 },
+      { variantId: '51213', bd: 5, ce: 12, de: 13 },
+      { variantId: '81517', bd: 8, ce: 15, de: 17 },
+      { variantId: '72425', bd: 7, ce: 24, de: 25 },
+    ],
+  },
+  {
+    id: 'cn_cylinder_shortest_path',
+    curricula: ['CN'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'cylinder_shortest_path',
+    diagramTemplate: 'cylinder_unrolled',
+    unit: 'cm',
+    values: [
+      { variantId: '12513', circumference: 12, height: 5, path: 13 },
+      { variantId: '24725', circumference: 24, height: 7, path: 25 },
+      { variantId: '15817', circumference: 15, height: 8, path: 17 },
+    ],
+  },
+  {
+    id: 'cn_rectangular_prism_surface_shortest_path',
+    curricula: ['CN'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangular_prism_surface_shortest_path',
+    diagramTemplate: 'rectangular_prism_net',
+    unit: 'cm',
+    values: [
+      { variantId: '749130', length: 7, width: 5, height: 4, path: Math.sqrt(130) },
+      { variantId: '856185', length: 8, width: 6, height: 5, path: Math.sqrt(185) },
+      { variantId: '976233', length: 9, width: 7, height: 6, path: Math.sqrt(250) },
+    ],
+  },
+  {
+    id: 'cn_rectangular_prism_surface_opposite_corners',
+    curricula: ['CN'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangular_prism_surface_opposite_corners',
+    diagramTemplate: 'rectangular_prism_net',
+    unit: 'cm',
+    values: [
+      { variantId: '2312', length: 2, width: 3, height: 12, path: 13 },
+      { variantId: '3612', length: 3, width: 6, height: 12, path: 15 },
+      { variantId: '2524', length: 2, width: 5, height: 24, path: 25 },
+    ],
+  },
+  {
+    id: 'cn_rectangular_prism_space_diagonal',
+    curricula: ['CN'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangular_prism_space_diagonal',
+    diagramTemplate: 'rectangular_prism_net',
+    values: [
+      { variantId: '7345', length: 7, width: 3, height: 4 },
+      { variantId: '8654', length: 8, width: 5, height: 4 },
+      { variantId: '9643', length: 9, width: 6, height: 4 },
+    ],
+  },
+  {
     id: 'us_ladder_easy',
     curricula: ['US'],
     grades: ['7', '8'],
@@ -216,6 +336,41 @@
       { variantId: 'garden89612', scene: 'garden', unit: 'm', width: 8, height: 12, area: 96, diagonal: Math.sqrt(208) },
       { variantId: 'court6513', scene: 'courtyard', unit: 'm', width: 5, height: 13, area: 65, diagonal: Math.sqrt(194) },
       { variantId: 'poster4868', scene: 'poster', unit: 'cm', width: 6, height: 8, area: 48, diagonal: Math.sqrt(100) },
+    ],
+  },
+  {
+    id: 'us_rectangle_fold_reflection_corner',
+    curricula: ['US'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangle_fold_reflection_corner',
+    diagramTemplate: 'rectangle_fold',
+    unit: 'cm',
+    values: [
+      {
+        variantId: '1284',
+        width: 12,
+        height: 8,
+        E_side: 'AB',
+        E_ratio: 1 / 3,
+        F_side: 'CD',
+        F_ratio: 1 / 6,
+        fold_land_x: 5.12,
+        fold_land_y: 11.84,
+        aPrimeB: Math.hypot(12 - 5.12, 8 - 11.84),
+      },
+      {
+        variantId: '1068',
+        width: 10,
+        height: 6,
+        E_side: 'AB',
+        E_ratio: 0.4,
+        F_side: 'CD',
+        F_ratio: 0.2,
+        fold_land_x: 5.538461538461538,
+        fold_land_y: 9.692307692307693,
+        aPrimeB: Math.hypot(10 - 5.538461538461538, 6 - 9.692307692307693),
+      },
     ],
   },
   {
@@ -360,6 +515,91 @@
     ],
   },
   {
+    id: 'us_auxiliary_angle_hidden_segment',
+    curricula: ['US'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'auxiliary_angle_hidden_segment',
+    diagramTemplate: 'coordinate_points',
+    unit: 'cm',
+    values: [
+      { variantId: '345', bd: 3, ce: 4, de: 5 },
+      { variantId: '51213', bd: 5, ce: 12, de: 13 },
+      { variantId: '81517', bd: 8, ce: 15, de: 17 },
+      { variantId: '72425', bd: 7, ce: 24, de: 25 },
+    ],
+  },
+  {
+    id: 'us_auxiliary_angle_hidden_leg',
+    curricula: ['US'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'auxiliary_angle_hidden_leg',
+    diagramTemplate: 'coordinate_points',
+    unit: 'cm',
+    values: [
+      { variantId: '345', bd: 3, ce: 4, de: 5 },
+      { variantId: '51213', bd: 5, ce: 12, de: 13 },
+      { variantId: '81517', bd: 8, ce: 15, de: 17 },
+      { variantId: '72425', bd: 7, ce: 24, de: 25 },
+    ],
+  },
+  {
+    id: 'us_cylinder_shortest_path',
+    curricula: ['US'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'cylinder_shortest_path',
+    diagramTemplate: 'cylinder_unrolled',
+    unit: 'cm',
+    values: [
+      { variantId: '12513', circumference: 12, height: 5, path: 13 },
+      { variantId: '24725', circumference: 24, height: 7, path: 25 },
+      { variantId: '15817', circumference: 15, height: 8, path: 17 },
+    ],
+  },
+  {
+    id: 'us_rectangular_prism_surface_shortest_path',
+    curricula: ['US'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangular_prism_surface_shortest_path',
+    diagramTemplate: 'rectangular_prism_net',
+    unit: 'cm',
+    values: [
+      { variantId: '749130', length: 7, width: 5, height: 4, path: Math.sqrt(130) },
+      { variantId: '856185', length: 8, width: 6, height: 5, path: Math.sqrt(185) },
+      { variantId: '976233', length: 9, width: 7, height: 6, path: Math.sqrt(250) },
+    ],
+  },
+  {
+    id: 'us_rectangular_prism_surface_opposite_corners',
+    curricula: ['US'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangular_prism_surface_opposite_corners',
+    diagramTemplate: 'rectangular_prism_net',
+    unit: 'cm',
+    values: [
+      { variantId: '2312', length: 2, width: 3, height: 12, path: 13 },
+      { variantId: '3612', length: 3, width: 6, height: 12, path: 15 },
+      { variantId: '2524', length: 2, width: 5, height: 24, path: 25 },
+    ],
+  },
+  {
+    id: 'us_rectangular_prism_space_diagonal',
+    curricula: ['US'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangular_prism_space_diagonal',
+    diagramTemplate: 'rectangular_prism_net',
+    values: [
+      { variantId: '7345', length: 7, width: 3, height: 4 },
+      { variantId: '8654', length: 8, width: 5, height: 4 },
+      { variantId: '9643', length: 9, width: 6, height: 4 },
+    ],
+  },
+  {
     id: 'us_coordinate_distance',
     curricula: ['US'],
     grades: ['8', '9'],
@@ -437,6 +677,41 @@
     ],
   },
   {
+    id: 'uk_rectangle_fold_reflection_corner',
+    curricula: ['UK'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangle_fold_reflection_corner',
+    diagramTemplate: 'rectangle_fold',
+    unit: 'cm',
+    values: [
+      {
+        variantId: '1284',
+        width: 12,
+        height: 8,
+        E_side: 'AB',
+        E_ratio: 1 / 3,
+        F_side: 'CD',
+        F_ratio: 1 / 6,
+        fold_land_x: 5.12,
+        fold_land_y: 11.84,
+        aPrimeB: Math.hypot(12 - 5.12, 8 - 11.84),
+      },
+      {
+        variantId: '1068',
+        width: 10,
+        height: 6,
+        E_side: 'AB',
+        E_ratio: 0.4,
+        F_side: 'CD',
+        F_ratio: 0.2,
+        fold_land_x: 5.538461538461538,
+        fold_land_y: 9.692307692307693,
+        aPrimeB: Math.hypot(10 - 5.538461538461538, 6 - 9.692307692307693),
+      },
+    ],
+  },
+  {
     id: 'uk_ladder_foot',
     curricula: ['UK'],
     grades: ['8', '9'],
@@ -483,6 +758,91 @@
           { x: 10, y: 20, label: 'C' },
         ],
       },
+    ],
+  },
+  {
+    id: 'uk_auxiliary_angle_hidden_segment',
+    curricula: ['UK'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'auxiliary_angle_hidden_segment',
+    diagramTemplate: 'coordinate_points',
+    unit: 'cm',
+    values: [
+      { variantId: '345', bd: 3, ce: 4, de: 5 },
+      { variantId: '51213', bd: 5, ce: 12, de: 13 },
+      { variantId: '81517', bd: 8, ce: 15, de: 17 },
+      { variantId: '72425', bd: 7, ce: 24, de: 25 },
+    ],
+  },
+  {
+    id: 'uk_auxiliary_angle_hidden_leg',
+    curricula: ['UK'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'auxiliary_angle_hidden_leg',
+    diagramTemplate: 'coordinate_points',
+    unit: 'cm',
+    values: [
+      { variantId: '345', bd: 3, ce: 4, de: 5 },
+      { variantId: '51213', bd: 5, ce: 12, de: 13 },
+      { variantId: '81517', bd: 8, ce: 15, de: 17 },
+      { variantId: '72425', bd: 7, ce: 24, de: 25 },
+    ],
+  },
+  {
+    id: 'uk_cylinder_shortest_path',
+    curricula: ['UK'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'cylinder_shortest_path',
+    diagramTemplate: 'cylinder_unrolled',
+    unit: 'cm',
+    values: [
+      { variantId: '12513', circumference: 12, height: 5, path: 13 },
+      { variantId: '24725', circumference: 24, height: 7, path: 25 },
+      { variantId: '15817', circumference: 15, height: 8, path: 17 },
+    ],
+  },
+  {
+    id: 'uk_rectangular_prism_surface_shortest_path',
+    curricula: ['UK'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangular_prism_surface_shortest_path',
+    diagramTemplate: 'rectangular_prism_net',
+    unit: 'cm',
+    values: [
+      { variantId: '749130', length: 7, width: 5, height: 4, path: Math.sqrt(130) },
+      { variantId: '856185', length: 8, width: 6, height: 5, path: Math.sqrt(185) },
+      { variantId: '976233', length: 9, width: 7, height: 6, path: Math.sqrt(250) },
+    ],
+  },
+  {
+    id: 'uk_rectangular_prism_surface_opposite_corners',
+    curricula: ['UK'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangular_prism_surface_opposite_corners',
+    diagramTemplate: 'rectangular_prism_net',
+    unit: 'cm',
+    values: [
+      { variantId: '2312', length: 2, width: 3, height: 12, path: 13 },
+      { variantId: '3612', length: 3, width: 6, height: 12, path: 15 },
+      { variantId: '2524', length: 2, width: 5, height: 24, path: 25 },
+    ],
+  },
+  {
+    id: 'uk_rectangular_prism_space_diagonal',
+    curricula: ['UK'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangular_prism_space_diagonal',
+    diagramTemplate: 'rectangular_prism_net',
+    values: [
+      { variantId: '7345', length: 7, width: 3, height: 4 },
+      { variantId: '8654', length: 8, width: 5, height: 4 },
+      { variantId: '9643', length: 9, width: 6, height: 4 },
     ],
   },
   {
@@ -621,6 +981,41 @@
     ],
   },
   {
+    id: 'ib_rectangle_fold_reflection_corner',
+    curricula: ['IB'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangle_fold_reflection_corner',
+    diagramTemplate: 'rectangle_fold',
+    unit: 'cm',
+    values: [
+      {
+        variantId: '1284',
+        width: 12,
+        height: 8,
+        E_side: 'AB',
+        E_ratio: 1 / 3,
+        F_side: 'CD',
+        F_ratio: 1 / 6,
+        fold_land_x: 5.12,
+        fold_land_y: 11.84,
+        aPrimeB: Math.hypot(12 - 5.12, 8 - 11.84),
+      },
+      {
+        variantId: '1068',
+        width: 10,
+        height: 6,
+        E_side: 'AB',
+        E_ratio: 0.4,
+        F_side: 'CD',
+        F_ratio: 0.2,
+        fold_land_x: 5.538461538461538,
+        fold_land_y: 9.692307692307693,
+        aPrimeB: Math.hypot(10 - 5.538461538461538, 6 - 9.692307692307693),
+      },
+    ],
+  },
+  {
     id: 'ib_show_right_triangle',
     curricula: ['IB'],
     grades: ['8', '9'],
@@ -667,6 +1062,91 @@
       },
     ],
   },
+  {
+    id: 'ib_auxiliary_angle_hidden_segment',
+    curricula: ['IB'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'auxiliary_angle_hidden_segment',
+    diagramTemplate: 'coordinate_points',
+    unit: 'cm',
+    values: [
+      { variantId: '345', bd: 3, ce: 4, de: 5 },
+      { variantId: '51213', bd: 5, ce: 12, de: 13 },
+      { variantId: '81517', bd: 8, ce: 15, de: 17 },
+      { variantId: '72425', bd: 7, ce: 24, de: 25 },
+    ],
+  },
+  {
+    id: 'ib_auxiliary_angle_hidden_leg',
+    curricula: ['IB'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'auxiliary_angle_hidden_leg',
+    diagramTemplate: 'coordinate_points',
+    unit: 'cm',
+    values: [
+      { variantId: '345', bd: 3, ce: 4, de: 5 },
+      { variantId: '51213', bd: 5, ce: 12, de: 13 },
+      { variantId: '81517', bd: 8, ce: 15, de: 17 },
+      { variantId: '72425', bd: 7, ce: 24, de: 25 },
+    ],
+  },
+  {
+    id: 'ib_cylinder_shortest_path',
+    curricula: ['IB'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'cylinder_shortest_path',
+    diagramTemplate: 'cylinder_unrolled',
+    unit: 'cm',
+    values: [
+      { variantId: '12513', circumference: 12, height: 5, path: 13 },
+      { variantId: '24725', circumference: 24, height: 7, path: 25 },
+      { variantId: '15817', circumference: 15, height: 8, path: 17 },
+    ],
+  },
+  {
+    id: 'ib_rectangular_prism_surface_shortest_path',
+    curricula: ['IB'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangular_prism_surface_shortest_path',
+    diagramTemplate: 'rectangular_prism_net',
+    unit: 'cm',
+    values: [
+      { variantId: '749130', length: 7, width: 5, height: 4, path: Math.sqrt(130) },
+      { variantId: '856185', length: 8, width: 6, height: 5, path: Math.sqrt(185) },
+      { variantId: '976233', length: 9, width: 7, height: 6, path: Math.sqrt(250) },
+    ],
+  },
+  {
+    id: 'ib_rectangular_prism_surface_opposite_corners',
+    curricula: ['IB'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangular_prism_surface_opposite_corners',
+    diagramTemplate: 'rectangular_prism_net',
+    unit: 'cm',
+    values: [
+      { variantId: '2312', length: 2, width: 3, height: 12, path: 13 },
+      { variantId: '3612', length: 3, width: 6, height: 12, path: 15 },
+      { variantId: '2524', length: 2, width: 5, height: 24, path: 25 },
+    ],
+  },
+  {
+    id: 'ib_rectangular_prism_space_diagonal',
+    curricula: ['IB'],
+    grades: ['8', '9'],
+    difficulties: ['Hard'],
+    kind: 'rectangular_prism_space_diagonal',
+    diagramTemplate: 'rectangular_prism_net',
+    values: [
+      { variantId: '7345', length: 7, width: 3, height: 4 },
+      { variantId: '8654', length: 8, width: 5, height: 4 },
+      { variantId: '9643', length: 9, width: 6, height: 4 },
+    ],
+  },
 ];
 
 const HISTORY_KEY = 'math7-9:pythagoras-variant-history:v4';
@@ -681,12 +1161,19 @@ const PYTHAGORAS_DIFFICULTY_BLUEPRINT = {
   },
   Hard: {
     families: [
-      'show_right_triangle',
-      'direct_hypotenuse_surd',
-      'ladder_foot',
+    'auxiliary_angle_hidden_leg',
+    'cylinder_shortest_path',
+    'rectangular_prism_surface_shortest_path',
+    'rectangular_prism_surface_opposite_corners',
+    'rectangle_fold_reflection_corner',
+    'rectangular_prism_space_diagonal',
+    'show_right_triangle',
+    'direct_hypotenuse_surd',
+    'ladder_foot',
       'coordinate_distance_shifted',
       'rectangle_area_diagonal',
       'rectangle_perimeter_diagonal',
+      'auxiliary_angle_hidden_segment',
     ],
   },
 };
@@ -708,6 +1195,13 @@ const KIND_COMPLEXITY = {
   rectangle_area_diagonal: 4,
   coordinate_distance_shifted: 4,
   direct_hypotenuse_surd: 4,
+  rectangular_prism_space_diagonal: 5,
+  rectangular_prism_surface_shortest_path: 7,
+  rectangular_prism_surface_opposite_corners: 8,
+  rectangle_fold_reflection_corner: 7,
+  auxiliary_angle_hidden_segment: 6,
+  auxiliary_angle_hidden_leg: 6,
+  cylinder_shortest_path: 5,
 };
 const COMPLEXITY_WINDOW_BY_GRADE_AND_DIFFICULTY = {
   '6': { Easy: [0, 0], Medium: [1, 2], Hard: [2, 3] },
@@ -808,6 +1302,66 @@ function formatCoordinateDistanceLabel(dx, dy, unit = DEFAULT_UNIT) {
   if (radical) return `${radical} ${unit}`;
   const approx = Math.sqrt(squared);
   return `${+approx.toFixed(1)} ${unit}`;
+}
+
+function buildAuxiliaryAngleGeometry(item) {
+  const bd = item.bd;
+  const ce = item.ce;
+  const de = item.de;
+  const halfBase = (bd + ce + de) / 2;
+  const B = { x: 0, y: 0 };
+  const C = { x: halfBase * 2, y: 0 };
+  const A = { x: halfBase, y: halfBase };
+  const D = { x: bd, y: 0 };
+  const E = { x: halfBase * 2 - ce, y: 0 };
+  return { A, B, C, D, E, halfBase };
+}
+
+function buildRectangleFoldGeometry(item) {
+  const width = item.width;
+  const height = item.height;
+  const rectPts = {
+    A: { x: 0, y: height },
+    B: { x: width, y: height },
+    C: { x: width, y: 0 },
+    D: { x: 0, y: 0 },
+  };
+
+  const validSides = ['AB', 'AD', 'BC', 'CD'];
+  const ptOnSide = (side, ratio) => {
+    const p1 = rectPts[side[0]];
+    const p2 = rectPts[side[1]];
+    if (!p1 || !p2) return { x: 0, y: 0 };
+    return {
+      x: p1.x + (p2.x - p1.x) * ratio,
+      y: p1.y + (p2.y - p1.y) * ratio,
+    };
+  };
+
+  const eSide = validSides.includes(item.E_side) ? item.E_side : 'AB';
+  const fSide = validSides.includes(item.F_side) ? item.F_side : 'CD';
+  const eRatio = Number.isFinite(item.E_ratio) ? item.E_ratio : 0.5;
+  const fRatio = Number.isFinite(item.F_ratio) ? item.F_ratio : 0.5;
+  const E = ptOnSide(eSide, eRatio);
+  const F = ptOnSide(fSide, fRatio);
+
+  const foldVertex = rectPts[item.fold_vertex ?? 'A'] ?? rectPts.A;
+  const foldLand = Number.isFinite(item.fold_land_x) && Number.isFinite(item.fold_land_y)
+    ? { x: item.fold_land_x, y: item.fold_land_y }
+    : null;
+
+  let Vp;
+  if (foldLand) {
+    Vp = foldLand;
+  } else {
+    const efDx = F.x - E.x;
+    const efDy = F.y - E.y;
+    const efLen2 = efDx * efDx + efDy * efDy || 1;
+    const t = ((foldVertex.x - E.x) * efDx + (foldVertex.y - E.y) * efDy) / efLen2;
+    Vp = { x: 2 * (E.x + t * efDx) - foldVertex.x, y: 2 * (E.y + t * efDy) - foldVertex.y };
+  }
+
+  return { rectPts, E, F, V: foldVertex, Vp, eSide, fSide };
 }
 
 function getComplexityWindow(grade, difficulty) {
@@ -1115,6 +1669,9 @@ function buildQuestionText(item, lang, context) {
     if (item.kind === 'rectangle_area_diagonal') {
       return `在长方形 ABCD 中，AB = ${formatLength(item.width, unit)}，面积为 ${item.area} ${unit}²。求对角线 AC 的长度。`;
     }
+    if (item.kind === 'rectangle_fold_reflection_corner') {
+      return `一张长方形纸 ABCD 沿着折痕 EF 折叠，点 A 的对应点记作 A'。已知折后 A' 到 B 的距离。求 A'B 的长度。`;
+    }
     if (item.kind === 'square_diagonal') {
       return `在正方形 ABCD 中，AB = ${formatLength(item.side, unit)}。求对角线 AC 的长度。`;
     }
@@ -1142,6 +1699,24 @@ function buildQuestionText(item, lang, context) {
     if (item.kind === 'coordinate_distance_shifted') {
       const [A, B, C] = item.points ?? [];
       return `在平面直角坐标系中，A(${A?.x}, ${A?.y})，B(${B?.x}, ${B?.y})，C(${C?.x}, ${C?.y})。求 AC 的长度。`;
+    }
+    if (item.kind === 'auxiliary_angle_hidden_segment') {
+      return `在△ABC中，∠BAC = 90°，且 AB = AC。D、E 是边 BC 上的点，∠DAE = 45°，BD = ${formatLength(item.bd, unit)}，CE = ${formatLength(item.ce, unit)}。求 DE 的长度。`;
+    }
+    if (item.kind === 'auxiliary_angle_hidden_leg') {
+      return `在△ABC中，∠BAC = 90°，且 AB = AC。D、E 是边 BC 上的点，∠DAE = 45°，BD = ${formatLength(item.bd, unit)}，CE = ${formatLength(item.ce, unit)}。求 AD 的长度。`;
+    }
+    if (item.kind === 'cylinder_shortest_path') {
+      return `一个圆柱的侧面展开后是长方形，长为 ${formatLength(item.circumference, unit)}，宽为 ${formatLength(item.height, unit)}。求展开图对角线，也就是圆柱侧面上从 A 到 C 的最短路径长度。`;
+    }
+    if (item.kind === 'rectangular_prism_surface_shortest_path') {
+      return `一个长方体的表面展开图如图所示，S 在前面左下角，T 在上表面右上角。沿着表面从 S 到 T 的最短路径长度是多少？`;
+    }
+    if (item.kind === 'rectangular_prism_surface_opposite_corners') {
+      return `一个长方体从一个角到对角顶点的表面最短路径如图所示。已知长、宽、高分别为 ${formatLength(item.length, unit)}、${formatLength(item.width, unit)}、${formatLength(item.height, unit)}。求沿表面的最短路径长度。`;
+    }
+    if (item.kind === 'rectangular_prism_space_diagonal') {
+      return `一个长方体的长、宽、高分别是 ${formatLength(item.length, unit)}、${formatLength(item.width, unit)}、${formatLength(item.height, unit)}。求它的空间对角线长度。`;
     }
     return '请完成这道勾股定理题。';
   }
@@ -1197,6 +1772,13 @@ function buildQuestionText(item, lang, context) {
     }
     const scenePhrase = getRectangleScenePhrase(item.scene, 'en');
     return `${scenePhrase} has AB = ${formatLength(item.width, unit)} and the area is ${item.area} ${unit}². Find the length of diagonal AC.`;
+  }
+
+  if (item.kind === 'rectangle_fold_reflection_corner') {
+    if (zh) {
+      return `一张长方形纸 ABCD 沿着折痕 EF 折叠，点 A 的对应点记作 A'。已知折后 A' 到 B 的距离。求 A'B 的长度。`;
+    }
+    return `A rectangular sheet ABCD is folded along crease EF so that A maps to A'. Find the length of A'B.`;
   }
 
   if (item.kind === 'square_diagonal') {
@@ -1260,6 +1842,48 @@ function buildQuestionText(item, lang, context) {
     return `On a shifted coordinate grid, A(${A?.x}, ${A?.y}), B(${B?.x}, ${B?.y}), and C(${C?.x}, ${C?.y}) are plotted. Find the length of AC.`;
   }
 
+  if (item.kind === 'auxiliary_angle_hidden_segment') {
+    if (zh) {
+      return `在△ABC中，∠BAC = 90°，且 AB = AC。D、E 是边 BC 上的点，∠DAE = 45°，BD = ${formatLength(item.bd, unit)}，CE = ${formatLength(item.ce, unit)}。求 DE 的长度。`;
+    }
+    return `In triangle ABC, angle BAC = 90°, and AB = AC. D and E are points on BC, angle DAE = 45°, BD = ${formatLength(item.bd, unit)}, and CE = ${formatLength(item.ce, unit)}. Find the length of DE.`;
+  }
+
+  if (item.kind === 'auxiliary_angle_hidden_leg') {
+    if (zh) {
+      return `在△ABC中，∠BAC = 90°，且 AB = AC。D、E 是边 BC 上的点，∠DAE = 45°，BD = ${formatLength(item.bd, unit)}，CE = ${formatLength(item.ce, unit)}。求 AD 的长度。`;
+    }
+    return `In triangle ABC, angle BAC = 90°, and AB = AC. D and E are points on BC, angle DAE = 45°, BD = ${formatLength(item.bd, unit)}, and CE = ${formatLength(item.ce, unit)}. Find the length of AD.`;
+  }
+
+  if (item.kind === 'cylinder_shortest_path') {
+    if (zh) {
+      return `一个圆柱的侧面展开后是长方形，长为 ${formatLength(item.circumference, unit)}，宽为 ${formatLength(item.height, unit)}。求展开图对角线，也就是圆柱侧面上从 A 到 C 的最短路径长度。`;
+    }
+    return `A cylinder is unrolled into a rectangle with width ${formatLength(item.circumference, unit)} and height ${formatLength(item.height, unit)}. Find the diagonal of the rectangle, which is the shortest path from A to C on the cylinder surface.`;
+  }
+
+  if (item.kind === 'rectangular_prism_surface_shortest_path') {
+    if (zh) {
+      return `一个长方体的表面展开图如图所示，S 在前面左下角，T 在上表面右上角。沿着表面从 S 到 T 的最短路径长度是多少？`;
+    }
+    return `A rectangular prism is shown with a net. S is the front bottom-left corner and T is the top front-right corner. Find the length of the shortest path along the surface from S to T.`;
+  }
+
+  if (item.kind === 'rectangular_prism_surface_opposite_corners') {
+    if (zh) {
+      return `一个长方体从一个角到对角顶点的表面最短路径如图所示。已知长、宽、高分别为 ${formatLength(item.length, unit)}、${formatLength(item.width, unit)}、${formatLength(item.height, unit)}。求沿表面的最短路径长度。`;
+    }
+    return `A rectangular prism is shown with a net. Find the shortest path along the surface from one corner to the opposite corner. The prism has length ${formatLength(item.length, unit)}, width ${formatLength(item.width, unit)}, and height ${formatLength(item.height, unit)}.`;
+  }
+
+  if (item.kind === 'rectangular_prism_space_diagonal') {
+    if (zh) {
+      return `一个长方体的长、宽、高分别是 ${formatLength(item.length, unit)}、${formatLength(item.width, unit)}、${formatLength(item.height, unit)}。求它的空间对角线长度。`;
+    }
+    return `A rectangular prism has length ${formatLength(item.length, unit)}, width ${formatLength(item.width, unit)}, and height ${formatLength(item.height, unit)}. Find the length of the space diagonal.`;
+  }
+
   return zh ? '่ฏท่งฃ็ญ”่ฟไธชๅพ่กๅฎ็้ขใ€' : 'Solve this Pythagorean theorem question.';
 }
 
@@ -1304,6 +1928,35 @@ function buildDiagramSpec(item) {
     };
   }
 
+  if (item.kind === 'rectangle_fold_reflection_corner') {
+    const { E, F, Vp } = buildRectangleFoldGeometry(item);
+    const apDistance = Math.hypot(Vp.x - 0, Vp.y - item.height);
+    return {
+      template: 'rectangle_fold',
+      width: item.width,
+      height: item.height,
+      fold_vertex: 'A',
+      E_side: item.E_side,
+      E_ratio: item.E_ratio,
+      F_side: item.F_side,
+      F_ratio: item.F_ratio,
+      fold_land_x: Vp.x,
+      fold_land_y: Vp.y,
+      label_A: 'A',
+      label_B: 'B',
+      label_C: 'C',
+      label_D: 'D',
+      label_E: 'E',
+      label_F: 'F',
+      label_Ap: '?',
+      label_EF: '?',
+      label_AE: '?',
+      label_AF: '?',
+      label_ApB: '?',
+      label_Ap_distance: formatLength(apDistance, item.unit),
+    };
+  }
+
   if (item.diagramTemplate === 'rectangle_diagonal') {
     return {
       template: 'rectangle_diagonal',
@@ -1326,6 +1979,105 @@ function buildDiagramSpec(item) {
       label_AB: item.kind === 'square_side_from_diagonal' ? '?' : formatLength(item.side, item.unit),
       label_BC: formatLength(item.side, item.unit),
       label_AC: item.kind === 'square_side_from_diagonal' ? formatSquareDiagonalLength(item.side, item.unit) : '?',
+    };
+  }
+
+  if (item.kind === 'auxiliary_angle_hidden_segment') {
+    const { A, B, C, D, E } = buildAuxiliaryAngleGeometry(item);
+    return {
+      template: 'coordinate_points',
+      axes: false,
+      points: [
+        { x: A.x, y: A.y, label: 'A', offset: { x: -16, y: -10 } },
+        { x: B.x, y: B.y, label: 'B', offset: { x: -16, y: 12 } },
+        { x: C.x, y: C.y, label: 'C', offset: { x: 8, y: 12 } },
+        { x: D.x, y: D.y, label: 'D', offset: { x: -10, y: 16 } },
+        { x: E.x, y: E.y, label: 'E', offset: { x: 0, y: 16 } },
+      ],
+      segments: [
+        { from: 'B', to: 'C' },
+        { from: 'A', to: 'B', label: 'x' },
+        { from: 'A', to: 'C', label: 'x' },
+        { from: 'B', to: 'D', label: formatLength(item.bd, item.unit) },
+        { from: 'E', to: 'C', label: formatLength(item.ce, item.unit) },
+        { from: 'A', to: 'D' },
+        { from: 'A', to: 'E' },
+      ],
+      angleMarks: [
+        { vertex: 'A', from: 'B', to: 'C', kind: 'right' },
+        { vertex: 'A', from: 'D', to: 'E', label: '45°', r: 24 },
+      ],
+    };
+  }
+
+  if (item.kind === 'auxiliary_angle_hidden_leg') {
+    const { A, B, C, D, E } = buildAuxiliaryAngleGeometry(item);
+    return {
+      template: 'coordinate_points',
+      axes: false,
+      points: [
+        { x: A.x, y: A.y, label: 'A', offset: { x: -16, y: -10 } },
+        { x: B.x, y: B.y, label: 'B', offset: { x: -16, y: 12 } },
+        { x: C.x, y: C.y, label: 'C', offset: { x: 8, y: 12 } },
+        { x: D.x, y: D.y, label: 'D', offset: { x: -10, y: 16 } },
+        { x: E.x, y: E.y, label: 'E', offset: { x: 0, y: 16 } },
+      ],
+      segments: [
+        { from: 'B', to: 'C' },
+        { from: 'A', to: 'B', label: 'x' },
+        { from: 'A', to: 'C', label: 'x' },
+        { from: 'B', to: 'D', label: formatLength(item.bd, item.unit) },
+        { from: 'E', to: 'C', label: formatLength(item.ce, item.unit) },
+        { from: 'A', to: 'D', label: '?' },
+        { from: 'A', to: 'E' },
+      ],
+      angleMarks: [
+        { vertex: 'A', from: 'B', to: 'C', kind: 'right' },
+        { vertex: 'A', from: 'D', to: 'E', label: '45°', r: 24 },
+      ],
+    };
+  }
+
+  if (item.kind === 'cylinder_shortest_path') {
+    return {
+      template: 'cylinder_unrolled',
+      circumference: item.circumference,
+      height: item.height,
+      path_width: item.circumference,
+      label_circ: formatLength(item.circumference, item.unit),
+      label_height: formatLength(item.height, item.unit),
+      label_path: '?',
+    };
+  }
+
+  if (item.kind === 'rectangular_prism_surface_shortest_path') {
+    return {
+      template: 'rectangular_prism_net',
+      length: item.length,
+      width: item.width,
+      height: item.height,
+      label_length: formatLength(item.length, item.unit),
+      label_width: formatLength(item.width, item.unit),
+      label_height: formatLength(item.height, item.unit),
+      path_start: { x: 0, y: 0, label: 'S' },
+      path_end: { x: item.length, y: item.height + item.width, label: 'T' },
+      label_path: '?',
+    };
+  }
+
+  if (item.kind === 'rectangular_prism_surface_opposite_corners') {
+    return {
+      template: 'rectangular_prism_net',
+      length: item.length,
+      width: item.width,
+      height: item.height,
+      label_length: formatLength(item.length, item.unit),
+      label_width: formatLength(item.width, item.unit),
+      label_height: formatLength(item.height, item.unit),
+      path_start: { x: 0, y: 0, label: 'S' },
+      path_end: { x: item.length, y: item.height + item.width + item.height, label: 'T' },
+      path_show_line: false,
+      label_path: '?',
     };
   }
 
@@ -1358,6 +2110,18 @@ function buildDiagramSpec(item) {
                   : formatLength(item.ac, item.unit)),
         },
       ],
+    };
+  }
+
+  if (item.diagramTemplate === 'rectangular_prism_net') {
+    return {
+      template: 'rectangular_prism_net',
+      length: item.length,
+      width: item.width,
+      height: item.height,
+      label_length: formatLength(item.length, item.unit),
+      label_width: formatLength(item.width, item.unit),
+      label_height: formatLength(item.height, item.unit),
     };
   }
 
@@ -1480,7 +2244,82 @@ function validateScenarioItem(item) {
     }
   }
 
+  if (item.diagramTemplate === 'rectangle_fold') {
+    if (!isFinitePositiveNumber(item.width)) issues.push('width must be a positive finite number');
+    if (!isFinitePositiveNumber(item.height)) issues.push('height must be a positive finite number');
+    if (!['AB', 'AD', 'BC', 'CD'].includes(String(item.E_side ?? ''))) issues.push('rectangle_fold requires a valid E_side');
+    if (!['AB', 'AD', 'BC', 'CD'].includes(String(item.F_side ?? ''))) issues.push('rectangle_fold requires a valid F_side');
+    if (!Number.isFinite(item.E_ratio) || item.E_ratio <= 0 || item.E_ratio >= 1) issues.push('rectangle_fold requires E_ratio between 0 and 1');
+    if (!Number.isFinite(item.F_ratio) || item.F_ratio <= 0 || item.F_ratio >= 1) issues.push('rectangle_fold requires F_ratio between 0 and 1');
+    if (!Number.isFinite(item.fold_land_x) || !Number.isFinite(item.fold_land_y)) {
+      issues.push('rectangle_fold requires fold_land_x and fold_land_y');
+    }
+    if (issues.length === 0) {
+      const { rectPts, E, F, V, Vp } = buildRectangleFoldGeometry(item);
+      const expectedReflection = (() => {
+        const efDx = F.x - E.x;
+        const efDy = F.y - E.y;
+        const efLen2 = efDx * efDx + efDy * efDy || 1;
+        const t = ((V.x - E.x) * efDx + (V.y - E.y) * efDy) / efLen2;
+        return { x: 2 * (E.x + t * efDx) - V.x, y: 2 * (E.y + t * efDy) - V.y };
+      })();
+      const foldLandMatches = Math.abs(expectedReflection.x - Vp.x) <= 1e-9 && Math.abs(expectedReflection.y - Vp.y) <= 1e-9;
+      if (!foldLandMatches) {
+        issues.push('rectangle_fold fold_land does not match the reflection of the folded vertex');
+      }
+      const apb = Math.hypot(Vp.x - rectPts.B.x, Vp.y - rectPts.B.y);
+      if (item.aPrimeB !== undefined && Number.isFinite(item.aPrimeB) && Math.abs(apb - item.aPrimeB) > 1e-9) {
+        issues.push('rectangle_fold aPrimeB does not match the reflected-point distance');
+      }
+    }
+  }
+
   if (item.diagramTemplate === 'coordinate_points') {
+    if (item.kind === 'auxiliary_angle_hidden_segment') {
+      if (!Array.isArray(item.points) || item.points.length < 5) {
+        issues.push('auxiliary_angle_hidden_segment requires five points');
+      } else {
+        const [A, B, C, D, E] = item.points;
+        const pointsValid = [A, B, C, D, E].every((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
+        if (!pointsValid) {
+          issues.push('auxiliary_angle_hidden_segment contains invalid point coordinates');
+        } else {
+          const ab2 = (B.x - A.x) ** 2 + (B.y - A.y) ** 2;
+          const ac2 = (C.x - A.x) ** 2 + (C.y - A.y) ** 2;
+          const bc2 = (C.x - B.x) ** 2 + (C.y - B.y) ** 2;
+          if (Math.abs((ab2 + ac2) - bc2) > 1e-9) {
+            issues.push('auxiliary_angle_hidden_segment points do not form a right isosceles triangle');
+          }
+          const bd = Math.hypot(D.x - B.x, D.y - B.y);
+          const ce = Math.hypot(C.x - E.x, C.y - E.y);
+          if (Math.abs(bd - item.bd) > 1e-9 || Math.abs(ce - item.ce) > 1e-9) {
+            issues.push('auxiliary_angle_hidden_segment side splits do not match the requested values');
+          }
+        }
+      }
+    } else if (item.kind === 'auxiliary_angle_hidden_leg') {
+      if (!Array.isArray(item.points) || item.points.length < 5) {
+        issues.push('auxiliary_angle_hidden_leg requires five points');
+      } else {
+        const [A, B, C, D, E] = item.points;
+        const pointsValid = [A, B, C, D, E].every((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
+        if (!pointsValid) {
+          issues.push('auxiliary_angle_hidden_leg contains invalid point coordinates');
+        } else {
+          const ab2 = (B.x - A.x) ** 2 + (B.y - A.y) ** 2;
+          const ac2 = (C.x - A.x) ** 2 + (C.y - A.y) ** 2;
+          const bc2 = (C.x - B.x) ** 2 + (C.y - B.y) ** 2;
+          if (Math.abs((ab2 + ac2) - bc2) > 1e-9) {
+            issues.push('auxiliary_angle_hidden_leg points do not form a right isosceles triangle');
+          }
+          const bd = Math.hypot(D.x - B.x, D.y - B.y);
+          const ce = Math.hypot(C.x - E.x, C.y - E.y);
+          if (Math.abs(bd - item.bd) > 1e-9 || Math.abs(ce - item.ce) > 1e-9) {
+            issues.push('auxiliary_angle_hidden_leg side splits do not match the requested values');
+          }
+        }
+      }
+    } else
     if (!Array.isArray(item.points) || item.points.length < 3) {
       issues.push('coordinate_points requires three points');
     } else {
@@ -1518,6 +2357,67 @@ function validateScenarioItem(item) {
     }
   }
 
+  if (item.kind === 'auxiliary_angle_hidden_segment') {
+    if (!isFinitePositiveNumber(item.bd)) issues.push('bd must be a positive finite number');
+    if (!isFinitePositiveNumber(item.ce)) issues.push('ce must be a positive finite number');
+    if (!isFinitePositiveNumber(item.de)) issues.push('de must be a positive finite number');
+    if (issues.length === 0) {
+      const expected = Math.sqrt(item.bd ** 2 + item.ce ** 2);
+      if (Math.abs(expected - item.de) > 1e-9) {
+        issues.push('auxiliary angle values do not satisfy the intended hidden Pythagorean relation');
+      }
+    }
+  }
+
+  if (item.kind === 'cylinder_shortest_path') {
+    if (!isFinitePositiveNumber(item.circumference)) issues.push('circumference must be a positive finite number');
+    if (!isFinitePositiveNumber(item.height)) issues.push('height must be a positive finite number');
+    if (!isFinitePositiveNumber(item.path)) issues.push('path must be a positive finite number');
+    if (issues.length === 0) {
+      const expected = Math.hypot(item.circumference, item.height);
+      if (Math.abs(expected - item.path) > 1e-9) {
+        issues.push('cylinder_shortest_path values do not satisfy the intended Pythagorean relation');
+      }
+    }
+  }
+
+  if (item.kind === 'rectangular_prism_surface_shortest_path') {
+    if (!isFinitePositiveNumber(item.length)) issues.push('length must be a positive finite number');
+    if (!isFinitePositiveNumber(item.width)) issues.push('width must be a positive finite number');
+    if (!isFinitePositiveNumber(item.height)) issues.push('height must be a positive finite number');
+    if (!isFinitePositiveNumber(item.path)) issues.push('path must be a positive finite number');
+    if (issues.length === 0) {
+      const expected = Math.hypot(item.length, item.width + item.height);
+      if (Math.abs(expected - item.path) > 1e-9) {
+        issues.push('rectangular_prism_surface_shortest_path values do not satisfy the intended unfolded Pythagorean relation');
+      }
+    }
+  }
+
+  if (item.kind === 'rectangular_prism_surface_opposite_corners') {
+    if (!isFinitePositiveNumber(item.length)) issues.push('length must be a positive finite number');
+    if (!isFinitePositiveNumber(item.width)) issues.push('width must be a positive finite number');
+    if (!isFinitePositiveNumber(item.height)) issues.push('height must be a positive finite number');
+    if (!isFinitePositiveNumber(item.path)) issues.push('path must be a positive finite number');
+    if (issues.length === 0) {
+      const candidates = [
+        Math.hypot(item.length + item.width, item.height),
+        Math.hypot(item.length + item.height, item.width),
+        Math.hypot(item.width + item.height, item.length),
+      ];
+      const expected = Math.min(...candidates);
+      if (Math.abs(expected - item.path) > 1e-9) {
+        issues.push('rectangular_prism_surface_opposite_corners values do not satisfy the intended surface shortest-path relation');
+      }
+    }
+  }
+
+  if (item.kind === 'rectangular_prism_space_diagonal') {
+    if (!isFinitePositiveNumber(item.length)) issues.push('length must be a positive finite number');
+    if (!isFinitePositiveNumber(item.width)) issues.push('width must be a positive finite number');
+    if (!isFinitePositiveNumber(item.height)) issues.push('height must be a positive finite number');
+  }
+
   return issues;
 }
 
@@ -1553,6 +2453,82 @@ function validateRenderedScenarioItem(item, rendered) {
     issues.push('shifted coordinate question text is missing coordinate wording');
   }
 
+  if (item.kind === 'auxiliary_angle_hidden_segment') {
+    if (!rendered.includes('∠DAE = 45°') && !rendered.includes('45°')) {
+      issues.push('auxiliary-angle question text is missing the angle condition');
+    }
+    if (!rendered.includes('AB = AC') && !rendered.includes('AB =') && !rendered.includes('AC =')) {
+      issues.push('auxiliary-angle question text is missing the isosceles condition');
+    }
+    if (!rendered.includes('BD =') || !rendered.includes('CE =') || !rendered.includes('求 DE') && !rendered.includes('Find the length of DE')) {
+      issues.push('auxiliary-angle question text is missing the segment conditions');
+    }
+    if (!rendered.includes('"angleMarks"') || !rendered.includes('"label":"45°"') || !rendered.includes('"kind":"right"')) {
+      issues.push('auxiliary-angle diagram must show the 45-degree and right-angle markers');
+    }
+  }
+
+  if (item.kind === 'auxiliary_angle_hidden_leg') {
+    if (!rendered.includes('求 AD') && !rendered.includes('Find the length of AD')) {
+      issues.push('auxiliary-angle-leg question text is missing the asked leg');
+    }
+    if (!rendered.includes('"from":"A","to":"D","label":"?"')) {
+      issues.push('auxiliary-angle-leg diagram must hide AD');
+    }
+  }
+
+  if (item.kind === 'cylinder_shortest_path') {
+    if (!rendered.includes('圆柱') && !rendered.includes('cylinder')) {
+      issues.push('cylinder shortest-path question text is missing cylinder wording');
+    }
+    if (!rendered.includes('最短路径') && !rendered.includes('shortest path')) {
+      issues.push('cylinder shortest-path question text is missing shortest-path wording');
+    }
+    if (!rendered.includes('"template":"cylinder_unrolled"')) {
+      issues.push('cylinder shortest-path diagram must render as an unrolled cylinder');
+    }
+    if (!rendered.includes('"label_path":"?"')) {
+      issues.push('cylinder shortest-path diagram must hide the diagonal/path label');
+    }
+  }
+
+  if (item.kind === 'rectangular_prism_surface_shortest_path') {
+    if (!rendered.includes('surface') && !rendered.includes('表面')) {
+      issues.push('surface-path question text is missing surface wording');
+    }
+    if (!rendered.includes('front bottom-left') && !rendered.includes('前面左下角') && !rendered.includes('S')) {
+      issues.push('surface-path question text is missing the start corner wording');
+    }
+    if (!rendered.includes('top front-right') && !rendered.includes('上表面右上角') && !rendered.includes('T')) {
+      issues.push('surface-path question text is missing the end corner wording');
+    }
+    if (!rendered.includes('"template":"rectangular_prism_net"')) {
+      issues.push('surface-path diagram must render as a prism net');
+    }
+    if (!rendered.includes('"label_path":"?"')) {
+      issues.push('surface-path diagram must hide the path length label');
+    }
+  }
+
+  if (item.kind === 'rectangular_prism_surface_opposite_corners') {
+    if (!rendered.includes('opposite corner') && !rendered.includes('对角顶点')) {
+      issues.push('opposite-corners question text is missing opposite-corner wording');
+    }
+    if (!rendered.includes('"template":"rectangular_prism_net"')) {
+      issues.push('opposite-corners diagram must render as a prism net');
+    }
+    if (!rendered.includes('"path_show_line":false')) {
+      issues.push('opposite-corners diagram must hide the direct path line');
+    }
+    if (!rendered.includes('"label_path":"?"')) {
+      issues.push('opposite-corners diagram must hide the path label');
+    }
+  }
+
+  if (item.kind === 'rectangular_prism_space_diagonal' && !rendered.includes('space diagonal') && !rendered.includes('空间对角线')) {
+    issues.push('rectangular prism question text is missing space diagonal wording');
+  }
+
   if (item.kind === 'rectangle_diagonal' && !rendered.includes('diagonal AC') && !rendered.includes('对角线 AC')) {
     issues.push('rectangle diagonal question text is missing diagonal wording');
   }
@@ -1560,6 +2536,24 @@ function validateRenderedScenarioItem(item, rendered) {
   if (item.kind === 'rectangle_area_diagonal') {
     if (!rendered.includes('"label_BC":"?"') || !rendered.includes('"label_AC":"?"') || !rendered.includes('label_area')) {
       issues.push('rectangle area diagram must hide both side and diagonal while showing the area');
+    }
+  }
+
+  if (item.kind === 'rectangle_fold_reflection_corner') {
+    if (!rendered.includes('折痕 EF') && !rendered.includes('folded along crease EF')) {
+      issues.push('rectangle fold question text is missing crease wording');
+    }
+    if (!rendered.includes("A'B") && !rendered.includes('A\'B')) {
+      issues.push('rectangle fold question text is missing the reflected-point target');
+    }
+    if (!rendered.includes('"template":"rectangle_fold"')) {
+      issues.push('rectangle fold diagram must render as a rectangle fold');
+    }
+    if (!rendered.includes('"label_Ap":"?"') && !rendered.includes('"label_Vp":"?"')) {
+      issues.push('rectangle fold diagram must hide the reflected vertex label');
+    }
+    if (!rendered.includes('"label_EF":"?"') || !rendered.includes('"label_AE":"?"') || !rendered.includes('"label_AF":"?"')) {
+      issues.push('rectangle fold diagram must hide the crease and side labels');
     }
   }
 
@@ -1599,6 +2593,10 @@ function validateRenderedScenarioItem(item, rendered) {
 
   if (item.kind === 'show_right_triangle' && !rendered.includes('"show_right_angle_mark":false')) {
     issues.push('show-right-triangle diagram must hide the right-angle marker');
+  }
+
+  if (item.kind === 'rectangular_prism_space_diagonal' && !rendered.includes('"template":"rectangular_prism_net"')) {
+    issues.push('rectangular prism hard item must render as a prism net');
   }
 
   return issues;
@@ -1697,6 +2695,46 @@ export function buildPythagorasExerciseItems(count, options = {}) {
       diagramTemplate: scenario.diagramTemplate,
       ...valueSet,
     };
+
+    if (item.kind === 'auxiliary_angle_hidden_segment') {
+      const { A, B, C, D, E } = buildAuxiliaryAngleGeometry(item);
+      item.points = [
+        { x: A.x, y: A.y, label: 'A' },
+        { x: B.x, y: B.y, label: 'B' },
+        { x: C.x, y: C.y, label: 'C' },
+        { x: D.x, y: D.y, label: 'D' },
+        { x: E.x, y: E.y, label: 'E' },
+      ];
+      item.ax = A.x;
+      item.ay = A.y;
+      item.bx = B.x;
+      item.by = B.y;
+      item.cx = C.x;
+      item.cy = C.y;
+      item.ab = Math.hypot(B.x - A.x, B.y - A.y);
+      item.bc = Math.hypot(C.x - B.x, C.y - B.y);
+      item.ac = Math.hypot(C.x - A.x, C.y - A.y);
+    }
+
+    if (item.kind === 'auxiliary_angle_hidden_leg') {
+      const { A, B, C, D, E } = buildAuxiliaryAngleGeometry(item);
+      item.points = [
+        { x: A.x, y: A.y, label: 'A' },
+        { x: B.x, y: B.y, label: 'B' },
+        { x: C.x, y: C.y, label: 'C' },
+        { x: D.x, y: D.y, label: 'D' },
+        { x: E.x, y: E.y, label: 'E' },
+      ];
+      item.ax = A.x;
+      item.ay = A.y;
+      item.bx = B.x;
+      item.by = B.y;
+      item.cx = C.x;
+      item.cy = C.y;
+      item.ab = Math.hypot(B.x - A.x, B.y - A.y);
+      item.bc = Math.hypot(C.x - B.x, C.y - B.y);
+      item.ac = Math.hypot(C.x - A.x, C.y - A.y);
+    }
 
     if (item.diagramTemplate === 'coordinate_points') {
       const points = item.points ?? [];
