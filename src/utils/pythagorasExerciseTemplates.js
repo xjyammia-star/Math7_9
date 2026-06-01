@@ -681,12 +681,12 @@ const PYTHAGORAS_DIFFICULTY_BLUEPRINT = {
   },
   Hard: {
     families: [
-      'rectangle_area_diagonal',
-      'rectangle_perimeter_diagonal',
-      'ladder_foot',
-      'coordinate_distance_shifted',
       'show_right_triangle',
       'direct_hypotenuse_surd',
+      'ladder_foot',
+      'coordinate_distance_shifted',
+      'rectangle_area_diagonal',
+      'rectangle_perimeter_diagonal',
     ],
   },
 };
@@ -1381,6 +1381,7 @@ function buildDiagramSpec(item) {
     baseSpec.label_AB = formatLength(item.legAB, item.unit);
     baseSpec.label_BC = formatLength(item.legBC, item.unit);
     baseSpec.label_AC = formatLength(item.hypotenuse, item.unit);
+    baseSpec.show_right_angle_mark = false;
   }
 
   return baseSpec;
@@ -1592,8 +1593,12 @@ function validateRenderedScenarioItem(item, rendered) {
     issues.push('ladder-foot diagram must hide the foot distance');
   }
 
-  if (item.kind === 'coordinate_distance_shifted' && !rendered.includes('"label_AC":"?"')) {
+  if (item.kind === 'coordinate_distance_shifted' && !rendered.includes('"from":"A","to":"C","label":"?"')) {
     issues.push('shifted coordinate diagram must hide the AC label');
+  }
+
+  if (item.kind === 'show_right_triangle' && !rendered.includes('"show_right_angle_mark":false')) {
+    issues.push('show-right-triangle diagram must hide the right-angle marker');
   }
 
   return issues;
@@ -1607,7 +1612,14 @@ function renderScenarioItem(item, index, lang, context) {
 
 export function isPythagorasConcept(conceptId = '', conceptTitle = '', conceptDesc = '') {
   const text = `${conceptId} ${conceptTitle} ${conceptDesc}`.toLowerCase();
-  return text.includes('pythagoras') || text.includes('ๅพ่ก') || text.includes('pythagorean');
+  return (
+    text.includes('pythagoras') ||
+    text.includes('pythagorean') ||
+    text.includes('勾股') ||
+    text.includes('勾股定理') ||
+    text.includes('直角三角形') ||
+    text.includes('ๅพ่ก')
+  );
 }
 
 export function buildPythagorasExerciseItems(count, options = {}) {

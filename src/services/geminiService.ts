@@ -1259,7 +1259,13 @@ export async function generateExercises(
   }
 
   if (isPythagorasConcept(conceptId, conceptTitle, conceptDesc)) {
-    return buildPythagorasExerciseBatch({ count, lang, grade, difficulty, curriculum, persistHistory: true });
+    try {
+      return buildPythagorasExerciseBatch({ count, lang, grade, difficulty, curriculum, persistHistory: true });
+    } catch (error) {
+      console.error('Pythagoras template generation failed:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`PYTHAGORAS_TEMPLATE_ERROR: ${message}`);
+    }
   }
 
   const curriculumInstr = buildCurriculumInstruction(curriculum, lang);

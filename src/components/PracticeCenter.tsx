@@ -126,9 +126,20 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
       );
       setExercises(result);
     } catch (err: any) {
-      setError(err?.message === 'AI_INTERNAL_ERROR'
-        ? (lang === 'zh' ? '生成出错，请稍后重试。' : 'Evaluation error, please try again.')
-        : 'Connection error. Please try again.');
+      const message = String(err?.message ?? '');
+      const isTemplateError =
+        message.startsWith('PYTHAGORAS_TEMPLATE_ERROR:') ||
+        message.startsWith('AREA_PERIMETER_TEMPLATE_ERROR:');
+
+      setError(
+        message === 'AI_INTERNAL_ERROR'
+          ? (lang === 'zh' ? '生成出错，请稍后重试。' : 'Evaluation error, please try again.')
+          : isTemplateError
+            ? (lang === 'zh'
+                ? '题型模板生成失败，请切换难度或年级后重试。'
+                : 'Template generation failed. Please try another difficulty or grade.')
+            : 'Connection error. Please try again.'
+      );
     } finally {
       setLoading(false);
     }

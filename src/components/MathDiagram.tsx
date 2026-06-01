@@ -597,6 +597,7 @@ function RightTriangle({ data }: { data: any }) {
   const a: number = data.leg_h ?? data.legs?.[0] ?? data.a ?? 3;
   const b: number = data.leg_v ?? data.legs?.[1] ?? data.b ?? 4;
   const hyp = Math.sqrt(a * a + b * b);
+  const showRightAngleMark: boolean = data.show_right_angle_mark !== false;
   const labelA: string = explicitLabel(data.labels?.A ?? data.label_A);
   const labelB: string = explicitLabel(data.labels?.B ?? data.label_B);
   const labelC: string = explicitLabel(data.labels?.C ?? data.label_C);
@@ -618,7 +619,7 @@ function RightTriangle({ data }: { data: any }) {
   return (
     <g>
       <Poly pts={[A, B, C]} />
-      <RightAngleMark v={B} a={A} b={C} />
+      {showRightAngleMark && <RightAngleMark v={B} a={A} b={C} />}
       <Dot p={A} label={labelA} offset={{ x: -18, y: -4 }} />
       <Dot p={B} label={labelB} offset={{ x: -18, y: 12 }} />
       <Dot p={C} label={labelC} offset={{ x: 8, y: 12 }} />

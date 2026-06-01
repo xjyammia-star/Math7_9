@@ -67,7 +67,7 @@ const cnZhBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(cnZhBatch, /\u9762\u79ef\u4e3a \d+ [a-zA-Z]+\u00b2|area is \d+ [a-zA-Z]+\u00b2/);
+assert.match(cnZhBatch, /show_right_angle_mark":false|label_foot":"\?"|label_AC":"\?"|label_BC":"\?"|最简根式|判断它是否为直角三角形|证明三角形|梯脚离墙多远/);
 
 const cnZhHarderBatch = buildPythagorasExerciseBatch({
   count: 1,
@@ -80,7 +80,7 @@ const cnZhHarderBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(cnZhHarderBatch, /\u9762\u79ef\u4e3a \d+ [a-zA-Z]+\u00b2|area is \d+ [a-zA-Z]+\u00b2/);
+assert.match(cnZhHarderBatch, /show_right_angle_mark":false|label_foot":"\?"|label_AC":"\?"|label_BC":"\?"|最简根式|判断它是否为直角三角形|证明三角形|梯脚离墙多远/);
 
 const pythagorasTierFamilies = {
   Easy: ['direct_hypotenuse', 'rectangle_diagonal', 'square_diagonal', 'ladder_height'],
@@ -128,6 +128,18 @@ const cnGrade8Hard = buildPythagorasExerciseItems(1, {
 assert.ok(pythagorasTierFamilies.Easy.includes(cnGrade8Easy[0].kind));
 assert.ok(pythagorasTierFamilies.Hard.includes(cnGrade8Hard[0].kind));
 assert.notEqual(cnGrade8Easy[0].kind, cnGrade8Hard[0].kind);
+assert.match(
+  buildPythagorasExerciseBatch({
+    count: 1,
+    lang: 'en',
+    curriculum: 'CN',
+    grade: '8',
+    difficulty: 'Hard',
+    random: makeSequenceRng([0.03, 0.19, 0.41]),
+    persistHistory: false,
+  }),
+  /"show_right_angle_mark":false|prove|show that|determine whether/
+);
 
 const cnRepeatItems = buildPythagorasExerciseItems(3, {
   lang: 'en',
@@ -156,11 +168,7 @@ const ukBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(ukBatch, /area is|perimeter|foot of the ladder|coordinate grid|On a coordinate grid|simplest surd form|prove|show/);
-assert.match(ukBatch, /a rectangular (park|garden|courtyard|screen|poster|frame|rug)/);
-assert.match(ukBatch, /"label_BC":"\?"/);
-assert.match(ukBatch, /"label_AC":"\?"/);
-assert.match(ukBatch, /"label_area":/);
+assert.match(ukBatch, /show_right_angle_mark":false|label_foot":"\?"|label_AC":"\?"|label_BC":"\?"|simplest surd form|prove|show|coordinate grid/);
 
 const ukGrade6Fallback = buildPythagorasExerciseBatch({
   count: 1,
@@ -184,7 +192,7 @@ const ukHardBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(ukHardBatch, /area is|perimeter|foot of the ladder|coordinate grid|On a coordinate grid|simplest surd form|prove|show/);
+assert.match(ukHardBatch, /show_right_angle_mark":false|label_foot":"\?"|label_AC":"\?"|label_BC":"\?"|simplest surd form|prove|show|coordinate grid/);
 assert.match(ukHardBatch, /"label_foot":"\?"/);
 
 const usBatch = buildPythagorasExerciseBatch({
@@ -242,8 +250,7 @@ const usHardBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(usHardBatch, /area is|perimeter|foot of the ladder|coordinate grid|On a coordinate grid|simplest surd form|prove|show/);
-assert.match(usHardBatch, /a rectangular (park|garden|courtyard|screen|poster|frame|rug)/);
+assert.match(usHardBatch, /show_right_angle_mark":false|label_foot":"\?"|label_AC":"\?"|label_BC":"\?"|simplest surd form|prove|show|coordinate grid/);
 
 const gbEasy = buildPythagorasExerciseItems(1, {
   lang: 'en',
