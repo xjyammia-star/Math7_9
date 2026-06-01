@@ -9,6 +9,7 @@
  *   right_triangle        – right-angled triangle, legs a/b
  *   triangle              – general triangle, all three side lengths
  *   rectangle             – plain rectangle w×h
+ *   circle                – full circle with a radius line
  *   rectangle_fold        – rectangle with a fold line (EF) and reflected vertex
  *   parallelogram         – parallelogram with base, side, angle
  *   circle                – circle with optional radius label, tangent from external pt
@@ -374,6 +375,10 @@ function validateDiagramData(template: string, data: any): string | null {
     }
     case 'rectangle':
       return asFiniteNumber(data.width ?? data.w) !== null && asFiniteNumber(data.height ?? data.h) !== null ? null : 'rectangle requires width and height';
+    case 'circle': {
+      const radius = asFiniteNumber(data.radius ?? data.r);
+      return radius !== null && radius > 0 ? null : 'circle requires a positive radius';
+    }
     case 'rectangle_diagonal': {
       const w = asFiniteNumber(data.width ?? data.w);
       const h = asFiniteNumber(data.height ?? data.h);
@@ -649,6 +654,12 @@ function Triangle({ data }: { data: any }) {
   const lA = explicitLabel(data.labels?.A), lB = explicitLabel(data.labels?.B), lC = explicitLabel(data.labels?.C);
   const lAB = data.labels?.AB ?? '', lBC = data.labels?.BC ?? '', lCA = data.labels?.CA ?? '';
   const rightAt: string = data.right_angle ?? '';
+  const lArea: string = cleanDiagramLabelText(data.label_area ?? '');
+  const lPerimeter: string = cleanDiagramLabelText(data.label_perimeter ?? '');
+  const centroid = {
+    x: (sA.x + sB.x + sC.x) / 3,
+    y: (sA.y + sB.y + sC.y) / 3,
+  };
 
   return (
     <g>
@@ -662,6 +673,14 @@ function Triangle({ data }: { data: any }) {
       {rightAt === 'A' && <RightAngleMark v={sA} a={sB} b={sC} />}
       {rightAt === 'B' && <RightAngleMark v={sB} a={sA} b={sC} />}
       {rightAt === 'C' && <RightAngleMark v={sC} a={sA} b={sB} />}
+      {lArea && (
+        <text x={centroid.x} y={centroid.y - 8} fontSize={12} fontWeight="700"
+          textAnchor="middle" fill={GOLD}>{lArea}</text>
+      )}
+      {lPerimeter && (
+        <text x={centroid.x} y={centroid.y + 10} fontSize={12} fontWeight="700"
+          textAnchor="middle" fill={GOLD}>{lPerimeter}</text>
+      )}
     </g>
   );
 }
@@ -687,6 +706,50 @@ function Rectangle({ data }: { data: any }) {
       <Dot p={D} label={explicitLabel(labels[3])} offset={{ x: 8,  y: -4 }} />
       <SegLabel a={A} b={B} label={lH} />
       <SegLabel a={B} b={C} label={lW} />
+      {cleanDiagramLabelText(data.label_area ?? '') && (
+        <text x={(A.x + C.x) / 2} y={(A.y + C.y) / 2 - 8} fontSize={12} fontWeight="700"
+          textAnchor="middle" fill={GOLD}>{cleanDiagramLabelText(data.label_area ?? '')}</text>
+      )}
+      {cleanDiagramLabelText(data.label_perimeter ?? '') && (
+        <text x={(A.x + C.x) / 2} y={(A.y + C.y) / 2 + 10} fontSize={12} fontWeight="700"
+          textAnchor="middle" fill={GOLD}>{cleanDiagramLabelText(data.label_perimeter ?? '')}</text>
+      )}
+    </g>
+  );
+}
+
+/** circle: full circle with radius label and optional area/circumference label */
+function Circle({ data }: { data: any }) {
+  const r: number = data.radius ?? data.r ?? 5;
+  const O: Pt = { x: 0, y: 0 };
+  const A: Pt = { x: r, y: 0 };
+  const pad = r * 0.3;
+  const sc = makeScaler(-r - pad, r + pad, -r - pad, r + pad);
+  const sO = sc(O);
+  const sA = sc(A);
+  const pixelR = Math.abs(sc({ x: r, y: 0 }).x - sO.x);
+  const lO = explicitLabel(data.label_O ?? 'O');
+  const lA = explicitLabel(data.label_A ?? 'A');
+  const lRadius = cleanDiagramLabelText(data.label_radius ?? '');
+  const lArea = cleanDiagramLabelText(data.label_area ?? '');
+  const lCirc = cleanDiagramLabelText(data.label_circumference ?? '');
+
+  return (
+    <g>
+      <circle cx={sO.x} cy={sO.y} r={pixelR}
+        fill="none" stroke={GREY} strokeWidth={2} strokeOpacity={0.65} />
+      <Seg a={sO} b={sA} stroke={GOLD} sw={2.4} />
+      <Dot p={sO} label={lO} offset={{ x: 8, y: 12 }} color={WHITE} />
+      <Dot p={sA} label={lA} offset={{ x: 10, y: -10 }} />
+      {lRadius && <SegLabel a={sO} b={sA} label={lRadius} color={GOLD} />}
+      {lArea && (
+        <text x={sO.x} y={sO.y - 8} fontSize={12} fontWeight="700"
+          textAnchor="middle" fill={GOLD}>{lArea}</text>
+      )}
+      {lCirc && (
+        <text x={sO.x} y={sO.y + 12} fontSize={12} fontWeight="700"
+          textAnchor="middle" fill={GOLD}>{lCirc}</text>
+      )}
     </g>
   );
 }
@@ -2162,6 +2225,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'right_triangle':      content = <RightTriangle data={parsed} />; break;
       case 'triangle':            content = <Triangle data={parsed} />; break;
       case 'rectangle':           content = <Rectangle data={parsed} />; break;
+      case 'circle':              content = <Circle data={parsed} />; break;
       case 'rectangle_diagonal':
       case 'square_diagonal':     content = <RectangleDiagonal data={parsed} />; break;
       case 'rectangle_fold':      content = <RectangleFold data={parsed} />; break;
