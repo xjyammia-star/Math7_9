@@ -34,5 +34,9 @@ assert.match(rendered, /"template":"rectangle"/);
 assert.match(rendered, /"label_width":"8"/);
 assert.match(rendered, /"label_height":"5"/);
 assert.match(rendered, /"width":6,"height":6/);
+assert.match(rendered, /求长方形的面积/);
+assert.match(rendered, /求长方形的周长/);
+assert.match(rendered, /求正方形的面积/);
+assert.match(rendered, /求正方形的周长/);
 
 console.log('area-perimeter template test passed');

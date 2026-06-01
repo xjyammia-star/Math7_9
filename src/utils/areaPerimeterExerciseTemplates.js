@@ -1,3 +1,5 @@
+import { validateRenderContract } from './exerciseRenderContracts.js';
+
 const AREA_PERIMETER_VARIANTS = [
   {
     kind: 'rectangle_area',
@@ -30,6 +32,25 @@ const AREA_PERIMETER_VARIANTS = [
     answer: 28,
   },
 ];
+
+const AREA_PERIMETER_RENDER_CONTRACTS = {
+  rectangle_area: {
+    questionIncludes: ['area of the rectangle', '面积'],
+    diagramIncludes: ['"template":"rectangle"', '"label_width":"8"', '"label_height":"5"'],
+  },
+  rectangle_perimeter: {
+    questionIncludes: ['perimeter of the rectangle', '周长'],
+    diagramIncludes: ['"template":"rectangle"', '"label_width":"9"', '"label_height":"4"'],
+  },
+  square_area: {
+    questionIncludes: ['area of the square', '面积'],
+    diagramIncludes: ['"template":"rectangle"', '"label_width":"6"', '"label_height":"6"'],
+  },
+  square_perimeter: {
+    questionIncludes: ['perimeter of the square', '周长'],
+    diagramIncludes: ['"template":"rectangle"', '"label_width":"7"', '"label_height":"7"'],
+  },
+};
 
 function isFinitePositiveNumber(value) {
   return typeof value === 'number' && Number.isFinite(value) && value > 0;
@@ -147,13 +168,8 @@ function validateRenderedAreaPerimeterExerciseItem(item, rendered) {
     issues.push('rendered diagram block does not match the expected rectangle spec');
   }
 
-  if (item.kind.endsWith('_area') && !rendered.includes('面积')) {
-    issues.push('area question text missing expected area wording');
-  }
-
-  if (item.kind.endsWith('_perimeter') && !rendered.includes('周长') && !rendered.includes('perimeter')) {
-    issues.push('perimeter question text missing expected perimeter wording');
-  }
+  validateRenderContract(rendered, AREA_PERIMETER_RENDER_CONTRACTS[item.kind], item.kind)
+    .forEach((issue) => issues.push(issue));
 
   return issues;
 }
@@ -210,4 +226,3 @@ function buildAreaPerimeterExerciseBatch({ count, lang = 'zh' } = {}) {
 
   return rendered.join('\n\n');
 }
-
