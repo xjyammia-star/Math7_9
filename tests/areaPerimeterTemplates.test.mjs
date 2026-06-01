@@ -42,16 +42,16 @@ assert.deepEqual(new Set(hardItems.map((item) => item.kind)), new Set([
   'l_shape_area',
   'l_shape_perimeter',
   'trapezoid_area',
+  'trapezoid_area_reverse',
   'parallelogram_area',
   'parallelogram_perimeter',
+  'parallelogram_area_reverse',
   'triangle_area',
   'triangle_perimeter',
-  'circle_area',
-  'circle_circumference',
-  'circle_area_reverse',
-  'circle_circumference_reverse',
   'circle_annulus_area',
+  'circle_annulus_area_reverse',
   'sector_area',
+  'sector_area_reverse',
 ]));
 assert.deepEqual(validateAreaPerimeterExerciseItems(hardItems), []);
 
@@ -71,18 +71,19 @@ assert.match(mediumRendered, /"label_width":"\?"/);
 assert.match(hardRendered, /"template":"coordinate_points"/);
 assert.match(hardRendered, /"template":"parallelogram"/);
 assert.match(hardRendered, /"template":"triangle"/);
-assert.match(hardRendered, /"template":"circle"/);
 assert.match(hardRendered, /"template":"circle_annulus"/);
 assert.match(hardRendered, /"template":"circle_sector"/);
+assert.doesNotMatch(hardRendered, /"template":"circle"(?!_)/);
 assert.match(hardRendered, /"axes":false/);
 assert.match(hardRendered, /"label_area":"\?"/);
 assert.match(hardRendered, /"label_perimeter":"\?"/);
 assert.match(hardRendered, /"label_radius":"\?"/);
+assert.match(hardRendered, /"label_inner_radius":"\?"/);
 assert.match(hardRendered, /"topBase":4/);
 assert.match(hardRendered, /"bottomBase":8/);
 assert.match(hardRendered, /"height":3/);
-assert.match(hardRendered, /25π cm²/);
-assert.match(hardRendered, /12π cm/);
+assert.match(hardRendered, /"label_area":"27π cm²"/);
+assert.match(hardRendered, /"label_area":"12π cm²"/);
 assert.doesNotMatch(hardRendered, /78\.5398/);
 assert.doesNotMatch(hardRendered, /undefined/);
 

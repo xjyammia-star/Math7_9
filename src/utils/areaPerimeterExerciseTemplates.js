@@ -20,16 +20,16 @@ const AREA_PERIMETER_BLUEPRINT = {
       'l_shape_area',
       'l_shape_perimeter',
       'trapezoid_area',
+      'trapezoid_area_reverse',
       'parallelogram_area',
       'parallelogram_perimeter',
+      'parallelogram_area_reverse',
       'triangle_area',
       'triangle_perimeter',
-      'circle_area',
-      'circle_circumference',
-      'circle_area_reverse',
-      'circle_circumference_reverse',
       'circle_annulus_area',
+      'circle_annulus_area_reverse',
       'sector_area',
+      'sector_area_reverse',
     ],
   },
 };
@@ -79,6 +79,10 @@ const AREA_PERIMETER_RENDER_CONTRACTS = {
     questionIncludes: ['梯形', '面积'],
     diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label_area":"?"'],
   },
+  trapezoid_area_reverse: {
+    questionIncludes: ['梯形', '面积', '求上底'],
+    diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label_area":"18 cm²"', '"label_top_base":"?"'],
+  },
   parallelogram_area: {
     questionIncludes: ['平行四边形', '面积'],
     diagramIncludes: ['"template":"parallelogram"', '"label_area":"?"', '"label_height":"2.5 cm"'],
@@ -86,6 +90,10 @@ const AREA_PERIMETER_RENDER_CONTRACTS = {
   parallelogram_perimeter: {
     questionIncludes: ['平行四边形', '周长'],
     diagramIncludes: ['"template":"parallelogram"', '"label_perimeter":"?"'],
+  },
+  parallelogram_area_reverse: {
+    questionIncludes: ['平行四边形', '面积', '求高'],
+    diagramIncludes: ['"template":"parallelogram"', '"label_area":"20 cm²"', '"label_height":"?"'],
   },
   triangle_area: {
     questionIncludes: ['直角三角形', '面积'],
@@ -95,29 +103,21 @@ const AREA_PERIMETER_RENDER_CONTRACTS = {
     questionIncludes: ['直角三角形', '周长'],
     diagramIncludes: ['"template":"triangle"', '"label_perimeter":"?"'],
   },
-  circle_area: {
-    questionIncludes: ['圆', '面积'],
-    diagramIncludes: ['"template":"circle"', '"label_area":"?"', '"label_radius":"5 cm"'],
-  },
-  circle_circumference: {
-    questionIncludes: ['圆', '周长'],
-    diagramIncludes: ['"template":"circle"', '"label_circumference":"?"', '"label_radius":"6 cm"'],
-  },
-  circle_area_reverse: {
-    questionIncludes: ['圆的面积是', '求半径 OA'],
-    diagramIncludes: ['"template":"circle"', '"label_radius":"?"', '"label_area":"25π cm²"'],
-  },
-  circle_circumference_reverse: {
-    questionIncludes: ['圆的周长是', '求半径 OA'],
-    diagramIncludes: ['"template":"circle"', '"label_radius":"?"', '"label_circumference":"12π cm"'],
-  },
   circle_annulus_area: {
     questionIncludes: ['圆环', '面积'],
     diagramIncludes: ['"template":"circle_annulus"', '"label_area":"?"'],
   },
+  circle_annulus_area_reverse: {
+    questionIncludes: ['圆环', '面积', '求内半径'],
+    diagramIncludes: ['"template":"circle_annulus"', '"label_area":"27π cm²"', '"label_inner_radius":"?"'],
+  },
   sector_area: {
     questionIncludes: ['扇形', '面积'],
     diagramIncludes: ['"template":"circle_sector"', '"label_area":"?"'],
+  },
+  sector_area_reverse: {
+    questionIncludes: ['扇形', '面积', '求半径'],
+    diagramIncludes: ['"template":"circle_sector"', '"label_area":"12π cm²"', '"label_radius":"?"'],
   },
 };
 
@@ -257,6 +257,17 @@ const AREA_PERIMETER_VARIANT_LIBRARY = {
     height: 3,
     answer: TRAPEZOID_AREA,
   },
+  trapezoid_area_reverse: {
+    kind: 'trapezoid_area_reverse',
+    template: 'coordinate_points',
+    points: TRAPEZOID_POINTS,
+    outline: TRAPEZOID_POINTS.slice(0, 4),
+    topBase: 4,
+    bottomBase: 8,
+    height: 3,
+    area: TRAPEZOID_AREA,
+    answer: 4,
+  },
   parallelogram_area: {
     kind: 'parallelogram_area',
     template: 'parallelogram',
@@ -274,6 +285,16 @@ const AREA_PERIMETER_VARIANT_LIBRARY = {
     angle: 30,
     height: 2.5,
     answer: 26,
+  },
+  parallelogram_area_reverse: {
+    kind: 'parallelogram_area_reverse',
+    template: 'parallelogram',
+    base: 8,
+    side: 5,
+    angle: 30,
+    height: 2.5,
+    area: 20,
+    answer: 2.5,
   },
   triangle_area: {
     kind: 'triangle_area',
@@ -328,12 +349,28 @@ const AREA_PERIMETER_VARIANT_LIBRARY = {
     innerRadius: 3,
     answer: 27 * Math.PI,
   },
+  circle_annulus_area_reverse: {
+    kind: 'circle_annulus_area_reverse',
+    template: 'circle_annulus',
+    outerRadius: 6,
+    innerRadius: 3,
+    area: 27 * Math.PI,
+    answer: 3,
+  },
   sector_area: {
     kind: 'sector_area',
     template: 'circle_sector',
     radius: 6,
     angle: 120,
     answer: 12 * Math.PI,
+  },
+  sector_area_reverse: {
+    kind: 'sector_area_reverse',
+    template: 'circle_sector',
+    radius: 6,
+    angle: 120,
+    area: 12 * Math.PI,
+    answer: 6,
   },
 };
 
@@ -517,6 +554,10 @@ function buildQuestionText(item, lang) {
       return zh
         ? `如图，梯形的上底为 ${item.topBase} cm，下底为 ${item.bottomBase} cm，高为 ${item.height} cm。求梯形的面积。`
         : `In the figure, the trapezoid has top base ${item.topBase} cm, bottom base ${item.bottomBase} cm, and height ${item.height} cm. Find the area.`;
+    case 'trapezoid_area_reverse':
+      return zh
+        ? `如图，梯形的面积是 ${formatArea(item.area)}，下底为 ${item.bottomBase} cm，高为 ${item.height} cm。求上底的长度。`
+        : `In the figure, the trapezoid area is ${formatArea(item.area)}, the bottom base is ${item.bottomBase} cm, and the height is ${item.height} cm. Find the top base length.`;
     case 'parallelogram_area':
       return zh
         ? `如图，平行四边形的底为 ${item.base} cm，高为 ${item.height} cm。求平行四边形的面积。`
@@ -525,6 +566,10 @@ function buildQuestionText(item, lang) {
       return zh
         ? `如图，平行四边形的底为 ${item.base} cm，边长为 ${item.side} cm。求平行四边形的周长。`
         : `In the figure, the parallelogram has base ${item.base} cm and side length ${item.side} cm. Find the perimeter.`;
+    case 'parallelogram_area_reverse':
+      return zh
+        ? `如图，平行四边形的面积是 ${formatArea(item.area)}，底为 ${item.base} cm。求高。`
+        : `In the figure, the parallelogram area is ${formatArea(item.area)} and the base is ${item.base} cm. Find the height.`;
     case 'triangle_area':
       return zh
         ? `在直角三角形 ABC 中，AB = ${item.legA} cm，BC = ${item.legB} cm，AC = ${item.hypotenuse} cm。求三角形的面积。`
@@ -553,10 +598,18 @@ function buildQuestionText(item, lang) {
       return zh
         ? `如图，圆环的外半径为 ${item.outerRadius} cm，内半径为 ${item.innerRadius} cm。求阴影部分面积。`
         : `In the figure, the outer radius of the annulus is ${item.outerRadius} cm and the inner radius is ${item.innerRadius} cm. Find the shaded area.`;
+    case 'circle_annulus_area_reverse':
+      return zh
+        ? `如图，圆环的阴影面积是 ${formatPiMultiple(item.area, ' cm²')}，外半径为 ${item.outerRadius} cm。求内半径。`
+        : `In the figure, the annulus area is ${formatPiMultiple(item.area, ' cm²')} and the outer radius is ${item.outerRadius} cm. Find the inner radius.`;
     case 'sector_area':
       return zh
         ? `如图，扇形的半径为 ${item.radius} cm，圆心角为 ${item.angle}°。求扇形面积。`
         : `In the figure, the sector has radius ${item.radius} cm and central angle ${item.angle}°. Find the sector area.`;
+    case 'sector_area_reverse':
+      return zh
+        ? `如图，扇形的面积是 ${formatPiMultiple(item.area, ' cm²')}，圆心角为 ${item.angle}°。求半径。`
+        : `In the figure, the sector area is ${formatPiMultiple(item.area, ' cm²')} and the central angle is ${item.angle}°. Find the radius.`;
     default:
       return '';
   }
@@ -643,6 +696,27 @@ function buildCoordinateSpec(item) {
     };
   }
 
+  if (item.kind === 'trapezoid_area_reverse') {
+    return {
+      ...spec,
+      topBase: '?',
+      bottomBase: item.bottomBase,
+      height: item.height,
+      label_top_base: '?',
+      segments: [
+        { from: 'A', to: 'B', label: formatLength(item.bottomBase) },
+        { from: 'B', to: 'C', label: '' },
+        { from: 'C', to: 'D', label: '?' },
+        { from: 'D', to: 'A', label: '' },
+        { from: 'D', to: 'H', dash: true, label: formatLength(item.height) },
+      ],
+      angleMarks: [
+        { vertex: 'H', from: 'D', to: 'B', right: true, r: 9 },
+      ],
+      label_area: formatArea(item.area),
+    };
+  }
+
   return spec;
 }
 
@@ -671,6 +745,9 @@ function buildParallelogramSpec(item) {
 
   if (item.kind === 'parallelogram_area') {
     return { ...spec, label_area: '?' };
+  }
+  if (item.kind === 'parallelogram_area_reverse') {
+    return { ...spec, label_height: '?', label_area: formatArea(item.area) };
   }
   return { ...spec, label_perimeter: '?' };
 }
@@ -719,6 +796,7 @@ function buildCircleSpec(item) {
 }
 
 function buildCircleAnnulusSpec(item) {
+  const isReverse = item.kind === 'circle_annulus_area_reverse';
   return {
     template: 'circle_annulus',
     outer_radius: item.outerRadius,
@@ -727,12 +805,13 @@ function buildCircleAnnulusSpec(item) {
     label_A: 'A',
     label_B: 'B',
     label_outer_radius: formatLength(item.outerRadius),
-    label_inner_radius: formatLength(item.innerRadius),
-    label_area: '?',
+    label_inner_radius: isReverse ? '?' : formatLength(item.innerRadius),
+    label_area: isReverse ? formatPiMultiple(item.area, ' cm²') : '?',
   };
 }
 
 function buildSectorSpec(item) {
+  const isReverse = item.kind === 'sector_area_reverse';
   return {
     template: 'circle_sector',
     radius: item.radius,
@@ -740,9 +819,9 @@ function buildSectorSpec(item) {
     label_O: 'O',
     label_A: 'A',
     label_B: 'B',
-    label_radius: formatLength(item.radius),
+    label_radius: isReverse ? '?' : formatLength(item.radius),
     label_angle: `${item.angle}°`,
-    label_area: '?',
+    label_area: isReverse ? formatPiMultiple(item.area, ' cm²') : '?',
   };
 }
 
@@ -760,21 +839,20 @@ function buildDiagramSpec(item) {
     case 'l_shape_area':
     case 'l_shape_perimeter':
     case 'trapezoid_area':
+    case 'trapezoid_area_reverse':
       return buildCoordinateSpec(item);
     case 'parallelogram_area':
     case 'parallelogram_perimeter':
+    case 'parallelogram_area_reverse':
       return buildParallelogramSpec(item);
     case 'triangle_area':
     case 'triangle_perimeter':
       return buildTriangleSpec(item);
-    case 'circle_area':
-    case 'circle_circumference':
-    case 'circle_area_reverse':
-    case 'circle_circumference_reverse':
-      return buildCircleSpec(item);
     case 'circle_annulus_area':
+    case 'circle_annulus_area_reverse':
       return buildCircleAnnulusSpec(item);
     case 'sector_area':
+    case 'sector_area_reverse':
       return buildSectorSpec(item);
     default:
       return {};
@@ -834,11 +912,19 @@ function validateAreaPerimeterExerciseItem(item) {
     case 'trapezoid_area':
       if (polygonArea(item.outline ?? []) !== item.answer) issues.push('trapezoid area answer mismatch');
       break;
+    case 'trapezoid_area_reverse':
+      if (polygonArea(item.outline ?? []) !== item.area) issues.push('trapezoid reverse area data mismatch');
+      if (item.answer !== item.topBase) issues.push('trapezoid reverse area answer mismatch');
+      break;
     case 'parallelogram_area':
       if (item.answer !== item.base * item.height) issues.push('parallelogram area answer mismatch');
       break;
     case 'parallelogram_perimeter':
       if (item.answer !== 2 * (item.base + item.side)) issues.push('parallelogram perimeter answer mismatch');
+      break;
+    case 'parallelogram_area_reverse':
+      if (item.area !== item.base * item.height) issues.push('parallelogram reverse area data mismatch');
+      if (item.answer !== item.height) issues.push('parallelogram reverse area answer mismatch');
       break;
     case 'triangle_area':
       if (polygonArea(item.outline ?? item.points) !== item.answer) issues.push('triangle area answer mismatch');
@@ -861,8 +947,16 @@ function validateAreaPerimeterExerciseItem(item) {
     case 'circle_annulus_area':
       if (item.answer !== Math.PI * (item.outerRadius * item.outerRadius - item.innerRadius * item.innerRadius)) issues.push('annulus area answer mismatch');
       break;
+    case 'circle_annulus_area_reverse':
+      if (item.area !== Math.PI * (item.outerRadius * item.outerRadius - item.innerRadius * item.innerRadius)) issues.push('annulus reverse area data mismatch');
+      if (item.answer !== item.innerRadius) issues.push('annulus reverse area answer mismatch');
+      break;
     case 'sector_area':
       if (item.answer !== (item.angle / 360) * Math.PI * item.radius * item.radius) issues.push('sector area answer mismatch');
+      break;
+    case 'sector_area_reverse':
+      if (item.area !== (item.angle / 360) * Math.PI * item.radius * item.radius) issues.push('sector reverse area data mismatch');
+      if (item.answer !== item.radius) issues.push('sector reverse area answer mismatch');
       break;
     default:
       issues.push(`unsupported kind: ${String(item.kind)}`);
