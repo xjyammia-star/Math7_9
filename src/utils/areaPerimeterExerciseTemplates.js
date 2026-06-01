@@ -252,6 +252,9 @@ const AREA_PERIMETER_VARIANT_LIBRARY = {
     template: 'coordinate_points',
     points: TRAPEZOID_POINTS,
     outline: TRAPEZOID_POINTS.slice(0, 4),
+    topBase: 4,
+    bottomBase: 8,
+    height: 3,
     answer: TRAPEZOID_AREA,
   },
   parallelogram_area: {
@@ -619,6 +622,9 @@ function buildCoordinateSpec(item) {
   if (item.kind === 'trapezoid_area') {
     return {
       ...spec,
+      topBase: item.topBase,
+      bottomBase: item.bottomBase,
+      height: item.height,
       segments: [
         { from: 'A', to: 'B', label: formatLength(item.bottomBase) },
         { from: 'B', to: 'C', label: '' },
