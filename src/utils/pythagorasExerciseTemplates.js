@@ -1212,6 +1212,88 @@ const COMPLEXITY_WINDOW_BY_GRADE_AND_DIFFICULTY = {
 const HARD_ADVANCED_KINDS = new Set([
   ...PYTHAGORAS_DIFFICULTY_BLUEPRINT.Hard.families,
 ]);
+const PYTHAGORAS_RENDER_CONTRACTS = {
+  direct_hypotenuse: {
+    questionIncludes: ['Find the length of AC', '求 AC', 'AC 的长度'],
+    diagramIncludes: ['"template":"right_triangle"', '"label_AC":"?"'],
+  },
+  direct_hypotenuse_surd: {
+    questionIncludes: ['simplest surd form', '最简根式', 'AC 的长度'],
+    diagramIncludes: ['"template":"right_triangle"', '"label_AC":"?"'],
+  },
+  direct_leg_ab: {
+    questionIncludes: ['Find the length of AB', '求 AB', 'AB 的长度'],
+    diagramIncludes: ['"template":"right_triangle"', '"label_AB":"?"'],
+  },
+  direct_leg_bc: {
+    questionIncludes: ['Find the length of BC', '求 BC', 'BC 的长度'],
+    diagramIncludes: ['"template":"right_triangle"', '"label_BC":"?"'],
+  },
+  rectangle_diagonal: {
+    questionIncludes: ['diagonal AC', '对角线 AC'],
+    diagramIncludes: ['"template":"rectangle_diagonal"', '"label_AC":"?"'],
+  },
+  square_diagonal: {
+    questionIncludes: ['diagonal AC', '对角线 AC'],
+    diagramIncludes: ['"template":"square_diagonal"', '"label_AC":"?"'],
+  },
+  square_side_from_diagonal: {
+    questionIncludes: ['side AB', '边 AB', '求 AB'],
+    diagramIncludes: ['"template":"square_diagonal"', '"label_AB":"?"'],
+  },
+  ladder_height: {
+    questionIncludes: ['ladder', '梯子', 'reach', '多高'],
+    diagramIncludes: ['"template":"ladder"', '"label_foot_pt":"B"', '"label_foot":"'],
+  },
+  ladder_foot: {
+    questionIncludes: ['ladder', '梯子', 'foot', '梯脚'],
+    diagramIncludes: ['"template":"ladder"', '"label_foot":"?"'],
+  },
+  rectangle_perimeter_diagonal: {
+    questionIncludes: ['perimeter', '周长', 'diagonal AC'],
+    diagramIncludes: ['"template":"rectangle_diagonal"', '"label_BC":"?"', '"label_perimeter"'],
+  },
+  rectangle_area_diagonal: {
+    questionIncludes: ['area', '面积', 'diagonal AC'],
+    diagramIncludes: ['"template":"rectangle_diagonal"', '"label_BC":"?"', '"label_AC":"?"', '"label_area"'],
+  },
+  coordinate_distance: {
+    questionIncludes: ['coordinate grid', '平面直角坐标系', 'AC'],
+    diagramIncludes: ['"template":"coordinate_points"', '"label":"?"'],
+  },
+  coordinate_distance_shifted: {
+    questionIncludes: ['coordinate grid', '平面直角坐标系', 'AC'],
+    diagramIncludes: ['"template":"coordinate_points"', '"from":"A","to":"C","label":"?"'],
+  },
+  auxiliary_angle_hidden_segment: {
+    questionIncludes: ['∠DAE = 45°', '45°', 'BD =', 'CE =', 'DE'],
+    diagramIncludes: ['"template":"coordinate_points"', '"label":"45°"', '"kind":"right"'],
+  },
+  auxiliary_angle_hidden_leg: {
+    questionIncludes: ['∠DAE = 45°', '45°', 'BD =', 'CE =', 'AD'],
+    diagramIncludes: ['"template":"coordinate_points"', '"from":"A","to":"D","label":"?"', '"label":"45°"', '"kind":"right"'],
+  },
+  cylinder_shortest_path: {
+    questionIncludes: ['cylinder', '圆柱', 'shortest path', '最短路径'],
+    diagramIncludes: ['"template":"cylinder_unrolled"', '"label_path":"?"'],
+  },
+  rectangular_prism_surface_shortest_path: {
+    questionIncludes: ['surface', '表面', 'S', 'T'],
+    diagramIncludes: ['"template":"rectangular_prism_net"', '"path_start"', '"path_end"', '"label_path":"?"'],
+  },
+  rectangular_prism_surface_opposite_corners: {
+    questionIncludes: ['opposite corner', '对角顶点', 'surface', '表面'],
+    diagramIncludes: ['"template":"rectangular_prism_net"', '"path_show_line":false', '"label_path":"?"'],
+  },
+  rectangular_prism_space_diagonal: {
+    questionIncludes: ['space diagonal', '空间对角线', 'A', 'G', 'AG'],
+    diagramIncludes: ['"template":"rectangular_prism_net"', '"label":"A"', '"label":"G"', '"label_path":"?"'],
+  },
+  rectangle_fold_reflection_corner: {
+    questionIncludes: ['folded along crease EF', '折痕 EF', "A'B", 'A\'B'],
+    diagramIncludes: ['"template":"rectangle_fold"', '"label_Ap":"A\'"', '"label_ApB":"?"', '"label_AB":"', '"label_AD":"', '"label_AE":"', '"label_CF":"'],
+  },
+};
 const GRADE_ORDER = { '6': 6, '7': 7, '8': 8, '9': 9 };
 const DEFAULT_UNIT = 'cm';
 
@@ -1256,6 +1338,36 @@ function normalizeCurriculum(value) {
 
 function formatLength(value, unit = DEFAULT_UNIT) {
   return `${value} ${unit}`;
+}
+
+function validateRenderContract(rendered, contract, kind) {
+  const issues = [];
+  if (!contract) return issues;
+
+  if (Array.isArray(contract.questionIncludes)) {
+    const hasQuestionFragment = contract.questionIncludes.some((fragment) => rendered.includes(fragment));
+    if (!hasQuestionFragment) {
+      issues.push(`${kind} question text does not contain an expected phrase`);
+    }
+  }
+
+  if (Array.isArray(contract.diagramIncludes)) {
+    contract.diagramIncludes.forEach((fragment) => {
+      if (!rendered.includes(fragment)) {
+        issues.push(`${kind} diagram is missing required fragment: ${fragment}`);
+      }
+    });
+  }
+
+  if (Array.isArray(contract.diagramExcludes)) {
+    contract.diagramExcludes.forEach((fragment) => {
+      if (rendered.includes(fragment)) {
+        issues.push(`${kind} diagram should not include fragment: ${fragment}`);
+      }
+    });
+  }
+
+  return issues;
 }
 
 function getRectangleScenePhrase(scene, lang = 'en') {
@@ -2631,6 +2743,9 @@ function validateRenderedScenarioItem(item, rendered) {
       issues.push('space-diagonal diagram must hide the diagonal length label');
     }
   }
+
+  const contractIssues = validateRenderContract(rendered, PYTHAGORAS_RENDER_CONTRACTS[item.kind], item.kind);
+  contractIssues.forEach((issue) => issues.push(issue));
 
   return issues;
 }
