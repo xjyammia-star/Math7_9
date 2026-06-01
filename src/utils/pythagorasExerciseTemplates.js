@@ -1670,7 +1670,7 @@ function buildQuestionText(item, lang, context) {
       return `在长方形 ABCD 中，AB = ${formatLength(item.width, unit)}，面积为 ${item.area} ${unit}²。求对角线 AC 的长度。`;
     }
     if (item.kind === 'rectangle_fold_reflection_corner') {
-      return `一张长方形纸 ABCD 沿着折痕 EF 折叠，点 A 的对应点记作 A'。已知折后 A' 到 B 的距离。求 A'B 的长度。`;
+      return `一张长方形纸 ABCD，AB = ${formatLength(item.width, unit)}，AD = ${formatLength(item.height, unit)}。E 在 AB 上，AE = ${formatLength(item.width * item.E_ratio, unit)}；F 在 CD 上，CF = ${formatLength(item.width * item.F_ratio, unit)}。沿着折痕 EF 折叠后，点 A 的对应点记作 A'。求 A'B 的长度。`;
     }
     if (item.kind === 'square_diagonal') {
       return `在正方形 ABCD 中，AB = ${formatLength(item.side, unit)}。求对角线 AC 的长度。`;
@@ -1776,9 +1776,9 @@ function buildQuestionText(item, lang, context) {
 
   if (item.kind === 'rectangle_fold_reflection_corner') {
     if (zh) {
-      return `一张长方形纸 ABCD 沿着折痕 EF 折叠，点 A 的对应点记作 A'。已知折后 A' 到 B 的距离。求 A'B 的长度。`;
+      return `一张长方形纸 ABCD，AB = ${formatLength(item.width, unit)}，AD = ${formatLength(item.height, unit)}。E 在 AB 上，AE = ${formatLength(item.width * item.E_ratio, unit)}；F 在 CD 上，CF = ${formatLength(item.width * item.F_ratio, unit)}。沿着折痕 EF 折叠后，点 A 的对应点记作 A'。求 A'B 的长度。`;
     }
-    return `A rectangular sheet ABCD is folded along crease EF so that A maps to A'. Find the length of A'B.`;
+    return `A rectangular sheet ABCD has AB = ${formatLength(item.width, unit)} and AD = ${formatLength(item.height, unit)}. Point E lies on AB with AE = ${formatLength(item.width * item.E_ratio, unit)}, and point F lies on CD with CF = ${formatLength(item.width * item.F_ratio, unit)}. The sheet is folded along crease EF so that A maps to A'. Find the length of A'B.`;
   }
 
   if (item.kind === 'square_diagonal') {
@@ -1930,7 +1930,6 @@ function buildDiagramSpec(item) {
 
   if (item.kind === 'rectangle_fold_reflection_corner') {
     const { E, F, Vp } = buildRectangleFoldGeometry(item);
-    const apDistance = Math.hypot(Vp.x - 0, Vp.y - item.height);
     return {
       template: 'rectangle_fold',
       width: item.width,
@@ -1948,12 +1947,13 @@ function buildDiagramSpec(item) {
       label_D: 'D',
       label_E: 'E',
       label_F: 'F',
-      label_Ap: '?',
+      label_Ap: "A'",
       label_EF: '?',
-      label_AE: '?',
-      label_AF: '?',
+      label_AB: formatLength(item.width, item.unit),
+      label_AD: formatLength(item.height, item.unit),
+      label_AE: formatLength(item.width * item.E_ratio, item.unit),
+      label_CF: formatLength(item.width * item.F_ratio, item.unit),
       label_ApB: '?',
-      label_Ap_distance: formatLength(apDistance, item.unit),
     };
   }
 
@@ -2549,11 +2549,14 @@ function validateRenderedScenarioItem(item, rendered) {
     if (!rendered.includes('"template":"rectangle_fold"')) {
       issues.push('rectangle fold diagram must render as a rectangle fold');
     }
-    if (!rendered.includes('"label_Ap":"?"') && !rendered.includes('"label_Vp":"?"')) {
-      issues.push('rectangle fold diagram must hide the reflected vertex label');
+    if (!rendered.includes('"label_Ap":"A\'"') && !rendered.includes('"label_Vp":"A\'"')) {
+      issues.push('rectangle fold diagram must label the reflected vertex as A\'');
     }
-    if (!rendered.includes('"label_EF":"?"') || !rendered.includes('"label_AE":"?"') || !rendered.includes('"label_AF":"?"')) {
-      issues.push('rectangle fold diagram must hide the crease and side labels');
+    if (!rendered.includes('"label_AB":"') || !rendered.includes('"label_AD":"') || !rendered.includes('"label_AE":"') || !rendered.includes('"label_CF":"')) {
+      issues.push('rectangle fold diagram must show the known rectangle and fold measurements');
+    }
+    if (!rendered.includes('"label_ApB":"?"')) {
+      issues.push('rectangle fold diagram must keep A\'B as the unknown');
     }
   }
 

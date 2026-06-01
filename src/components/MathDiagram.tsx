@@ -840,6 +840,11 @@ function RectangleFold({ data }: { data: any }) {
   const lCF = data.label_CF ?? '';
   const lAF = data.label_AF ?? '';
   const lBF = data.label_BF ?? '';
+  const lAB = data.label_AB ?? data.label_width ?? '';
+  const lBC = data.label_BC ?? data.label_height ?? '';
+  const lCD = data.label_CD ?? data.label_width ?? '';
+  const lAD = data.label_AD ?? data.label_height ?? '';
+  const lApB = data.label_ApB ?? '';
 
   return (
     <g>
@@ -867,6 +872,12 @@ function RectangleFold({ data }: { data: any }) {
       <Dot p={sVp} label={lVp} color={GREY}
         offset={{ x: Vp.x > w / 2 ? 10 : -22, y: Vp.y > h / 2 ? -14 : 12 }} />
 
+      {/* Rectangle side lengths */}
+      {lAB && <SegLabel a={sA} b={sB} label={lAB} color={GOLD} />}
+      {lBC && <SegLabel a={sB} b={sC} label={lBC} color={GOLD} />}
+      {lCD && <SegLabel a={sC} b={sD} label={lCD} color={GOLD} />}
+      {lAD && <SegLabel a={sD} b={sA} label={lAD} color={GOLD} />}
+
       {/* Segment labels */}
       {lEF && <SegLabel a={sE} b={sF} label={lEF} color={GOLD} />}
       {lAE && <SegLabel a={sA} b={sE} label={lAE} />}
@@ -875,6 +886,7 @@ function RectangleFold({ data }: { data: any }) {
       {lCF && <SegLabel a={sC} b={sF} label={lCF} />}
       {lAF && <SegLabel a={sA} b={sF} label={lAF} />}
       {lBF && <SegLabel a={sB} b={sF} label={lBF} />}
+      {lApB && <SegLabel a={sVp} b={sB} label={lApB} color={GOLD} />}
     </g>
   );
 }

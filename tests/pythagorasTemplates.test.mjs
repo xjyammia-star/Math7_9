@@ -310,7 +310,7 @@ assert.match(
     ],
     persistHistory: false,
   }),
-  /rectangle_fold_reflection_corner|folded along crease EF|A'B|label_Ap|label_EF/
+  /rectangle_fold_reflection_corner|AB = 12 cm|AD = 8 cm|AE = 4 cm|CF = 2 cm|A'B|label_Ap:"A'|label_AB|label_AD|label_AE|label_CF|label_ApB/
 );
 
 const pythagorasTierFamilies = {
@@ -441,7 +441,7 @@ const ukHardBatch = buildPythagorasExerciseBatch({
 });
 
 assert.match(ukHardBatch, /rectangular_prism_net|space diagonal|rectangle_fold_reflection_corner|rectangular_prism_surface_shortest_path|rectangular_prism_surface_opposite_corners|auxiliary_angle_hidden_segment|auxiliary_angle_hidden_leg|show_right_angle_mark":false|label_foot":"\?"|label_AC":"\?"|label_BC":"\?"|label_path":"\?"|simplest surd form|prove|show|coordinate grid/);
-assert.match(ukHardBatch, /"label_foot":"\?"|rectangular_prism_net|space diagonal|label_path":"\?"|path_show_line":false|rectangle_fold|็ฉบ้—ดๅฏน่ง’็บฟ/);
+assert.match(ukHardBatch, /"label_foot":"\?"|rectangular_prism_net|space diagonal|label_path":"\?"|path_show_line":false|rectangle_fold|AB = [0-9]+ cm|AD = [0-9]+ cm|AE = [0-9]+ cm|CF = [0-9]+ cm/);
 
 const usBatch = buildPythagorasExerciseBatch({
   count: 2,
