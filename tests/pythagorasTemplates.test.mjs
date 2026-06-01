@@ -387,7 +387,7 @@ const prismHard = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(prismHard, /rectangular_prism_net|space diagonal|auxiliary_angle_hidden_segment|auxiliary_angle_hidden_leg|AD|DE/);
+assert.match(prismHard, /rectangular_prism_net|space diagonal|path_start|label":"A"|label":"G"|auxiliary_angle_hidden_segment|auxiliary_angle_hidden_leg/);
 
 const cnRepeatItems = buildPythagorasExerciseItems(3, {
   lang: 'en',

@@ -1716,7 +1716,7 @@ function buildQuestionText(item, lang, context) {
       return `一个长方体的长、宽、高分别是 ${formatLength(item.length, unit)}、${formatLength(item.width, unit)}、${formatLength(item.height, unit)}。从一个角到对角顶点的表面最短路径如图所示。求沿表面的最短路径长度。`;
     }
     if (item.kind === 'rectangular_prism_space_diagonal') {
-      return `一个长方体的长、宽、高分别是 ${formatLength(item.length, unit)}、${formatLength(item.width, unit)}、${formatLength(item.height, unit)}。求它的空间对角线长度。`;
+      return `一个长方体的长、宽、高分别是 ${formatLength(item.length, unit)}、${formatLength(item.width, unit)}、${formatLength(item.height, unit)}。图中 A 是前面左下角顶点，G 是对角顶点。求 AG 的空间对角线长度。`;
     }
     return '请完成这道勾股定理题。';
   }
@@ -1879,9 +1879,9 @@ function buildQuestionText(item, lang, context) {
 
   if (item.kind === 'rectangular_prism_space_diagonal') {
     if (zh) {
-      return `一个长方体的长、宽、高分别是 ${formatLength(item.length, unit)}、${formatLength(item.width, unit)}、${formatLength(item.height, unit)}。求它的空间对角线长度。`;
+      return `一个长方体的长、宽、高分别是 ${formatLength(item.length, unit)}、${formatLength(item.width, unit)}、${formatLength(item.height, unit)}。图中 A 是前面左下角顶点，G 是对角顶点。求 AG 的空间对角线长度。`;
     }
-    return `A rectangular prism has length ${formatLength(item.length, unit)}, width ${formatLength(item.width, unit)}, and height ${formatLength(item.height, unit)}. Find the length of the space diagonal.`;
+    return `A rectangular prism has length ${formatLength(item.length, unit)}, width ${formatLength(item.width, unit)}, and height ${formatLength(item.height, unit)}. In the diagram, A is the front bottom-left vertex and G is the opposite vertex. Find the length of space diagonal AG.`;
   }
 
   return zh ? '่ฏท่งฃ็ญ”่ฟไธชๅพ่กๅฎ็้ขใ€' : 'Solve this Pythagorean theorem question.';
@@ -2110,6 +2110,21 @@ function buildDiagramSpec(item) {
                   : formatLength(item.ac, item.unit)),
         },
       ],
+    };
+  }
+
+  if (item.kind === 'rectangular_prism_space_diagonal') {
+    return {
+      template: 'rectangular_prism_net',
+      length: item.length,
+      width: item.width,
+      height: item.height,
+      label_length: formatLength(item.length, item.unit),
+      label_width: formatLength(item.width, item.unit),
+      label_height: formatLength(item.height, item.unit),
+      path_start: { x: 0, y: 0, label: 'A' },
+      path_end: { x: item.length, y: item.height + item.width + item.height, label: 'G' },
+      label_path: '?',
     };
   }
 
@@ -2600,6 +2615,21 @@ function validateRenderedScenarioItem(item, rendered) {
 
   if (item.kind === 'rectangular_prism_space_diagonal' && !rendered.includes('"template":"rectangular_prism_net"')) {
     issues.push('rectangular prism hard item must render as a prism net');
+  }
+
+  if (item.kind === 'rectangular_prism_space_diagonal') {
+    if (!rendered.includes('AG') && !rendered.includes('空间对角线')) {
+      issues.push('space-diagonal question text is missing the AG wording');
+    }
+    if (!rendered.includes('"path_start":{"x":0,"y":0,"label":"A"}')) {
+      issues.push('space-diagonal diagram must label the start vertex A');
+    }
+    if (!rendered.includes('"path_end":{"x":') || !rendered.includes('"label":"G"}')) {
+      issues.push('space-diagonal diagram must label the opposite vertex G');
+    }
+    if (!rendered.includes('"label_path":"?"')) {
+      issues.push('space-diagonal diagram must hide the diagonal length label');
+    }
   }
 
   return issues;
