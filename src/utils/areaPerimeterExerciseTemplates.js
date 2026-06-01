@@ -280,7 +280,9 @@ const AREA_PERIMETER_VARIANT_LIBRARY = {
     template: 'triangle',
     points: TRIANGLE_POINTS,
     outline: TRIANGLE_POINTS,
-    sides: [6, 8, 10],
+    legA: 6,
+    legB: 8,
+    hypotenuse: 10,
     answer: TRIANGLE_AREA,
   },
   triangle_perimeter: {
@@ -288,7 +290,9 @@ const AREA_PERIMETER_VARIANT_LIBRARY = {
     template: 'triangle',
     points: TRIANGLE_POINTS,
     outline: TRIANGLE_POINTS,
-    sides: [6, 8, 10],
+    legA: 6,
+    legB: 8,
+    hypotenuse: 10,
     answer: TRIANGLE_PERIMETER,
   },
   circle_area: {

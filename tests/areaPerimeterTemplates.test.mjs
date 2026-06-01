@@ -84,5 +84,6 @@ assert.match(hardRendered, /"height":3/);
 assert.match(hardRendered, /25π cm²/);
 assert.match(hardRendered, /12π cm/);
 assert.doesNotMatch(hardRendered, /78\.5398/);
+assert.doesNotMatch(hardRendered, /undefined/);
 
 console.log('area-perimeter template test passed');
