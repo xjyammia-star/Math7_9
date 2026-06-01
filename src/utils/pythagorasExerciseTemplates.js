@@ -1710,10 +1710,10 @@ function buildQuestionText(item, lang, context) {
       return `一个圆柱的侧面展开后是长方形，长为 ${formatLength(item.circumference, unit)}，宽为 ${formatLength(item.height, unit)}。求展开图对角线，也就是圆柱侧面上从 A 到 C 的最短路径长度。`;
     }
     if (item.kind === 'rectangular_prism_surface_shortest_path') {
-      return `一个长方体的表面展开图如图所示，S 在前面左下角，T 在上表面右上角。沿着表面从 S 到 T 的最短路径长度是多少？`;
+      return `一个长方体的长、宽、高分别是 ${formatLength(item.length, unit)}、${formatLength(item.width, unit)}、${formatLength(item.height, unit)}。表面展开图如图所示，S 在前面左下角，T 在上表面右上角。沿着表面从 S 到 T 的最短路径长度是多少？`;
     }
     if (item.kind === 'rectangular_prism_surface_opposite_corners') {
-      return `一个长方体从一个角到对角顶点的表面最短路径如图所示。已知长、宽、高分别为 ${formatLength(item.length, unit)}、${formatLength(item.width, unit)}、${formatLength(item.height, unit)}。求沿表面的最短路径长度。`;
+      return `一个长方体的长、宽、高分别是 ${formatLength(item.length, unit)}、${formatLength(item.width, unit)}、${formatLength(item.height, unit)}。从一个角到对角顶点的表面最短路径如图所示。求沿表面的最短路径长度。`;
     }
     if (item.kind === 'rectangular_prism_space_diagonal') {
       return `一个长方体的长、宽、高分别是 ${formatLength(item.length, unit)}、${formatLength(item.width, unit)}、${formatLength(item.height, unit)}。求它的空间对角线长度。`;
@@ -1865,16 +1865,16 @@ function buildQuestionText(item, lang, context) {
 
   if (item.kind === 'rectangular_prism_surface_shortest_path') {
     if (zh) {
-      return `一个长方体的表面展开图如图所示，S 在前面左下角，T 在上表面右上角。沿着表面从 S 到 T 的最短路径长度是多少？`;
+      return `一个长方体的长、宽、高分别是 ${formatLength(item.length, unit)}、${formatLength(item.width, unit)}、${formatLength(item.height, unit)}。表面展开图如图所示，S 在前面左下角，T 在上表面右上角。沿着表面从 S 到 T 的最短路径长度是多少？`;
     }
-    return `A rectangular prism is shown with a net. S is the front bottom-left corner and T is the top front-right corner. Find the length of the shortest path along the surface from S to T.`;
+    return `A rectangular prism has length ${formatLength(item.length, unit)}, width ${formatLength(item.width, unit)}, and height ${formatLength(item.height, unit)}. The net is shown. S is the front bottom-left corner and T is the top front-right corner. Find the length of the shortest path along the surface from S to T.`;
   }
 
   if (item.kind === 'rectangular_prism_surface_opposite_corners') {
     if (zh) {
-      return `一个长方体从一个角到对角顶点的表面最短路径如图所示。已知长、宽、高分别为 ${formatLength(item.length, unit)}、${formatLength(item.width, unit)}、${formatLength(item.height, unit)}。求沿表面的最短路径长度。`;
+      return `一个长方体的长、宽、高分别是 ${formatLength(item.length, unit)}、${formatLength(item.width, unit)}、${formatLength(item.height, unit)}。从一个角到对角顶点的表面最短路径如图所示。求沿表面的最短路径长度。`;
     }
-    return `A rectangular prism is shown with a net. Find the shortest path along the surface from one corner to the opposite corner. The prism has length ${formatLength(item.length, unit)}, width ${formatLength(item.width, unit)}, and height ${formatLength(item.height, unit)}.`;
+    return `A rectangular prism has length ${formatLength(item.length, unit)}, width ${formatLength(item.width, unit)}, and height ${formatLength(item.height, unit)}. The net is shown. Find the shortest path along the surface from one corner to the opposite corner.`;
   }
 
   if (item.kind === 'rectangular_prism_space_diagonal') {
