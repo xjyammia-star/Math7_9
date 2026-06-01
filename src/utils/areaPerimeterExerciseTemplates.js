@@ -1,6 +1,6 @@
 import { validateRenderContract } from './exerciseRenderContracts.js';
 
-const HISTORY_KEY = 'math7-9:area-perimeter-kind-history:v2';
+const HISTORY_KEY = 'math7-9:area-perimeter-kind-history:v3';
 const HISTORY_LIMIT = 8;
 
 const AREA_PERIMETER_BLUEPRINT = {
@@ -32,196 +32,180 @@ const AREA_PERIMETER_BLUEPRINT = {
       'sector_area',
     ],
   },
+};
+
+const AREA_PERIMETER_RENDER_CONTRACTS = {
+  rectangle_area: {
+    questionIncludes: ['长方形', '面积'],
+    diagramIncludes: ['"template":"rectangle"', '"label_width":"8 cm"', '"label_height":"5 cm"', '"label_area":"?"'],
+  },
+  rectangle_perimeter: {
+    questionIncludes: ['长方形', '周长'],
+    diagramIncludes: ['"template":"rectangle"', '"label_width":"9 cm"', '"label_height":"4 cm"', '"label_perimeter":"?"'],
+  },
+  square_area: {
+    questionIncludes: ['正方形', '面积'],
+    diagramIncludes: ['"template":"rectangle"', '"label_width":"6 cm"', '"label_height":"6 cm"', '"label_area":"?"'],
+  },
+  square_perimeter: {
+    questionIncludes: ['正方形', '周长'],
+    diagramIncludes: ['"template":"rectangle"', '"label_width":"7 cm"', '"label_height":"7 cm"', '"label_perimeter":"?"'],
+  },
+  rectangle_area_reverse: {
+    questionIncludes: ['面积是', '求 BC'],
+    diagramIncludes: ['"template":"rectangle"', '"label_area":"40 cm²"', '"label_height":"?"'],
+  },
+  rectangle_perimeter_reverse: {
+    questionIncludes: ['周长是', '求 BC'],
+    diagramIncludes: ['"template":"rectangle"', '"label_perimeter":"26 cm"', '"label_height":"?"'],
+  },
+  square_area_reverse: {
+    questionIncludes: ['正方形', '面积是', '求边长'],
+    diagramIncludes: ['"template":"rectangle"', '"label_area":"49 cm²"', '"label_width":"?"', '"label_height":"?"'],
+  },
+  square_perimeter_reverse: {
+    questionIncludes: ['正方形', '周长是', '求边长'],
+    diagramIncludes: ['"template":"rectangle"', '"label_perimeter":"32 cm"', '"label_width":"?"', '"label_height":"?"'],
+  },
+  l_shape_area: {
+    questionIncludes: ['L 形', '面积'],
+    diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label_area":"?"'],
+  },
+  l_shape_perimeter: {
+    questionIncludes: ['L 形', '周长'],
+    diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label_perimeter":"?"'],
+  },
+  trapezoid_area: {
+    questionIncludes: ['梯形', '面积'],
+    diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label_area":"?"'],
+  },
   parallelogram_area: {
     questionIncludes: ['平行四边形', '面积'],
-    diagramIncludes: ['"template":"parallelogram"', '"label_height":"?"'],
+    diagramIncludes: ['"template":"parallelogram"', '"label_area":"?"', '"label_height":"2.5 cm"'],
   },
   parallelogram_perimeter: {
     questionIncludes: ['平行四边形', '周长'],
     diagramIncludes: ['"template":"parallelogram"', '"label_perimeter":"?"'],
   },
   triangle_area: {
-    questionIncludes: ['三角形', '面积'],
+    questionIncludes: ['直角三角形', '面积'],
     diagramIncludes: ['"template":"triangle"', '"label_area":"?"'],
   },
   triangle_perimeter: {
-    questionIncludes: ['三角形', '周长'],
+    questionIncludes: ['直角三角形', '周长'],
     diagramIncludes: ['"template":"triangle"', '"label_perimeter":"?"'],
   },
   circle_area: {
     questionIncludes: ['圆', '面积'],
-    diagramIncludes: ['"template":"circle"', '"label_area":"?"'],
+    diagramIncludes: ['"template":"circle"', '"label_area":"?"', '"label_radius":"5 cm"'],
   },
   circle_circumference: {
     questionIncludes: ['圆', '周长'],
-    diagramIncludes: ['"template":"circle"', '"label_circumference":"?"'],
+    diagramIncludes: ['"template":"circle"', '"label_circumference":"?"', '"label_radius":"6 cm"'],
   },
   circle_area_reverse: {
-    questionIncludes: ['圆', '面积', '半径'],
-    diagramIncludes: ['"template":"circle"', '"label_radius":"?"', '"label_area":"'],
+    questionIncludes: ['圆的面积是', '求半径 OA'],
+    diagramIncludes: ['"template":"circle"', '"label_radius":"?"', '"label_area":"25π cm²"'],
   },
   circle_circumference_reverse: {
-    questionIncludes: ['圆', '周长', '半径'],
-    diagramIncludes: ['"template":"circle"', '"label_radius":"?"', '"label_circumference":"'],
-  },
-};
-
-const AREA_PERIMETER_RENDER_CONTRACTS = {
-  rectangle_area: {
-    questionIncludes: ['长方形的面积', 'area of the rectangle'],
-    diagramIncludes: ['"template":"rectangle"', '"label_width":"8"', '"label_height":"5"'],
-  },
-  rectangle_perimeter: {
-    questionIncludes: ['长方形的周长', 'perimeter of the rectangle'],
-    diagramIncludes: ['"template":"rectangle"', '"label_width":"9"', '"label_height":"4"'],
-  },
-  square_area: {
-    questionIncludes: ['正方形的面积', 'area of the square'],
-    diagramIncludes: ['"template":"rectangle"', '"label_width":"6"', '"label_height":"6"'],
-  },
-  square_perimeter: {
-    questionIncludes: ['正方形的周长', 'perimeter of the square'],
-    diagramIncludes: ['"template":"rectangle"', '"label_width":"7"', '"label_height":"7"'],
-  },
-  rectangle_area_reverse: {
-    questionIncludes: ['面积为', '求 BC 的长度', 'find the missing side'],
-    diagramIncludes: ['"template":"rectangle"', '"label_area":"40 cm²"', '"label_height":"?"'],
-  },
-  rectangle_perimeter_reverse: {
-    questionIncludes: ['周长为', '求 BC 的长度', 'find the missing side'],
-    diagramIncludes: ['"template":"rectangle"', '"label_perimeter":"26 cm"', '"label_height":"?"'],
-  },
-  square_area_reverse: {
-    questionIncludes: ['正方形', '面积为', '求边长'],
-    diagramIncludes: ['"template":"rectangle"', '"label_area":"49 cm²"', '"label_width":"?"', '"label_height":"?"'],
-  },
-  square_perimeter_reverse: {
-    questionIncludes: ['正方形', '周长为', '求边长'],
-    diagramIncludes: ['"template":"rectangle"', '"label_perimeter":"32 cm"', '"label_width":"?"', '"label_height":"?"'],
-  },
-  l_shape_area: {
-    questionIncludes: ['L形图形', '外接长方形', '面积'],
-    diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label":"A"', '"label":"F"'],
-  },
-  l_shape_perimeter: {
-    questionIncludes: ['L形图形', '外接长方形', '周长'],
-    diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label":"A"', '"label":"F"'],
-  },
-  trapezoid_area: {
-    questionIncludes: ['梯形 ABCD', '上底', '下底', '面积'],
-    diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label":"A"', '"label":"D"'],
-  },
-  parallelogram_area: {
-    questionIncludes: ['平行四边形', '底', '高', '面积'],
-    diagramIncludes: ['"template":"parallelogram"', '"label_height":"?"'],
-  },
-  triangle_area: {
-    questionIncludes: ['三角形', '面积'],
-    diagramIncludes: ['"template":"triangle"', '"label_area":"?"'],
-  },
-  triangle_perimeter: {
-    questionIncludes: ['三角形', '周长'],
-    diagramIncludes: ['"template":"triangle"', '"label_perimeter":"?"'],
-  },
-  parallelogram_perimeter: {
-    questionIncludes: ['ๅนณ่กๅ่พนๅฝข', 'ๅ‘จ้•ฟ', 'perimeter of the parallelogram'],
-    diagramIncludes: ['"template":"parallelogram"', '"label_perimeter":"?"'],
-  },
-  circle_area: {
-    questionIncludes: ['圆', '面积'],
-    diagramIncludes: ['"template":"circle"', '"label_area":"?"'],
-  },
-  circle_circumference: {
-    questionIncludes: ['圆', '周长'],
-    diagramIncludes: ['"template":"circle"', '"label_circumference":"?"'],
-  },
-  circle_area_reverse: {
-    questionIncludes: ['ๅ', '้ข็งฏไธบ', 'รัศมี'],
-    diagramIncludes: ['"template":"circle"', '"label_radius":"?"', '"label_area":"'],
-  },
-  circle_circumference_reverse: {
-    questionIncludes: ['ๅ', 'ๅ‘จ้•ฟไธบ', 'รัศมี'],
-    diagramIncludes: ['"template":"circle"', '"label_radius":"?"', '"label_circumference":"'],
-  },
-  circle_area_reverse: {
-    questionIncludes: ['ๅ', '้ข็งฏไธบ', 'รัศมี'],
-    diagramIncludes: ['"template":"circle"', '"label_radius":"?"', '"label_area":"'],
-  },
-  circle_circumference_reverse: {
-    questionIncludes: ['ๅ', 'ๅ‘จ้•ฟไธบ', 'รัศมี'],
-    diagramIncludes: ['"template":"circle"', '"label_radius":"?"', '"label_circumference":"'],
+    questionIncludes: ['圆的周长是', '求半径 OA'],
+    diagramIncludes: ['"template":"circle"', '"label_radius":"?"', '"label_circumference":"12π cm"'],
   },
   circle_annulus_area: {
-    questionIncludes: ['圆环', '外半径', '内半径', '阴影部分'],
+    questionIncludes: ['圆环', '面积'],
     diagramIncludes: ['"template":"circle_annulus"', '"label_area":"?"'],
   },
   sector_area: {
     questionIncludes: ['扇形', '面积'],
     diagramIncludes: ['"template":"circle_sector"', '"label_area":"?"'],
   },
-  parallelogram_area: {
-    questionIncludes: ['平行四边形', '面积'],
-    diagramIncludes: ['"template":"parallelogram"', '"label_height":"?"'],
-  },
-  parallelogram_perimeter: {
-    questionIncludes: ['平行四边形', '周长'],
-    diagramIncludes: ['"template":"parallelogram"', '"label_perimeter":"?"'],
-  },
-  triangle_area: {
-    questionIncludes: ['三角形', '面积'],
-    diagramIncludes: ['"template":"triangle"', '"label_area":"?"'],
-  },
-  triangle_perimeter: {
-    questionIncludes: ['三角形', '周长'],
-    diagramIncludes: ['"template":"triangle"', '"label_perimeter":"?"'],
-  },
-  circle_area: {
-    questionIncludes: ['圆', '面积'],
-    diagramIncludes: ['"template":"circle"', '"label_area":"?"'],
-  },
-  circle_circumference: {
-    questionIncludes: ['圆', '周长'],
-    diagramIncludes: ['"template":"circle"', '"label_circumference":"?"'],
-  },
-  circle_area_reverse: {
-    questionIncludes: ['圆', '面积', '半径'],
-    diagramIncludes: ['"template":"circle"', '"label_radius":"?"', '"label_area":"'],
-  },
-  circle_circumference_reverse: {
-    questionIncludes: ['圆', '周长', '半径'],
-    diagramIncludes: ['"template":"circle"', '"label_radius":"?"', '"label_circumference":"'],
-  },};
+};
+
+const L_SHAPE_POINTS = [
+  { x: 0, y: 0, label: 'A' },
+  { x: 6, y: 0, label: 'B' },
+  { x: 6, y: 2, label: 'C' },
+  { x: 3, y: 2, label: 'D' },
+  { x: 3, y: 5, label: 'E' },
+  { x: 0, y: 5, label: 'F' },
+];
+
+const TRAPEZOID_POINTS = [
+  { x: 0, y: 0, label: 'A' },
+  { x: 8, y: 0, label: 'B' },
+  { x: 6, y: 3, label: 'C' },
+  { x: 2, y: 3, label: 'D' },
+  { x: 2, y: 0, label: 'H' },
+];
+
+const TRIANGLE_POINTS = [
+  { x: 0, y: 6, label: 'A' },
+  { x: 0, y: 0, label: 'B' },
+  { x: 8, y: 0, label: 'C' },
+];
+
+function clonePoints(points) {
+  return points.map((point) => ({ ...point }));
+}
+
+function polygonArea(points) {
+  if (!Array.isArray(points) || points.length < 3) return 0;
+  let sum = 0;
+  for (let i = 0; i < points.length; i += 1) {
+    const current = points[i];
+    const next = points[(i + 1) % points.length];
+    sum += current.x * next.y - next.x * current.y;
+  }
+  return Math.abs(sum) / 2;
+}
+
+function polygonPerimeter(points) {
+  if (!Array.isArray(points) || points.length < 2) return 0;
+  let total = 0;
+  for (let i = 0; i < points.length; i += 1) {
+    const current = points[i];
+    const next = points[(i + 1) % points.length];
+    total += Math.hypot(next.x - current.x, next.y - current.y);
+  }
+  return total;
+}
+
+const L_SHAPE_AREA = polygonArea(L_SHAPE_POINTS);
+const L_SHAPE_PERIMETER = polygonPerimeter(L_SHAPE_POINTS);
+const TRAPEZOID_AREA = polygonArea(TRAPEZOID_POINTS.slice(0, 4));
+const TRIANGLE_AREA = polygonArea(TRIANGLE_POINTS);
+const TRIANGLE_PERIMETER = polygonPerimeter(TRIANGLE_POINTS);
 
 const AREA_PERIMETER_VARIANT_LIBRARY = {
   rectangle_area: {
     kind: 'rectangle_area',
-    shape: 'rectangle',
+    template: 'rectangle',
     width: 8,
     height: 5,
     answer: 40,
   },
   rectangle_perimeter: {
     kind: 'rectangle_perimeter',
-    shape: 'rectangle',
+    template: 'rectangle',
     width: 9,
     height: 4,
     answer: 26,
   },
   square_area: {
     kind: 'square_area',
-    shape: 'square',
+    template: 'rectangle',
     side: 6,
     answer: 36,
   },
   square_perimeter: {
     kind: 'square_perimeter',
-    shape: 'square',
+    template: 'rectangle',
     side: 7,
     answer: 28,
   },
   rectangle_area_reverse: {
     kind: 'rectangle_area_reverse',
-    shape: 'rectangle',
+    template: 'rectangle',
     width: 8,
     height: 5,
     area: 40,
@@ -229,7 +213,7 @@ const AREA_PERIMETER_VARIANT_LIBRARY = {
   },
   rectangle_perimeter_reverse: {
     kind: 'rectangle_perimeter_reverse',
-    shape: 'rectangle',
+    template: 'rectangle',
     width: 9,
     height: 4,
     perimeter: 26,
@@ -237,121 +221,109 @@ const AREA_PERIMETER_VARIANT_LIBRARY = {
   },
   square_area_reverse: {
     kind: 'square_area_reverse',
-    shape: 'square',
+    template: 'rectangle',
     side: 7,
     area: 49,
     answer: 7,
   },
   square_perimeter_reverse: {
     kind: 'square_perimeter_reverse',
-    shape: 'square',
+    template: 'rectangle',
     side: 8,
     perimeter: 32,
     answer: 8,
   },
   l_shape_area: {
     kind: 'l_shape_area',
-    shape: 'coordinate_points',
-    outerWidth: 8,
-    outerHeight: 6,
-    cutWidth: 4,
-    cutHeight: 4,
-    answer: 32,
+    template: 'coordinate_points',
+    points: L_SHAPE_POINTS,
+    outline: L_SHAPE_POINTS,
+    answer: L_SHAPE_AREA,
   },
   l_shape_perimeter: {
     kind: 'l_shape_perimeter',
-    shape: 'coordinate_points',
-    outerWidth: 8,
-    outerHeight: 6,
-    cutWidth: 4,
-    cutHeight: 4,
-    answer: 28,
+    template: 'coordinate_points',
+    points: L_SHAPE_POINTS,
+    outline: L_SHAPE_POINTS,
+    answer: L_SHAPE_PERIMETER,
   },
   trapezoid_area: {
     kind: 'trapezoid_area',
-    shape: 'coordinate_points',
-    topBase: 4,
-    bottomBase: 8,
-    height: 4,
-    answer: 24,
+    template: 'coordinate_points',
+    points: TRAPEZOID_POINTS,
+    outline: TRAPEZOID_POINTS.slice(0, 4),
+    answer: TRAPEZOID_AREA,
   },
   parallelogram_area: {
     kind: 'parallelogram_area',
-    shape: 'parallelogram',
+    template: 'parallelogram',
     base: 8,
-    side: 6,
-    angle: 60,
-    height: 5.2,
-    area: 40,
-    answer: 40,
+    side: 5,
+    angle: 30,
+    height: 2.5,
+    answer: 20,
   },
   parallelogram_perimeter: {
     kind: 'parallelogram_perimeter',
-    shape: 'parallelogram',
+    template: 'parallelogram',
     base: 8,
-    side: 6,
-    angle: 60,
-    answer: 28,
+    side: 5,
+    angle: 30,
+    height: 2.5,
+    answer: 26,
   },
   triangle_area: {
     kind: 'triangle_area',
-    shape: 'triangle',
-    points: [
-      { x: 0, y: 6 },
-      { x: 0, y: 0 },
-      { x: 8, y: 0 },
-    ],
-    rightAngle: 'B',
-    legB: 6,
-    legC: 8,
+    template: 'triangle',
+    points: TRIANGLE_POINTS,
+    outline: TRIANGLE_POINTS,
     sides: [6, 8, 10],
-    area: 24,
-    answer: 24,
+    answer: TRIANGLE_AREA,
   },
   triangle_perimeter: {
     kind: 'triangle_perimeter',
-    shape: 'triangle',
-    sides: [5, 6, 7],
-    answer: 18,
+    template: 'triangle',
+    points: TRIANGLE_POINTS,
+    outline: TRIANGLE_POINTS,
+    sides: [6, 8, 10],
+    answer: TRIANGLE_PERIMETER,
   },
   circle_area: {
     kind: 'circle_area',
-    shape: 'circle',
+    template: 'circle',
     radius: 5,
-    area: 25 * Math.PI,
     answer: 25 * Math.PI,
   },
   circle_circumference: {
     kind: 'circle_circumference',
-    shape: 'circle',
+    template: 'circle',
     radius: 6,
-    circumference: 12 * Math.PI,
     answer: 12 * Math.PI,
   },
   circle_area_reverse: {
     kind: 'circle_area_reverse',
-    shape: 'circle',
+    template: 'circle',
     radius: 5,
     area: 25 * Math.PI,
     answer: 5,
   },
   circle_circumference_reverse: {
     kind: 'circle_circumference_reverse',
-    shape: 'circle',
+    template: 'circle',
     radius: 6,
     circumference: 12 * Math.PI,
     answer: 6,
   },
   circle_annulus_area: {
     kind: 'circle_annulus_area',
-    shape: 'circle_annulus',
+    template: 'circle_annulus',
     outerRadius: 6,
     innerRadius: 3,
     answer: 27 * Math.PI,
   },
   sector_area: {
     kind: 'sector_area',
-    shape: 'circle_sector',
+    template: 'circle_sector',
     radius: 6,
     angle: 120,
     answer: 12 * Math.PI,
@@ -362,20 +334,12 @@ function isFinitePositiveNumber(value) {
   return typeof value === 'number' && Number.isFinite(value) && value > 0;
 }
 
-function isAreaPerimeterConcept(conceptId = '', conceptTitle = '', conceptDesc = '') {
-  const text = `${conceptId} ${conceptTitle} ${conceptDesc}`.toLowerCase();
-  return (
-    text.includes('area-perimeter') ||
-    text.includes('area & perimeter') ||
-    text.includes('area and perimeter') ||
-    text.includes('面积与周长') ||
-    text.includes('面积') ||
-    text.includes('周长')
-  );
-}
-
-function normalizeDifficulty(difficulty = 'Easy') {
-  return difficulty === 'Medium' || difficulty === 'Hard' ? difficulty : 'Easy';
+function normalizeDifficulty(difficulty) {
+  const key = String(difficulty ?? '').toLowerCase();
+  if (key.includes('hard') || key.includes('挑战') || key.includes('困难')) return 'Hard';
+  if (key.includes('medium') || key.includes('中') || key.includes('进阶')) return 'Medium';
+  if (key.includes('easy') || key.includes('基础') || key.includes('简单')) return 'Easy';
+  return 'Easy';
 }
 
 function getDifficultyFamilies(difficulty) {
@@ -405,8 +369,8 @@ function readHistoryMap() {
 }
 
 function makeHistoryKey(conceptTitle, grade, difficulty, curriculum) {
-  const normalizedTitle = String(conceptTitle ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
-  return `${curriculum ?? 'general'}|${grade}|${difficulty}|${normalizedTitle}`;
+  const title = String(conceptTitle ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
+  return `${curriculum ?? 'general'}|${grade}|${difficulty}|${title}`;
 }
 
 function readRecentKinds(historyKey) {
@@ -446,13 +410,12 @@ function randomIndex(max) {
 
 function rotateKinds(pool, count, recentKinds) {
   const uniquePool = Array.from(new Set(pool.filter(Boolean)));
-  if (uniquePool.length === 0) return [];
+  const targetCount = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
+  if (uniquePool.length === 0 || targetCount === 0) return [];
 
   const recent = recentKinds.find((kind) => uniquePool.includes(kind));
   const startIndex = recent ? (uniquePool.indexOf(recent) + 1) % uniquePool.length : randomIndex(uniquePool.length);
   const ordered = [...uniquePool.slice(startIndex), ...uniquePool.slice(0, startIndex)];
-  const targetCount = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
-  if (targetCount === 0) return [];
 
   const selected = [];
   while (selected.length < targetCount) {
@@ -461,12 +424,43 @@ function rotateKinds(pool, count, recentKinds) {
   return selected.slice(0, targetCount);
 }
 
-function formatArea(value) {
-  return `${value} cm²`;
+function formatTrimmedNumber(value) {
+  if (!Number.isFinite(value)) return String(value);
+  const rounded = Math.round(value * 100) / 100;
+  return Number.isInteger(rounded) ? String(rounded) : String(rounded);
 }
 
-function formatPerimeter(value) {
-  return `${value} cm`;
+function formatLength(value, unit = 'cm') {
+  return `${formatTrimmedNumber(value)} ${unit}`;
+}
+
+function formatArea(value) {
+  return `${formatTrimmedNumber(value)} cm²`;
+}
+
+function formatPiMultiple(value, suffix) {
+  const multiple = Math.round((value / Math.PI) * 100) / 100;
+  const base = Number.isInteger(multiple) ? String(multiple) : formatTrimmedNumber(multiple);
+  const prefix = base === '1' ? '' : base;
+  return `${prefix}π${suffix}`;
+}
+
+function normalizePoint(point) {
+  return { x: Number(point.x), y: Number(point.y), label: point.label };
+}
+
+function normalizeOutline(points) {
+  return Array.isArray(points) ? points.map(normalizePoint) : [];
+}
+
+function isAreaPerimeterConcept(conceptId = '', conceptTitle = '', conceptDesc = '') {
+  const text = `${conceptId} ${conceptTitle} ${conceptDesc}`.toLowerCase();
+  return (
+    text.includes('area-perimeter') ||
+    text.includes('area & perimeter') ||
+    text.includes('面积与周长') ||
+    text.includes('面积和周长')
+  );
 }
 
 function buildQuestionText(item, lang) {
@@ -490,275 +484,290 @@ function buildQuestionText(item, lang) {
         : `In square ABCD, the side length is ${item.side} cm. Find the perimeter of the square.`;
     case 'rectangle_area_reverse':
       return zh
-        ? `在长方形 ABCD 中，AB = ${item.width} cm，面积为 ${formatArea(item.area)}。求 BC 的长度。`
-        : `In rectangle ABCD, AB = ${item.width} cm and the area is ${formatArea(item.area)}. Find BC.`;
+        ? `在长方形 ABCD 中，面积是 ${formatArea(item.area)}，且 AB = ${item.width} cm。求 BC 的长度。`
+        : `In rectangle ABCD, the area is ${formatArea(item.area)} and AB = ${item.width} cm. Find BC.`;
     case 'rectangle_perimeter_reverse':
       return zh
-        ? `在长方形 ABCD 中，AB = ${item.width} cm，周长为 ${formatPerimeter(item.perimeter)}。求 BC 的长度。`
-        : `In rectangle ABCD, AB = ${item.width} cm and the perimeter is ${formatPerimeter(item.perimeter)}. Find BC.`;
+        ? `在长方形 ABCD 中，周长是 ${formatLength(item.perimeter)}，且 AB = ${item.width} cm。求 BC 的长度。`
+        : `In rectangle ABCD, the perimeter is ${formatLength(item.perimeter)} and AB = ${item.width} cm. Find BC.`;
     case 'square_area_reverse':
       return zh
-        ? `在正方形 ABCD 中，面积为 ${formatArea(item.area)}。求正方形的边长。`
-        : `In square ABCD, the area is ${formatArea(item.area)}. Find the side length of the square.`;
+        ? `在正方形 ABCD 中，面积是 ${formatArea(item.area)}。求边长。`
+        : `In square ABCD, the area is ${formatArea(item.area)}. Find the side length.`;
     case 'square_perimeter_reverse':
       return zh
-        ? `在正方形 ABCD 中，周长为 ${formatPerimeter(item.perimeter)}。求正方形的边长。`
-        : `In square ABCD, the perimeter is ${formatPerimeter(item.perimeter)}. Find the side length of the square.`;
+        ? `在正方形 ABCD 中，周长是 ${formatLength(item.perimeter)}。求边长。`
+        : `In square ABCD, the perimeter is ${formatLength(item.perimeter)}. Find the side length.`;
     case 'l_shape_area':
       return zh
-        ? `如图，L形图形由一个 ${item.outerWidth} cm × ${item.outerHeight} cm 的外接长方形去掉右上角一个 ${item.cutWidth} cm × ${item.cutHeight} cm 的小长方形得到。求这个L形图形的面积。`
-        : `The L-shape is formed by removing a ${item.cutWidth} cm by ${item.cutHeight} cm corner from a ${item.outerWidth} cm by ${item.outerHeight} cm rectangle. Find its area.`;
+        ? '如图，L 形图形由长方形挖去一个小长方形得到。求阴影部分的面积。'
+        : 'In the figure, an L-shaped region is formed by removing a smaller rectangle from a larger one. Find the shaded area.';
     case 'l_shape_perimeter':
       return zh
-        ? `如图，L形图形的外接长方形长 ${item.outerWidth} cm、宽 ${item.outerHeight} cm，右上角缺口的边长分别是 ${item.cutWidth} cm 和 ${item.cutHeight} cm。求这个L形图形的周长。`
-        : `The L-shape comes from a ${item.outerWidth} cm by ${item.outerHeight} cm rectangle with a ${item.cutWidth} cm by ${item.cutHeight} cm corner removed. Find its perimeter.`;
+        ? '如图，L 形图形由长方形挖去一个小长方形得到。求这个图形的周长。'
+        : 'In the figure, an L-shaped region is formed by removing a smaller rectangle from a larger one. Find the perimeter of the shape.';
     case 'trapezoid_area':
       return zh
-        ? `在梯形 ABCD 中，上底 CD = ${item.topBase} cm，下底 AB = ${item.bottomBase} cm，高为 ${item.height} cm。求梯形的面积。`
-        : `In trapezoid ABCD, the top base CD is ${item.topBase} cm, the bottom base AB is ${item.bottomBase} cm, and the height is ${item.height} cm. Find the area.`;
+        ? `如图，梯形的上底为 ${item.topBase} cm，下底为 ${item.bottomBase} cm，高为 ${item.height} cm。求梯形的面积。`
+        : `In the figure, the trapezoid has top base ${item.topBase} cm, bottom base ${item.bottomBase} cm, and height ${item.height} cm. Find the area.`;
     case 'parallelogram_area':
       return zh
-        ? `在平行四边形 ABCD 中，AB = ${item.base} cm，BC = ${item.side} cm，∠ABC = ${item.angle}°。求平行四边形的面积。`
-        : `In parallelogram ABCD, AB = ${item.base} cm, BC = ${item.side} cm, and ∠ABC = ${item.angle}°. Find the area of the parallelogram.`;
-    case 'triangle_area':
-      return zh
-        ? `在三角形 ABC 中，底边 BC = ${item.legC} cm，高 ${item.legB} cm。求三角形的面积。`
-        : `In triangle ABC, the base BC is ${item.legC} cm and the height is ${item.legB} cm. Find the area of the triangle.`;
-    case 'triangle_perimeter':
-      return zh
-        ? `在三角形 ABC 中，三边分别为 ${item.sides[0]} cm、${item.sides[1]} cm、${item.sides[2]} cm。求三角形的周长。`
-        : `In triangle ABC, the three sides are ${item.sides[0]} cm, ${item.sides[1]} cm, and ${item.sides[2]} cm. Find the perimeter of the triangle.`;
+        ? `如图，平行四边形的底为 ${item.base} cm，高为 ${item.height} cm。求平行四边形的面积。`
+        : `In the figure, the parallelogram has base ${item.base} cm and height ${item.height} cm. Find the area.`;
     case 'parallelogram_perimeter':
       return zh
-        ? `在平行四边形 ABCD 中，AB = ${item.base} cm，BC = ${item.side} cm，∠ABC = ${item.angle}°。求平行四边形的周长。`
-        : `In parallelogram ABCD, AB = ${item.base} cm, BC = ${item.side} cm, and ∠ABC = ${item.angle}°. Find the perimeter.`;
+        ? `如图，平行四边形的底为 ${item.base} cm，边长为 ${item.side} cm。求平行四边形的周长。`
+        : `In the figure, the parallelogram has base ${item.base} cm and side length ${item.side} cm. Find the perimeter.`;
+    case 'triangle_area':
+      return zh
+        ? `在直角三角形 ABC 中，AB = ${item.legA} cm，BC = ${item.legB} cm，AC = ${item.hypotenuse} cm。求三角形的面积。`
+        : `In right triangle ABC, AB = ${item.legA} cm, BC = ${item.legB} cm, and AC = ${item.hypotenuse} cm. Find the area.`;
+    case 'triangle_perimeter':
+      return zh
+        ? `在直角三角形 ABC 中，AB = ${item.legA} cm，BC = ${item.legB} cm，AC = ${item.hypotenuse} cm。求三角形的周长。`
+        : `In right triangle ABC, AB = ${item.legA} cm, BC = ${item.legB} cm, and AC = ${item.hypotenuse} cm. Find the perimeter.`;
     case 'circle_area':
       return zh
         ? `在圆 O 中，半径 OA = ${item.radius} cm。求圆的面积。`
-        : `In circle O, the radius OA is ${item.radius} cm. Find the area of the circle.`;
+        : `In circle O, radius OA = ${item.radius} cm. Find the area of the circle.`;
     case 'circle_circumference':
       return zh
         ? `在圆 O 中，半径 OA = ${item.radius} cm。求圆的周长。`
-        : `In circle O, the radius OA is ${item.radius} cm. Find the circumference of the circle.`;
+        : `In circle O, radius OA = ${item.radius} cm. Find the circumference of the circle.`;
     case 'circle_area_reverse':
       return zh
-        ? `在圆 O 中，圆的面积是 ${formatArea(item.area)}。求半径 OA。`
-        : `In circle O, the area is ${formatArea(item.area)}. Find the radius OA.`;
+        ? `在圆 O 中，圆的面积是 ${formatPiMultiple(item.area, ' cm²')}。求半径 OA。`
+        : `In circle O, the area is ${formatPiMultiple(item.area, ' cm²')}. Find the radius OA.`;
     case 'circle_circumference_reverse':
       return zh
-        ? `在圆 O 中，圆的周长是 ${formatPerimeter(item.circumference)}。求半径 OA。`
-        : `In circle O, the circumference is ${formatPerimeter(item.circumference)}. Find the radius OA.`;
+        ? `在圆 O 中，圆的周长是 ${formatPiMultiple(item.circumference, ' cm')}。求半径 OA。`
+        : `In circle O, the circumference is ${formatPiMultiple(item.circumference, ' cm')}. Find the radius OA.`;
     case 'circle_annulus_area':
       return zh
-        ? `如图，圆环的外半径是 ${item.outerRadius} cm，内半径是 ${item.innerRadius} cm。求阴影部分的面积。`
-        : `In the diagram, the outer radius is ${item.outerRadius} cm and the inner radius is ${item.innerRadius} cm. Find the shaded area.`;
+        ? `如图，圆环的外半径为 ${item.outerRadius} cm，内半径为 ${item.innerRadius} cm。求阴影部分面积。`
+        : `In the figure, the outer radius of the annulus is ${item.outerRadius} cm and the inner radius is ${item.innerRadius} cm. Find the shaded area.`;
     case 'sector_area':
       return zh
-        ? `在扇形 OAB 中，OA = ${item.radius} cm，∠AOB = ${item.angle}°。求扇形的面积。`
-        : `In sector OAB, OA = ${item.radius} cm and ∠AOB = ${item.angle}°. Find the area of the sector.`;
+        ? `如图，扇形的半径为 ${item.radius} cm，圆心角为 ${item.angle}°。求扇形面积。`
+        : `In the figure, the sector has radius ${item.radius} cm and central angle ${item.angle}°. Find the sector area.`;
     default:
       return '';
   }
+}
+
+function buildRectangleSpec(item) {
+  const isSquare = item.kind.startsWith('square');
+  const width = isSquare ? item.side : item.width;
+  const height = isSquare ? item.side : item.height;
+  const spec = {
+    template: 'rectangle',
+    width,
+    height,
+    labels: ['A', 'B', 'C', 'D'],
+    label_width: formatLength(width),
+    label_height: formatLength(height),
+  };
+
+  switch (item.kind) {
+    case 'rectangle_area':
+      return { ...spec, label_area: '?' };
+    case 'rectangle_perimeter':
+      return { ...spec, label_perimeter: '?' };
+    case 'square_area':
+      return { ...spec, label_area: '?' };
+    case 'square_perimeter':
+      return { ...spec, label_perimeter: '?' };
+    case 'rectangle_area_reverse':
+      return { ...spec, label_area: formatArea(item.area), label_height: '?' };
+    case 'rectangle_perimeter_reverse':
+      return { ...spec, label_perimeter: formatLength(item.perimeter), label_height: '?' };
+    case 'square_area_reverse':
+      return { ...spec, width: item.side, height: item.side, label_width: '?', label_height: '?', label_area: formatArea(item.area) };
+    case 'square_perimeter_reverse':
+      return { ...spec, width: item.side, height: item.side, label_width: '?', label_height: '?', label_perimeter: formatLength(item.perimeter) };
+    default:
+      return spec;
+  }
+}
+
+function buildCoordinateSpec(item) {
+  const basePoints = clonePoints(item.points ?? []);
+  const outline = normalizeOutline(item.outline ?? item.points ?? []);
+  const spec = {
+    template: 'coordinate_points',
+    axes: false,
+    points: basePoints,
+    segments: [],
+  };
+
+  if (item.kind === 'l_shape_area' || item.kind === 'l_shape_perimeter') {
+    return {
+      ...spec,
+      segments: [
+        ['A', 'B'],
+        ['B', 'C'],
+        ['C', 'D'],
+        ['D', 'E'],
+        ['E', 'F'],
+        ['F', 'A'],
+      ].map(([from, to]) => ({ from, to, label: edgeLabel(outline, from, to) })),
+      label_area: item.kind === 'l_shape_area' ? '?' : undefined,
+      label_perimeter: item.kind === 'l_shape_perimeter' ? '?' : undefined,
+    };
+  }
+
+  if (item.kind === 'trapezoid_area') {
+    return {
+      ...spec,
+      segments: [
+        { from: 'A', to: 'B', label: formatLength(item.bottomBase) },
+        { from: 'B', to: 'C', label: '' },
+        { from: 'C', to: 'D', label: formatLength(item.topBase) },
+        { from: 'D', to: 'A', label: '' },
+        { from: 'D', to: 'H', dash: true, label: formatLength(item.height) },
+      ],
+      angleMarks: [
+        { vertex: 'H', from: 'D', to: 'B', right: true, r: 9 },
+      ],
+      label_area: '?',
+    };
+  }
+
+  return spec;
+}
+
+function edgeLabel(outline, from, to) {
+  const points = outline.length > 0 ? outline : [];
+  const current = points.find((point) => point.label === from);
+  const next = points.find((point) => point.label === to);
+  if (!current || !next) return '';
+  return formatLength(Math.hypot(next.x - current.x, next.y - current.y));
+}
+
+function buildParallelogramSpec(item) {
+  const base = item.base;
+  const side = item.side;
+  const height = item.height;
+  const spec = {
+    template: 'parallelogram',
+    base,
+    side,
+    angle: item.angle,
+    labels: ['A', 'B', 'C', 'D'],
+    label_base: formatLength(base),
+    label_side: formatLength(side),
+    label_height: formatLength(height),
+  };
+
+  if (item.kind === 'parallelogram_area') {
+    return { ...spec, label_area: '?' };
+  }
+  return { ...spec, label_perimeter: '?' };
+}
+
+function buildTriangleSpec(item) {
+  const baseSpec = {
+    template: 'triangle',
+    points: clonePoints(item.points),
+    right_angle: 'B',
+    labels: {
+      A: 'A',
+      B: 'B',
+      C: 'C',
+      AB: formatLength(item.legA),
+      BC: formatLength(item.legB),
+      CA: formatLength(item.hypotenuse),
+    },
+  };
+
+  return item.kind === 'triangle_area'
+    ? { ...baseSpec, label_area: '?' }
+    : { ...baseSpec, label_perimeter: '?' };
+}
+
+function buildCircleSpec(item) {
+  const baseSpec = {
+    template: 'circle',
+    radius: item.radius,
+    label_O: 'O',
+    label_A: 'A',
+    label_radius: formatLength(item.radius),
+  };
+
+  switch (item.kind) {
+    case 'circle_area':
+      return { ...baseSpec, label_area: '?' };
+    case 'circle_circumference':
+      return { ...baseSpec, label_circumference: '?' };
+    case 'circle_area_reverse':
+      return { ...baseSpec, label_radius: '?', label_area: formatPiMultiple(item.area, ' cm²') };
+    case 'circle_circumference_reverse':
+      return { ...baseSpec, label_radius: '?', label_circumference: formatPiMultiple(item.circumference, ' cm') };
+    default:
+      return baseSpec;
+  }
+}
+
+function buildCircleAnnulusSpec(item) {
+  return {
+    template: 'circle_annulus',
+    outer_radius: item.outerRadius,
+    inner_radius: item.innerRadius,
+    label_O: 'O',
+    label_A: 'A',
+    label_B: 'B',
+    label_outer_radius: formatLength(item.outerRadius),
+    label_inner_radius: formatLength(item.innerRadius),
+    label_area: '?',
+  };
+}
+
+function buildSectorSpec(item) {
+  return {
+    template: 'circle_sector',
+    radius: item.radius,
+    angle: item.angle,
+    label_O: 'O',
+    label_A: 'A',
+    label_B: 'B',
+    label_radius: formatLength(item.radius),
+    label_angle: `${item.angle}°`,
+    label_area: '?',
+  };
 }
 
 function buildDiagramSpec(item) {
   switch (item.kind) {
     case 'rectangle_area':
     case 'rectangle_perimeter':
-      return {
-        template: 'rectangle',
-        width: item.width,
-        height: item.height,
-        labels: ['A', 'B', 'C', 'D'],
-        label_width: String(item.width),
-        label_height: String(item.height),
-      };
     case 'square_area':
     case 'square_perimeter':
-      return {
-        template: 'rectangle',
-        width: item.side,
-        height: item.side,
-        labels: ['A', 'B', 'C', 'D'],
-        label_width: String(item.side),
-        label_height: String(item.side),
-      };
     case 'rectangle_area_reverse':
-      return {
-        template: 'rectangle',
-        width: item.width,
-        height: item.height,
-        labels: ['A', 'B', 'C', 'D'],
-        label_width: String(item.width),
-        label_height: '?',
-        label_area: formatArea(item.area),
-      };
     case 'rectangle_perimeter_reverse':
-      return {
-        template: 'rectangle',
-        width: item.width,
-        height: item.height,
-        labels: ['A', 'B', 'C', 'D'],
-        label_width: String(item.width),
-        label_height: '?',
-        label_perimeter: formatPerimeter(item.perimeter),
-      };
     case 'square_area_reverse':
-      return {
-        template: 'rectangle',
-        width: item.side,
-        height: item.side,
-        labels: ['A', 'B', 'C', 'D'],
-        label_width: '?',
-        label_height: '?',
-        label_area: formatArea(item.area),
-      };
     case 'square_perimeter_reverse':
-      return {
-        template: 'rectangle',
-        width: item.side,
-        height: item.side,
-        labels: ['A', 'B', 'C', 'D'],
-        label_width: '?',
-        label_height: '?',
-        label_perimeter: formatPerimeter(item.perimeter),
-      };
+      return buildRectangleSpec(item);
     case 'l_shape_area':
     case 'l_shape_perimeter':
-      return {
-        template: 'coordinate_points',
-        axes: false,
-        points: [
-          { x: 0, y: 6, label: 'A' },
-          { x: 4, y: 6, label: 'B' },
-          { x: 4, y: 2, label: 'C' },
-          { x: 8, y: 2, label: 'D' },
-          { x: 8, y: 0, label: 'E' },
-          { x: 0, y: 0, label: 'F' },
-        ],
-        segments: [
-          { from: 'A', to: 'B', label: '4 cm' },
-          { from: 'B', to: 'C', label: '4 cm' },
-          { from: 'C', to: 'D', label: '4 cm' },
-          { from: 'D', to: 'E', label: '2 cm' },
-          { from: 'E', to: 'F', label: '8 cm' },
-          { from: 'F', to: 'A', label: '6 cm' },
-        ],
-      };
     case 'trapezoid_area':
-      return {
-        template: 'coordinate_points',
-        axes: false,
-        points: [
-          { x: 0, y: 0, label: 'A' },
-          { x: 8, y: 0, label: 'B' },
-          { x: 6, y: 4, label: 'C' },
-          { x: 2, y: 4, label: 'D' },
-          { x: 2, y: 0, label: 'H' },
-        ],
-        segments: [
-          { from: 'A', to: 'B', label: '8 cm' },
-          { from: 'B', to: 'C' },
-          { from: 'C', to: 'D', label: '4 cm' },
-          { from: 'D', to: 'A' },
-          { from: 'D', to: 'H', label: '4 cm', dash: true },
-        ],
-      };
+      return buildCoordinateSpec(item);
     case 'parallelogram_area':
-      return {
-        template: 'parallelogram',
-        base: item.base,
-        side: item.side,
-        angle: item.angle,
-        labels: ['A', 'B', 'C', 'D'],
-        label_height: '?',
-      };
     case 'parallelogram_perimeter':
-      return {
-        template: 'parallelogram',
-        base: item.base,
-        side: item.side,
-        angle: item.angle,
-        labels: ['A', 'B', 'C', 'D'],
-        label_perimeter: '?',
-      };
+      return buildParallelogramSpec(item);
     case 'triangle_area':
-      return {
-        template: 'triangle',
-        points: item.points,
-        rightAngle: item.rightAngle,
-        legB: item.legB,
-        legC: item.legC,
-        label_area: '?',
-      };
     case 'triangle_perimeter':
-      return {
-        template: 'triangle',
-        sides: item.sides,
-        label_perimeter: '?',
-      };
+      return buildTriangleSpec(item);
     case 'circle_area':
-      return {
-        template: 'circle',
-        radius: item.radius,
-        label_O: 'O',
-        label_A: 'A',
-        label_radius: `${item.radius} cm`,
-        label_area: '?',
-      };
     case 'circle_circumference':
-      return {
-        template: 'circle',
-        radius: item.radius,
-        label_O: 'O',
-        label_A: 'A',
-        label_radius: `${item.radius} cm`,
-        label_circumference: '?',
-      };
     case 'circle_area_reverse':
-      return {
-        template: 'circle',
-        radius: item.radius,
-        label_O: 'O',
-        label_A: 'A',
-        label_radius: '?',
-        label_area: formatArea(item.area),
-      };
     case 'circle_circumference_reverse':
-      return {
-        template: 'circle',
-        radius: item.radius,
-        label_O: 'O',
-        label_A: 'A',
-        label_radius: '?',
-        label_circumference: formatPerimeter(item.circumference),
-      };
+      return buildCircleSpec(item);
     case 'circle_annulus_area':
-      return {
-        template: 'circle_annulus',
-        outer_radius: item.outerRadius,
-        inner_radius: item.innerRadius,
-        label_O: 'O',
-        label_A: 'A',
-        label_B: 'B',
-        label_outer_radius: `${item.outerRadius} cm`,
-        label_inner_radius: `${item.innerRadius} cm`,
-        label_area: '?',
-      };
+      return buildCircleAnnulusSpec(item);
     case 'sector_area':
-      return {
-        template: 'circle_sector',
-        radius: item.radius,
-        angle: item.angle,
-        label_O: 'O',
-        label_A: 'A',
-        label_B: 'B',
-        label_radius: `${item.radius} cm`,
-        label_angle: `${item.angle}°`,
-        label_area: '?',
-      };
+      return buildSectorSpec(item);
     default:
-      return null;
+      return {};
   }
 }
 
@@ -775,157 +784,78 @@ function validateAreaPerimeterExerciseItem(item) {
 
   switch (item.kind) {
     case 'rectangle_area':
+      if (!isFinitePositiveNumber(item.width) || !isFinitePositiveNumber(item.height)) issues.push('rectangle dimensions must be positive');
+      if (issues.length === 0 && item.answer !== item.width * item.height) issues.push('rectangle area answer mismatch');
+      break;
     case 'rectangle_perimeter':
-      if (!isFinitePositiveNumber(item.width)) issues.push('rectangle width must be positive');
-      if (!isFinitePositiveNumber(item.height)) issues.push('rectangle height must be positive');
-      if (item.kind === 'rectangle_area' && item.answer !== item.width * item.height) {
-        issues.push('rectangle area answer mismatch');
-      }
-      if (item.kind === 'rectangle_perimeter' && item.answer !== 2 * (item.width + item.height)) {
-        issues.push('rectangle perimeter answer mismatch');
-      }
+      if (!isFinitePositiveNumber(item.width) || !isFinitePositiveNumber(item.height)) issues.push('rectangle dimensions must be positive');
+      if (issues.length === 0 && item.answer !== 2 * (item.width + item.height)) issues.push('rectangle perimeter answer mismatch');
       break;
     case 'square_area':
+      if (!isFinitePositiveNumber(item.side)) issues.push('square side must be positive');
+      if (issues.length === 0 && item.answer !== item.side * item.side) issues.push('square area answer mismatch');
+      break;
     case 'square_perimeter':
       if (!isFinitePositiveNumber(item.side)) issues.push('square side must be positive');
-      if (item.kind === 'square_area' && item.answer !== item.side * item.side) {
-        issues.push('square area answer mismatch');
-      }
-      if (item.kind === 'square_perimeter' && item.answer !== 4 * item.side) {
-        issues.push('square perimeter answer mismatch');
-      }
+      if (issues.length === 0 && item.answer !== 4 * item.side) issues.push('square perimeter answer mismatch');
       break;
     case 'rectangle_area_reverse':
-      if (!isFinitePositiveNumber(item.width) || !isFinitePositiveNumber(item.height) || !isFinitePositiveNumber(item.area)) {
-        issues.push('rectangle reverse-area item must include width, height, and area');
-      }
-      if (item.answer !== item.height) issues.push('rectangle reverse-area answer mismatch');
+      if (!isFinitePositiveNumber(item.width) || !isFinitePositiveNumber(item.height) || !isFinitePositiveNumber(item.area)) issues.push('rectangle reverse area data is invalid');
+      if (issues.length === 0 && item.answer !== item.height) issues.push('rectangle reverse area answer mismatch');
       break;
     case 'rectangle_perimeter_reverse':
-      if (!isFinitePositiveNumber(item.width) || !isFinitePositiveNumber(item.height) || !isFinitePositiveNumber(item.perimeter)) {
-        issues.push('rectangle reverse-perimeter item must include width, height, and perimeter');
-      }
-      if (item.answer !== item.height) issues.push('rectangle reverse-perimeter answer mismatch');
+      if (!isFinitePositiveNumber(item.width) || !isFinitePositiveNumber(item.height) || !isFinitePositiveNumber(item.perimeter)) issues.push('rectangle reverse perimeter data is invalid');
+      if (issues.length === 0 && item.answer !== item.height) issues.push('rectangle reverse perimeter answer mismatch');
       break;
     case 'square_area_reverse':
-      if (!isFinitePositiveNumber(item.side) || !isFinitePositiveNumber(item.area)) {
-        issues.push('square reverse-area item must include side and area');
-      }
-      if (item.answer !== item.side) issues.push('square reverse-area answer mismatch');
+      if (!isFinitePositiveNumber(item.side) || !isFinitePositiveNumber(item.area)) issues.push('square reverse area data is invalid');
+      if (issues.length === 0 && item.answer !== item.side) issues.push('square reverse area answer mismatch');
       break;
     case 'square_perimeter_reverse':
-      if (!isFinitePositiveNumber(item.side) || !isFinitePositiveNumber(item.perimeter)) {
-        issues.push('square reverse-perimeter item must include side and perimeter');
-      }
-      if (item.answer !== item.side) issues.push('square reverse-perimeter answer mismatch');
+      if (!isFinitePositiveNumber(item.side) || !isFinitePositiveNumber(item.perimeter)) issues.push('square reverse perimeter data is invalid');
+      if (issues.length === 0 && item.answer !== item.side) issues.push('square reverse perimeter answer mismatch');
       break;
     case 'l_shape_area':
+      if (polygonArea(item.outline ?? item.points) !== item.answer) issues.push('L-shape area answer mismatch');
+      break;
     case 'l_shape_perimeter':
-      if (![item.outerWidth, item.outerHeight, item.cutWidth, item.cutHeight].every(isFinitePositiveNumber)) {
-        issues.push('L-shape item must include positive outer and cut dimensions');
-      } else {
-        if (item.cutWidth >= item.outerWidth || item.cutHeight >= item.outerHeight) {
-          issues.push('L-shape cut size must be smaller than outer size');
-        }
-        const area = item.outerWidth * item.outerHeight - item.cutWidth * item.cutHeight;
-        const perimeter = 2 * (item.outerWidth + item.outerHeight);
-        if (item.kind === 'l_shape_area' && item.answer !== area) {
-          issues.push('L-shape area answer mismatch');
-        }
-        if (item.kind === 'l_shape_perimeter' && item.answer !== perimeter) {
-          issues.push('L-shape perimeter answer mismatch');
-        }
-      }
+      if (Math.round(polygonPerimeter(item.outline ?? item.points) * 100) / 100 !== Math.round(item.answer * 100) / 100) issues.push('L-shape perimeter answer mismatch');
       break;
     case 'trapezoid_area':
-      if (![item.topBase, item.bottomBase, item.height].every(isFinitePositiveNumber)) {
-        issues.push('trapezoid item must include positive bases and height');
-      } else {
-        if (item.bottomBase <= item.topBase) issues.push('trapezoid bottom base should be larger than top base');
-        const area = ((item.topBase + item.bottomBase) / 2) * item.height;
-        if (item.answer !== area) issues.push('trapezoid area answer mismatch');
-      }
+      if (polygonArea(item.outline ?? []) !== item.answer) issues.push('trapezoid area answer mismatch');
       break;
     case 'parallelogram_area':
-      if (![item.base, item.side, item.angle].every(isFinitePositiveNumber)) {
-        issues.push('parallelogram area item must include positive base, side, and angle');
-      } else {
-        const area = isFinitePositiveNumber(item.area)
-          ? item.area
-          : item.base * item.side * Math.sin(item.angle * Math.PI / 180);
-        if (item.answer !== area) {
-          issues.push('parallelogram area answer mismatch');
-        }
-      }
+      if (item.answer !== item.base * item.height) issues.push('parallelogram area answer mismatch');
       break;
     case 'parallelogram_perimeter':
-      if (![item.base, item.side, item.angle].every(isFinitePositiveNumber)) {
-        issues.push('parallelogram item must include positive base, side, and angle');
-      } else if (item.answer !== 2 * (item.base + item.side)) {
-        issues.push('parallelogram perimeter answer mismatch');
-      }
+      if (item.answer !== 2 * (item.base + item.side)) issues.push('parallelogram perimeter answer mismatch');
       break;
     case 'triangle_area':
-      if (!isFinitePositiveNumber(item.legB) || !isFinitePositiveNumber(item.legC)) {
-        issues.push('triangle area item must include positive base and height');
-      } else if (item.answer !== (item.legB * item.legC) / 2) {
-        issues.push('triangle area answer mismatch');
-      }
+      if (polygonArea(item.outline ?? item.points) !== item.answer) issues.push('triangle area answer mismatch');
       break;
     case 'triangle_perimeter':
-      if (!Array.isArray(item.sides) || item.sides.length !== 3 || !item.sides.every(isFinitePositiveNumber)) {
-        issues.push('triangle perimeter item must include three positive sides');
-      } else if (item.answer !== item.sides[0] + item.sides[1] + item.sides[2]) {
-        issues.push('triangle perimeter answer mismatch');
-      }
+      if (Math.round(polygonPerimeter(item.outline ?? item.points) * 100) / 100 !== Math.round(item.answer * 100) / 100) issues.push('triangle perimeter answer mismatch');
       break;
     case 'circle_area':
-      if (!isFinitePositiveNumber(item.radius)) {
-        issues.push('circle area item must include a positive radius');
-      } else if (item.answer !== Math.PI * item.radius * item.radius) {
-        issues.push('circle area answer mismatch');
-      }
+      if (item.answer !== Math.PI * item.radius * item.radius) issues.push('circle area answer mismatch');
       break;
     case 'circle_circumference':
-      if (!isFinitePositiveNumber(item.radius)) {
-        issues.push('circle circumference item must include a positive radius');
-      } else if (item.answer !== 2 * Math.PI * item.radius) {
-        issues.push('circle circumference answer mismatch');
-      }
+      if (item.answer !== 2 * Math.PI * item.radius) issues.push('circle circumference answer mismatch');
       break;
     case 'circle_area_reverse':
-      if (!isFinitePositiveNumber(item.radius) || !isFinitePositiveNumber(item.area)) {
-        issues.push('circle reverse-area item must include radius and area');
-      } else if (item.answer !== item.radius) {
-        issues.push('circle reverse-area answer mismatch');
-      }
+      if (item.answer !== item.radius || item.area !== Math.PI * item.radius * item.radius) issues.push('circle reverse area answer mismatch');
       break;
     case 'circle_circumference_reverse':
-      if (!isFinitePositiveNumber(item.radius) || !isFinitePositiveNumber(item.circumference)) {
-        issues.push('circle reverse-circumference item must include radius and circumference');
-      } else if (item.answer !== item.radius) {
-        issues.push('circle reverse-circumference answer mismatch');
-      }
+      if (item.answer !== item.radius || item.circumference !== 2 * Math.PI * item.radius) issues.push('circle reverse circumference answer mismatch');
       break;
     case 'circle_annulus_area':
-      if (!isFinitePositiveNumber(item.outerRadius) || !isFinitePositiveNumber(item.innerRadius)) {
-        issues.push('annulus item must include positive outer and inner radius');
-      } else {
-        if (item.outerRadius <= item.innerRadius) issues.push('annulus outer radius must be larger than inner radius');
-        const area = Math.PI * (item.outerRadius ** 2 - item.innerRadius ** 2);
-        if (item.answer !== area) issues.push('annulus area answer mismatch');
-      }
+      if (item.answer !== Math.PI * (item.outerRadius * item.outerRadius - item.innerRadius * item.innerRadius)) issues.push('annulus area answer mismatch');
       break;
     case 'sector_area':
-      if (!isFinitePositiveNumber(item.radius) || !isFinitePositiveNumber(item.angle)) {
-        issues.push('sector item must include positive radius and angle');
-      } else {
-        const area = (item.angle / 360) * Math.PI * item.radius * item.radius;
-        if (item.answer !== area) issues.push('sector area answer mismatch');
-      }
+      if (item.answer !== (item.angle / 360) * Math.PI * item.radius * item.radius) issues.push('sector area answer mismatch');
       break;
     default:
-      break;
+      issues.push(`unsupported kind: ${String(item.kind)}`);
   }
 
   return issues;
@@ -933,13 +863,13 @@ function validateAreaPerimeterExerciseItem(item) {
 
 function validateRenderedAreaPerimeterExerciseItem(item, rendered) {
   const issues = validateAreaPerimeterExerciseItem(item);
-  const spec = JSON.stringify(buildDiagramSpec(item));
-  if (!rendered.includes(spec)) {
-    issues.push(`rendered diagram block does not match the expected ${item.kind} spec`);
-  }
+  const renderedContract = AREA_PERIMETER_RENDER_CONTRACTS[item.kind];
+  issues.push(...validateRenderContract(rendered, renderedContract, item.kind));
 
-  validateRenderContract(rendered, AREA_PERIMETER_RENDER_CONTRACTS[item.kind], item.kind)
-    .forEach((issue) => issues.push(issue));
+  const expectedSpec = JSON.stringify(buildDiagramSpec(item));
+  if (!rendered.includes(expectedSpec)) {
+    issues.push(`${item.kind} rendered diagram does not match the expected spec`);
+  }
 
   return issues;
 }
@@ -950,57 +880,41 @@ function renderAreaPerimeterExerciseItem(item, index, lang) {
   return `${index + 1}. ${question}\n\n\`\`\`math-diagram\n${diagram}\n\`\`\``;
 }
 
-function buildAreaPerimeterExerciseItems(count, {
-  lang = 'zh',
-  difficulty = 'Easy',
-  grade = '8',
-  curriculum = null,
-  persistHistory = true,
-} = {}) {
+function buildAreaPerimeterExerciseItems(count, { lang = 'zh', difficulty = 'Easy', grade = '8', curriculum = null } = {}) {
   const safeCount = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
-  const normalizedDifficulty = normalizeDifficulty(difficulty);
-  const families = getDifficultyFamilies(normalizedDifficulty);
-  const historyKey = makeHistoryKey('area-perimeter', grade, normalizedDifficulty, curriculum);
-  const pickedKinds = rotateKinds(families, safeCount, readRecentKinds(historyKey));
-  const items = pickedKinds.map((kind) => ({ ...AREA_PERIMETER_VARIANT_LIBRARY[kind], lang, difficulty: normalizedDifficulty, grade, curriculum }));
+  if (safeCount === 0) return [];
 
-  if (persistHistory) {
-    writeRecentKinds(historyKey, pickedKinds);
+  const families = getDifficultyFamilies(difficulty);
+  const historyKey = makeHistoryKey('area-perimeter', grade, normalizeDifficulty(difficulty), curriculum);
+  const selectedKinds = rotateKinds(families, safeCount, readRecentKinds(historyKey));
+  if (selectedKinds.length > 0) {
+    writeRecentKinds(historyKey, selectedKinds);
   }
 
-  return items;
+  return selectedKinds.map((kind) => ({
+    ...AREA_PERIMETER_VARIANT_LIBRARY[kind],
+    lang,
+    difficulty: normalizeDifficulty(difficulty),
+    grade,
+    curriculum,
+  }));
 }
 
 function validateAreaPerimeterExerciseItems(items) {
-  const issues = [];
   if (!Array.isArray(items) || items.length === 0) {
     return ['items must be a non-empty array'];
   }
 
+  const issues = [];
   items.forEach((item, index) => {
     const itemIssues = validateAreaPerimeterExerciseItem(item);
     itemIssues.forEach((issue) => issues.push(`item ${index + 1}: ${issue}`));
   });
-
   return issues;
 }
 
-function buildAreaPerimeterExerciseBatch({
-  count,
-  lang = 'zh',
-  difficulty = 'Easy',
-  grade = '8',
-  curriculum = null,
-  persistHistory = true,
-} = {}) {
-  const items = buildAreaPerimeterExerciseItems(count, {
-    lang,
-    difficulty,
-    grade,
-    curriculum,
-    persistHistory,
-  });
-
+function buildAreaPerimeterExerciseBatch({ count, lang = 'zh', difficulty = 'Easy', grade = '8', curriculum = null } = {}) {
+  const items = buildAreaPerimeterExerciseItems(count, { lang, difficulty, grade, curriculum });
   const issues = validateAreaPerimeterExerciseItems(items);
   if (issues.length > 0) {
     throw new Error(`Invalid area/perimeter exercise batch: ${issues.join('; ')}`);

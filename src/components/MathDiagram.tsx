@@ -1375,6 +1375,20 @@ function CoordinatePoints({ data }: { data: any }) {
         <Dot key={i} p={sc({ x: p.x, y: p.y })} label={p.label}
           offset={(p as any).offset ?? { x: 8, y: -12 }} />
       ))}
+      {cleanDiagramLabelText(data.label_area ?? '') && (
+        <text x={sc({ x: (xMin + xMax) / 2, y: (yMin + yMax) / 2 }).x}
+          y={sc({ x: (xMin + xMax) / 2, y: (yMin + yMax) / 2 }).y - 10}
+          fontSize={12} fontWeight="700" textAnchor="middle" fill={GOLD}>
+          {cleanDiagramLabelText(data.label_area ?? '')}
+        </text>
+      )}
+      {cleanDiagramLabelText(data.label_perimeter ?? '') && (
+        <text x={sc({ x: (xMin + xMax) / 2, y: (yMin + yMax) / 2 }).x}
+          y={sc({ x: (xMin + xMax) / 2, y: (yMin + yMax) / 2 }).y + 10}
+          fontSize={12} fontWeight="700" textAnchor="middle" fill={GOLD}>
+          {cleanDiagramLabelText(data.label_perimeter ?? '')}
+        </text>
+      )}
       {angleMarks.map((mark, i) => {
         const vertexLabel = mark.vertex ?? mark.at;
         const fromLabel = mark.from ?? mark.a;
@@ -1456,6 +1470,7 @@ function Parallelogram({ data }: { data: any }) {
   const lBase = data.label_base ?? String(base);
   const lSide = data.label_side ?? String(side);
   const lH    = data.label_height ?? '';
+  const lArea = cleanDiagramLabelText(data.label_area ?? '');
   const lPerimeter = cleanDiagramLabelText(data.label_perimeter ?? '');
   const height = side * Math.sin(theta);
   const center = sc({ x: (A.x + C.x) / 2, y: (A.y + C.y) / 2 });
@@ -1478,6 +1493,10 @@ function Parallelogram({ data }: { data: any }) {
       <SegLabel a={sc(B)} b={sc(C)} label={lBase} />
       <SegLabel a={sc(A)} b={sc(B)} label={lSide} />
       <AngleMark v={sc(B)} a={sc(A)} b={sc(C)} label={`${angleDeg}°`} r={22} />
+      {lArea && (
+        <text x={center.x} y={center.y - 10} fontSize={12} fontWeight="700"
+          textAnchor="middle" fill={GOLD}>{lArea}</text>
+      )}
       {lPerimeter && (
         <text x={center.x} y={center.y + 4} fontSize={12} fontWeight="700"
           textAnchor="middle" fill={GOLD}>{lPerimeter}</text>

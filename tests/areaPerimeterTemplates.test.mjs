@@ -78,5 +78,8 @@ assert.match(hardRendered, /"axes":false/);
 assert.match(hardRendered, /"label_area":"\?"/);
 assert.match(hardRendered, /"label_perimeter":"\?"/);
 assert.match(hardRendered, /"label_radius":"\?"/);
+assert.match(hardRendered, /25π cm²/);
+assert.match(hardRendered, /12π cm/);
+assert.doesNotMatch(hardRendered, /78\.5398/);
 
 console.log('area-perimeter template test passed');
