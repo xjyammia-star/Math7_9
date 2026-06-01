@@ -107,9 +107,9 @@
     kind: 'rectangle_perimeter_diagonal',
     diagramTemplate: 'rectangle_diagonal',
     values: [
-      { variantId: '36213', width: 5, height: 13, perimeter: 36, diagonal: Math.sqrt(194) },
-      { variantId: '40216', width: 8, height: 12, perimeter: 40, diagonal: Math.sqrt(208) },
-      { variantId: '44218', width: 10, height: 12, perimeter: 44, diagonal: Math.sqrt(244) },
+      { variantId: 'frame36213', scene: 'frame', unit: 'cm', width: 5, height: 13, perimeter: 36, diagonal: Math.sqrt(194) },
+      { variantId: 'rug40216', scene: 'rug', unit: 'cm', width: 8, height: 12, perimeter: 40, diagonal: Math.sqrt(208) },
+      { variantId: 'garden44218', scene: 'garden', unit: 'm', width: 10, height: 12, perimeter: 44, diagonal: Math.sqrt(244) },
     ],
   },
   {
@@ -120,9 +120,11 @@
     kind: 'rectangle_area_diagonal',
     diagramTemplate: 'rectangle_diagonal',
     values: [
-      { variantId: '45213', width: 4, height: 13, area: 52, diagonal: Math.sqrt(185) },
-      { variantId: '78412', width: 7, height: 12, area: 84, diagonal: Math.sqrt(193) },
-      { variantId: '89612', width: 8, height: 12, area: 96, diagonal: Math.sqrt(208) },
+      { variantId: 'park45213', scene: 'park', unit: 'm', width: 4, height: 13, area: 52, diagonal: Math.sqrt(185) },
+      { variantId: 'screen78412', scene: 'screen', unit: 'cm', width: 7, height: 12, area: 84, diagonal: Math.sqrt(193) },
+      { variantId: 'garden89612', scene: 'garden', unit: 'm', width: 8, height: 12, area: 96, diagonal: Math.sqrt(208) },
+      { variantId: 'court6513', scene: 'courtyard', unit: 'm', width: 5, height: 13, area: 65, diagonal: Math.sqrt(194) },
+      { variantId: 'poster4868', scene: 'poster', unit: 'cm', width: 6, height: 8, area: 48, diagonal: Math.sqrt(100) },
     ],
   },
   {
@@ -196,9 +198,9 @@
     kind: 'rectangle_perimeter_diagonal',
     diagramTemplate: 'rectangle_diagonal',
     values: [
-      { variantId: '36213', width: 5, height: 13, perimeter: 36, diagonal: Math.sqrt(194) },
-      { variantId: '40216', width: 8, height: 12, perimeter: 40, diagonal: Math.sqrt(208) },
-      { variantId: '52218', width: 10, height: 16, perimeter: 52, diagonal: Math.sqrt(356) },
+      { variantId: 'frame36213', scene: 'frame', unit: 'cm', width: 5, height: 13, perimeter: 36, diagonal: Math.sqrt(194) },
+      { variantId: 'rug40216', scene: 'rug', unit: 'cm', width: 8, height: 12, perimeter: 40, diagonal: Math.sqrt(208) },
+      { variantId: 'garden52218', scene: 'garden', unit: 'm', width: 10, height: 16, perimeter: 52, diagonal: Math.sqrt(356) },
     ],
   },
   {
@@ -209,9 +211,11 @@
     kind: 'rectangle_area_diagonal',
     diagramTemplate: 'rectangle_diagonal',
     values: [
-      { variantId: '45213', width: 4, height: 13, area: 52, diagonal: Math.sqrt(185) },
-      { variantId: '78412', width: 7, height: 12, area: 84, diagonal: Math.sqrt(193) },
-      { variantId: '89612', width: 8, height: 12, area: 96, diagonal: Math.sqrt(208) },
+      { variantId: 'park45213', scene: 'park', unit: 'm', width: 4, height: 13, area: 52, diagonal: Math.sqrt(185) },
+      { variantId: 'screen78412', scene: 'screen', unit: 'cm', width: 7, height: 12, area: 84, diagonal: Math.sqrt(193) },
+      { variantId: 'garden89612', scene: 'garden', unit: 'm', width: 8, height: 12, area: 96, diagonal: Math.sqrt(208) },
+      { variantId: 'court6513', scene: 'courtyard', unit: 'm', width: 5, height: 13, area: 65, diagonal: Math.sqrt(194) },
+      { variantId: 'poster4868', scene: 'poster', unit: 'cm', width: 6, height: 8, area: 48, diagonal: Math.sqrt(100) },
     ],
   },
   {
@@ -412,9 +416,9 @@
     kind: 'rectangle_perimeter_diagonal',
     diagramTemplate: 'rectangle_diagonal',
     values: [
-      { variantId: '36213', width: 5, height: 13, perimeter: 36, diagonal: Math.sqrt(194) },
-      { variantId: '40216', width: 8, height: 12, perimeter: 40, diagonal: Math.sqrt(208) },
-      { variantId: '52218', width: 10, height: 16, perimeter: 52, diagonal: Math.sqrt(356) },
+      { variantId: 'frame36213', scene: 'frame', unit: 'cm', width: 5, height: 13, perimeter: 36, diagonal: Math.sqrt(194) },
+      { variantId: 'rug40216', scene: 'rug', unit: 'cm', width: 8, height: 12, perimeter: 40, diagonal: Math.sqrt(208) },
+      { variantId: 'garden52218', scene: 'garden', unit: 'm', width: 10, height: 16, perimeter: 52, diagonal: Math.sqrt(356) },
     ],
   },
   {
@@ -425,9 +429,11 @@
     kind: 'rectangle_area_diagonal',
     diagramTemplate: 'rectangle_diagonal',
     values: [
-      { variantId: '45213', width: 4, height: 13, area: 52, diagonal: Math.sqrt(185) },
-      { variantId: '78412', width: 7, height: 12, area: 84, diagonal: Math.sqrt(193) },
-      { variantId: '89612', width: 8, height: 12, area: 96, diagonal: Math.sqrt(208) },
+      { variantId: 'park45213', scene: 'park', unit: 'm', width: 4, height: 13, area: 52, diagonal: Math.sqrt(185) },
+      { variantId: 'screen78412', scene: 'screen', unit: 'cm', width: 7, height: 12, area: 84, diagonal: Math.sqrt(193) },
+      { variantId: 'garden89612', scene: 'garden', unit: 'm', width: 8, height: 12, area: 96, diagonal: Math.sqrt(208) },
+      { variantId: 'court6513', scene: 'courtyard', unit: 'm', width: 5, height: 13, area: 65, diagonal: Math.sqrt(194) },
+      { variantId: 'poster4868', scene: 'poster', unit: 'cm', width: 6, height: 8, area: 48, diagonal: Math.sqrt(100) },
     ],
   },
   {
@@ -594,9 +600,9 @@
     kind: 'rectangle_perimeter_diagonal',
     diagramTemplate: 'rectangle_diagonal',
     values: [
-      { variantId: '36213', width: 5, height: 13, perimeter: 36, diagonal: Math.sqrt(194) },
-      { variantId: '40216', width: 8, height: 12, perimeter: 40, diagonal: Math.sqrt(208) },
-      { variantId: '52218', width: 10, height: 16, perimeter: 52, diagonal: Math.sqrt(356) },
+      { variantId: 'frame36213', scene: 'frame', unit: 'cm', width: 5, height: 13, perimeter: 36, diagonal: Math.sqrt(194) },
+      { variantId: 'rug40216', scene: 'rug', unit: 'cm', width: 8, height: 12, perimeter: 40, diagonal: Math.sqrt(208) },
+      { variantId: 'garden52218', scene: 'garden', unit: 'm', width: 10, height: 16, perimeter: 52, diagonal: Math.sqrt(356) },
     ],
   },
   {
@@ -607,9 +613,11 @@
     kind: 'rectangle_area_diagonal',
     diagramTemplate: 'rectangle_diagonal',
     values: [
-      { variantId: '45213', width: 4, height: 13, area: 52, diagonal: Math.sqrt(185) },
-      { variantId: '78412', width: 7, height: 12, area: 84, diagonal: Math.sqrt(193) },
-      { variantId: '89612', width: 8, height: 12, area: 96, diagonal: Math.sqrt(208) },
+      { variantId: 'park45213', scene: 'park', unit: 'm', width: 4, height: 13, area: 52, diagonal: Math.sqrt(185) },
+      { variantId: 'screen78412', scene: 'screen', unit: 'cm', width: 7, height: 12, area: 84, diagonal: Math.sqrt(193) },
+      { variantId: 'garden89612', scene: 'garden', unit: 'm', width: 8, height: 12, area: 96, diagonal: Math.sqrt(208) },
+      { variantId: 'court6513', scene: 'courtyard', unit: 'm', width: 5, height: 13, area: 65, diagonal: Math.sqrt(194) },
+      { variantId: 'poster4868', scene: 'poster', unit: 'cm', width: 6, height: 8, area: 48, diagonal: Math.sqrt(100) },
     ],
   },
   {
@@ -664,22 +672,27 @@
 const HISTORY_KEY = 'math7-9:pythagoras-variant-history:v4';
 const KIND_HISTORY_KEY = 'math7-9:pythagoras-kind-history:v1';
 const DIFFICULTY_ORDER = { Easy: 0, Medium: 1, Hard: 2 };
-const DIFFICULTY_KIND_PRIORITY = {
-  Easy: ['direct_hypotenuse', 'rectangle_diagonal', 'square_diagonal', 'ladder_height'],
-  Medium: ['direct_leg_ab', 'direct_leg_bc', 'square_side_from_diagonal', 'coordinate_distance', 'ladder_height'],
-  Hard: [
-    'rectangle_area_diagonal',
-    'coordinate_distance_shifted',
-    'direct_hypotenuse_surd',
-    'square_side_from_diagonal',
-    'show_right_triangle',
-    'ladder_foot',
-    'rectangle_perimeter_diagonal',
-    'coordinate_distance',
-    'ladder_height',
-    'direct_leg_bc',
-  ],
+const PYTHAGORAS_DIFFICULTY_BLUEPRINT = {
+  Easy: {
+    families: ['direct_hypotenuse', 'rectangle_diagonal', 'square_diagonal', 'ladder_height'],
+  },
+  Medium: {
+    families: ['direct_leg_ab', 'direct_leg_bc', 'square_side_from_diagonal', 'coordinate_distance'],
+  },
+  Hard: {
+    families: [
+      'rectangle_area_diagonal',
+      'rectangle_perimeter_diagonal',
+      'ladder_foot',
+      'coordinate_distance_shifted',
+      'show_right_triangle',
+      'direct_hypotenuse_surd',
+    ],
+  },
 };
+const DIFFICULTY_KIND_PRIORITY = Object.fromEntries(
+  Object.entries(PYTHAGORAS_DIFFICULTY_BLUEPRINT).map(([difficulty, value]) => [difficulty, value.families])
+);
 const KIND_COMPLEXITY = {
   direct_hypotenuse: 0,
   rectangle_diagonal: 0,
@@ -703,12 +716,7 @@ const COMPLEXITY_WINDOW_BY_GRADE_AND_DIFFICULTY = {
   '9': { Easy: [0, 0], Medium: [1, 2], Hard: [4, 4] },
 };
 const HARD_ADVANCED_KINDS = new Set([
-  'rectangle_area_diagonal',
-  'rectangle_perimeter_diagonal',
-  'ladder_foot',
-  'coordinate_distance_shifted',
-  'direct_hypotenuse_surd',
-  'show_right_triangle',
+  ...PYTHAGORAS_DIFFICULTY_BLUEPRINT.Hard.families,
 ]);
 const GRADE_ORDER = { '6': 6, '7': 7, '8': 8, '9': 9 };
 const DEFAULT_UNIT = 'cm';
@@ -756,6 +764,21 @@ function formatLength(value, unit = DEFAULT_UNIT) {
   return `${value} ${unit}`;
 }
 
+function getRectangleScenePhrase(scene, lang = 'en') {
+  const normalizedScene = toText(scene).toLowerCase();
+  const phrases = {
+    park: { en: 'a rectangular park', zh: '一个长方形公园' },
+    garden: { en: 'a rectangular garden', zh: '一个长方形花园' },
+    courtyard: { en: 'a rectangular courtyard', zh: '一个长方形院子' },
+    screen: { en: 'a rectangular screen', zh: '一个长方形屏幕' },
+    poster: { en: 'a rectangular poster', zh: '一张长方形海报' },
+    frame: { en: 'a rectangular frame', zh: '一个长方形相框' },
+    rug: { en: 'a rectangular rug', zh: '一块长方形地毯' },
+  };
+  const languageKey = lang === 'zh' ? 'zh' : 'en';
+  return phrases[normalizedScene]?.[languageKey] ?? (languageKey === 'zh' ? '一个长方形图形' : 'a rectangle');
+}
+
 function formatSquareDiagonalLength(side, unit = DEFAULT_UNIT) {
   return `${side}√2 ${unit}`;
 }
@@ -795,6 +818,11 @@ function getComplexityWindow(grade, difficulty) {
     return byGrade[normalizedDifficulty];
   }
   return COMPLEXITY_WINDOW_BY_GRADE_AND_DIFFICULTY['7'][normalizedDifficulty] ?? [1, 2];
+}
+
+function getDifficultyBlueprint(difficulty) {
+  const normalizedDifficulty = normalizeDifficulty(difficulty);
+  return PYTHAGORAS_DIFFICULTY_BLUEPRINT[normalizedDifficulty] ?? null;
 }
 
 function scenarioComplexity(kind) {
@@ -911,14 +939,17 @@ function scenarioMatchesContext(scenario, { curriculum, grade, difficulty }) {
   const normalizedGrade = normalizeGrade(grade);
   const normalizedDifficulty = normalizeDifficulty(difficulty);
   const [minComplexity, maxComplexity] = getComplexityWindow(normalizedGrade, normalizedDifficulty);
+  const blueprint = getDifficultyBlueprint(normalizedDifficulty);
 
   const curriculumOk =
     !normalizedCurriculum || scenario.curricula.includes(normalizedCurriculum);
 
   const gradeOk = scenario.grades.includes(normalizedGrade);
-  const difficultyOk = scenario.difficulties.includes(normalizedDifficulty);
+  const difficultyOk = blueprint
+    ? blueprint.families.includes(scenario.kind) && scenario.difficulties.includes(normalizedDifficulty)
+    : scenario.difficulties.includes(normalizedDifficulty);
   const complexity = scenarioComplexity(scenario.kind);
-  const complexityOk = complexity >= minComplexity && complexity <= maxComplexity;
+  const complexityOk = blueprint ? true : (complexity >= minComplexity && complexity <= maxComplexity);
 
   return curriculumOk && gradeOk && difficultyOk && complexityOk;
 }
@@ -1145,23 +1176,27 @@ function buildQuestionText(item, lang, context) {
 
   if (item.kind === 'rectangle_diagonal') {
     if (zh) {
-      return `ๅจ้•ฟๆ–นๅฝขABCDไธญ๏ผAB = ${formatLength(item.width, unit)}๏ผBC = ${formatLength(item.height, unit)}ใ€ๆฑๅฏน่ง’็บฟ AC ็้•ฟๅบฆใ€`;
+      return `\u5728\u957f\u65b9\u5f62 ABCD \u4e2d\uff0cAB = ${formatLength(item.width, unit)}\uff0cBC = ${formatLength(item.height, unit)}\u3002\u6c42\u5bf9\u89d2\u7ebf AC \u7684\u957f\u5ea6\u3002`;
     }
     return `In rectangle ABCD, AB = ${formatLength(item.width, unit)} and BC = ${formatLength(item.height, unit)}. Find the length of diagonal AC.`;
   }
 
   if (item.kind === 'rectangle_perimeter_diagonal') {
     if (zh) {
-      return `ๅจ้•ฟๆ–นๅฝขABCDไธญ๏ผๅฝูๅงๅฃฃๅทฑ ${formatLength(item.perimeter, unit)}๏ผAB = ${formatLength(item.width, unit)}ใ€ๆฑๅฏน่ง’็บฟ AC ็้•ฟๅบฆใ€`;
+      const scenePhrase = getRectangleScenePhrase(item.scene, 'zh');
+      return `${scenePhrase}\u7684 AB = ${formatLength(item.width, unit)}\uff0c\u5468\u957f\u4e3a ${formatLength(item.perimeter, unit)}\u3002\u6c42\u5bf9\u89d2\u7ebf AC \u7684\u957f\u5ea6\u3002`;
     }
-    return `In rectangle ABCD, the perimeter is ${formatLength(item.perimeter, unit)} and AB = ${formatLength(item.width, unit)}. Find the length of diagonal AC.`;
+    const scenePhrase = getRectangleScenePhrase(item.scene, 'en');
+    return `${scenePhrase} has a perimeter of ${formatLength(item.perimeter, unit)} and AB = ${formatLength(item.width, unit)}. Find the length of diagonal AC.`;
   }
 
   if (item.kind === 'rectangle_area_diagonal') {
     if (zh) {
-      return `ๅจ้•ฟๆ–นๅฝขABCDไธญ๏ผAB = ${formatLength(item.width, unit)}๏ผๅผๅ็ฒๅโพ ${item.area} ${unit}²ใ€ๆฑๅฏน่ง’็บฟ AC ็้•ฟๅบฆใ€`;
+      const scenePhrase = getRectangleScenePhrase(item.scene, 'zh');
+      return `${scenePhrase}\u7684 AB = ${formatLength(item.width, unit)}\uff0c\u9762\u79ef\u4e3a ${item.area} ${unit}²\u3002\u6c42\u5bf9\u89d2\u7ebf AC \u7684\u957f\u5ea6\u3002`;
     }
-    return `In rectangle ABCD, AB = ${formatLength(item.width, unit)} and the area is ${item.area} ${unit}². Find the length of diagonal AC.`;
+    const scenePhrase = getRectangleScenePhrase(item.scene, 'en');
+    return `${scenePhrase} has AB = ${formatLength(item.width, unit)} and the area is ${item.area} ${unit}². Find the length of diagonal AC.`;
   }
 
   if (item.kind === 'square_diagonal') {
@@ -1220,9 +1255,9 @@ function buildQuestionText(item, lang, context) {
   if (item.kind === 'coordinate_distance_shifted') {
     const [A, B, C] = item.points ?? [];
     if (zh) {
-      return `ๅจๅนณ้ข็ด่ง’ๅๆ ็ณปไธญ๏ผA(${A?.x}, ${A?.y})๏ผB(${B?.x}, ${B?.y})๏ผC(${C?.x}, ${C?.y})ใ€ๆฑ AC ็้•ฟๅบฆใ€`;
+      return `\u5728\u5e73\u79fb\u540e\u7684\u5e73\u9762\u76f4\u89d2\u5750\u6807\u7cfb\u4e2d\uff0cA(${A?.x}, ${A?.y})\u3001B(${B?.x}, ${B?.y})\u3001C(${C?.x}, ${C?.y})\u3002\u6c42 AC \u7684\u957f\u5ea6\u3002`;
     }
-    return `On a coordinate grid, A(${A?.x}, ${A?.y}), B(${B?.x}, ${B?.y}), and C(${C?.x}, ${C?.y}) are plotted. Find the length of AC.`;
+    return `On a shifted coordinate grid, A(${A?.x}, ${A?.y}), B(${B?.x}, ${B?.y}), and C(${C?.x}, ${C?.y}) are plotted. Find the length of AC.`;
   }
 
   return zh ? '่ฏท่งฃ็ญ”่ฟไธชๅพ่กๅฎ็้ขใ€' : 'Solve this Pythagorean theorem question.';
@@ -1248,23 +1283,11 @@ function buildDiagramSpec(item) {
       length: item.length,
       foot_dist: item.foot,
       label_ladder: formatLength(item.length, item.unit),
-      label_foot: formatLength(item.foot, item.unit),
+      label_foot: item.kind === 'ladder_foot' ? '?' : formatLength(item.foot, item.unit),
       label_wall: formatLength(item.height, item.unit),
       label_top: 'A',
       label_foot_pt: 'B',
       label_corner: 'O',
-    };
-  }
-
-  if (item.diagramTemplate === 'rectangle_diagonal') {
-    return {
-      template: 'rectangle_diagonal',
-      width: item.width,
-      height: item.height,
-      labels: { A: 'A', B: 'B', C: 'C', D: 'D' },
-      label_AB: formatLength(item.width, item.unit),
-      label_BC: formatLength(item.height, item.unit),
-      label_AC: '?',
     };
   }
 
@@ -1281,6 +1304,18 @@ function buildDiagramSpec(item) {
     };
   }
 
+  if (item.diagramTemplate === 'rectangle_diagonal') {
+    return {
+      template: 'rectangle_diagonal',
+      width: item.width,
+      height: item.height,
+      labels: { A: 'A', B: 'B', C: 'C', D: 'D' },
+      label_AB: formatLength(item.width, item.unit),
+      label_BC: formatLength(item.height, item.unit),
+      label_AC: '?',
+    };
+  }
+
   if (item.diagramTemplate === 'square_diagonal') {
     return {
       template: 'square_diagonal',
@@ -1291,20 +1326,6 @@ function buildDiagramSpec(item) {
       label_AB: item.kind === 'square_side_from_diagonal' ? '?' : formatLength(item.side, item.unit),
       label_BC: formatLength(item.side, item.unit),
       label_AC: item.kind === 'square_side_from_diagonal' ? formatSquareDiagonalLength(item.side, item.unit) : '?',
-    };
-  }
-
-  if (item.kind === 'ladder_foot') {
-    return {
-      template: 'ladder',
-      length: item.length,
-      foot_dist: item.foot,
-      label_ladder: formatLength(item.length, item.unit),
-      label_foot: '?',
-      label_wall: formatLength(item.height, item.unit),
-      label_top: 'A',
-      label_foot_pt: 'B',
-      label_corner: 'O',
     };
   }
 
@@ -1330,34 +1351,11 @@ function buildDiagramSpec(item) {
           from: 'A',
           to: 'C',
           label:
-            item.kind === 'coordinate_distance' || item.kind === 'rectangle_diagonal'
+            item.kind === 'coordinate_distance' || item.kind === 'rectangle_diagonal' || item.kind === 'coordinate_distance_shifted'
               ? '?'
               : (acDx !== null && acDy !== null
                   ? formatCoordinateDistanceLabel(acDx, acDy, item.unit)
                   : formatLength(item.ac, item.unit)),
-        },
-      ],
-    };
-  }
-
-  if (item.kind === 'coordinate_distance_shifted') {
-    const points = item.points ?? [];
-    const A = points[0];
-    const B = points[1];
-    const C = points[2];
-    const acDx = Number.isFinite(A?.x) && Number.isFinite(C?.x) ? Math.abs(C.x - A.x) : null;
-    const acDy = Number.isFinite(A?.y) && Number.isFinite(C?.y) ? Math.abs(C.y - A.y) : null;
-    return {
-      template: 'coordinate_points',
-      axes: true,
-      points: points.map((point) => ({ ...point })),
-      segments: [
-        { from: 'A', to: 'B', label: formatLength(item.ab, item.unit) },
-        { from: 'B', to: 'C', label: formatLength(item.bc, item.unit) },
-        {
-          from: 'A',
-          to: 'C',
-          label: acDx !== null && acDy !== null ? formatCoordinateDistanceLabel(acDx, acDy, item.unit) : '?',
         },
       ],
     };
@@ -1558,8 +1556,20 @@ function validateRenderedScenarioItem(item, rendered) {
     issues.push('rectangle diagonal question text is missing diagonal wording');
   }
 
+  if (item.kind === 'rectangle_area_diagonal') {
+    if (!rendered.includes('"label_BC":"?"') || !rendered.includes('"label_AC":"?"') || !rendered.includes('label_area')) {
+      issues.push('rectangle area diagram must hide both side and diagonal while showing the area');
+    }
+  }
+
   if (item.kind === 'rectangle_perimeter_diagonal' && !rendered.includes('perimeter') && !rendered.includes('周长')) {
     issues.push('rectangle perimeter question text is missing perimeter wording');
+  }
+
+  if (item.kind === 'rectangle_perimeter_diagonal') {
+    if (!rendered.includes('"label_BC":"?"') || !rendered.includes('label_perimeter')) {
+      issues.push('rectangle perimeter diagram must hide the missing side while showing the perimeter');
+    }
   }
 
   if (item.kind === 'rectangle_area_diagonal' && !rendered.includes('area') && !rendered.includes('面积')) {
@@ -1576,6 +1586,14 @@ function validateRenderedScenarioItem(item, rendered) {
 
   if (item.kind === 'ladder_foot' && !rendered.includes('How far is the foot of the ladder from the wall') && !rendered.includes('梯脚离墙多远')) {
     issues.push('ladder-foot question text is missing inverse wording');
+  }
+
+  if (item.kind === 'ladder_foot' && !rendered.includes('"label_foot":"?"')) {
+    issues.push('ladder-foot diagram must hide the foot distance');
+  }
+
+  if (item.kind === 'coordinate_distance_shifted' && !rendered.includes('"label_AC":"?"')) {
+    issues.push('shifted coordinate diagram must hide the AC label');
   }
 
   return issues;

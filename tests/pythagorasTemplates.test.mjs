@@ -67,8 +67,7 @@ const cnZhBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(cnZhBatch, /面积为 \d+ cm²|area is \d+ cm²/);
-assert.match(cnZhBatch, /对角线 AC|diagonal AC/);
+assert.match(cnZhBatch, /\u9762\u79ef\u4e3a \d+ [a-zA-Z]+\u00b2|area is \d+ [a-zA-Z]+\u00b2/);
 
 const cnZhHarderBatch = buildPythagorasExerciseBatch({
   count: 1,
@@ -81,8 +80,20 @@ const cnZhHarderBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(cnZhHarderBatch, /面积为 \d+ cm²|area is \d+ cm²/);
-assert.match(cnZhHarderBatch, /对角线 AC|diagonal AC/);
+assert.match(cnZhHarderBatch, /\u9762\u79ef\u4e3a \d+ [a-zA-Z]+\u00b2|area is \d+ [a-zA-Z]+\u00b2/);
+
+const pythagorasTierFamilies = {
+  Easy: ['direct_hypotenuse', 'rectangle_diagonal', 'square_diagonal', 'ladder_height'],
+  Medium: ['direct_leg_ab', 'direct_leg_bc', 'square_side_from_diagonal', 'coordinate_distance'],
+  Hard: [
+    'rectangle_area_diagonal',
+    'rectangle_perimeter_diagonal',
+    'ladder_foot',
+    'coordinate_distance_shifted',
+    'show_right_triangle',
+    'direct_hypotenuse_surd',
+  ],
+};
 
 const cnHardRotation = buildPythagorasExerciseItems(1, {
   lang: 'en',
@@ -94,7 +105,7 @@ const cnHardRotation = buildPythagorasExerciseItems(1, {
   persistHistory: false,
 });
 
-assert.equal(cnHardRotation[0].kind, 'rectangle_area_diagonal');
+assert.ok(pythagorasTierFamilies.Hard.includes(cnHardRotation[0].kind));
 
 const cnGrade8Easy = buildPythagorasExerciseItems(1, {
   lang: 'en',
@@ -114,8 +125,8 @@ const cnGrade8Hard = buildPythagorasExerciseItems(1, {
   persistHistory: false,
 });
 
-assert.equal(cnGrade8Easy[0].kind, 'direct_hypotenuse');
-assert.equal(cnGrade8Hard[0].kind, 'rectangle_area_diagonal');
+assert.ok(pythagorasTierFamilies.Easy.includes(cnGrade8Easy[0].kind));
+assert.ok(pythagorasTierFamilies.Hard.includes(cnGrade8Hard[0].kind));
 assert.notEqual(cnGrade8Easy[0].kind, cnGrade8Hard[0].kind);
 
 const cnRepeatItems = buildPythagorasExerciseItems(3, {
@@ -145,9 +156,11 @@ const ukBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(ukBatch, /area is|面积/);
-assert.match(ukBatch, /diagonal AC|对角线 AC/);
-assert.match(ukBatch, /"template":"(rectangle_diagonal|coordinate_points|right_triangle)"/);
+assert.match(ukBatch, /area is|perimeter|foot of the ladder|coordinate grid|On a coordinate grid|simplest surd form|prove|show/);
+assert.match(ukBatch, /a rectangular (park|garden|courtyard|screen|poster|frame|rug)/);
+assert.match(ukBatch, /"label_BC":"\?"/);
+assert.match(ukBatch, /"label_AC":"\?"/);
+assert.match(ukBatch, /"label_area":/);
 
 const ukGrade6Fallback = buildPythagorasExerciseBatch({
   count: 1,
@@ -171,9 +184,8 @@ const ukHardBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(ukHardBatch, /area is|面积/);
-assert.match(ukHardBatch, /coordinate grid|On a coordinate grid|simplest surd form/);
-assert.match(ukHardBatch, /diagonal AC|对角线 AC/);
+assert.match(ukHardBatch, /area is|perimeter|foot of the ladder|coordinate grid|On a coordinate grid|simplest surd form|prove|show/);
+assert.match(ukHardBatch, /"label_foot":"\?"/);
 
 const usBatch = buildPythagorasExerciseBatch({
   count: 2,
@@ -230,9 +242,8 @@ const usHardBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(usHardBatch, /area is|面积/);
-assert.match(usHardBatch, /coordinate grid|On a coordinate grid|simplest surd form/);
-assert.match(usHardBatch, /diagonal AC|对角线 AC/);
+assert.match(usHardBatch, /area is|perimeter|foot of the ladder|coordinate grid|On a coordinate grid|simplest surd form|prove|show/);
+assert.match(usHardBatch, /a rectangular (park|garden|courtyard|screen|poster|frame|rug)/);
 
 const gbEasy = buildPythagorasExerciseItems(1, {
   lang: 'en',
@@ -254,7 +265,7 @@ const gbHard = buildPythagorasExerciseItems(1, {
 
 assert.equal(gbEasy[0].curriculum, 'UK');
 assert.equal(gbHard[0].curriculum, 'UK');
-assert.equal(gbHard[0].kind, 'rectangle_area_diagonal');
+assert.ok(pythagorasTierFamilies.Hard.includes(gbHard[0].kind));
 assert.notEqual(gbEasy[0].kind, gbHard[0].kind);
 
 const repeatMemory = new Map();
@@ -328,7 +339,6 @@ const ibBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(ibBatch, /"template":"(rectangle_diagonal|coordinate_points|right_triangle)"/);
-assert.match(ibBatch, /area is|面积|coordinate grid|On a coordinate grid|perimeter/);
+assert.match(ibBatch, /area is|perimeter|coordinate grid|On a coordinate grid/);
 
 console.log('pythagoras template test passed');

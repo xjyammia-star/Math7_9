@@ -1255,7 +1255,7 @@ export async function generateExercises(
   conceptId: string = ""
 ) {
   if (isAreaPerimeterConcept(conceptId, conceptTitle, conceptDesc)) {
-    return buildAreaPerimeterExerciseBatch({ count, lang });
+    return buildAreaPerimeterExerciseBatch({ count, lang } as any);
   }
 
   if (isPythagorasConcept(conceptId, conceptTitle, conceptDesc)) {
