@@ -2136,6 +2136,13 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
   const validationError = validateDiagramData(template, parsed);
 
   let content: React.ReactNode;
+  const largerDiagramTemplates = new Set([
+    'rectangle_fold',
+    'cylinder_unrolled',
+    'rectangular_prism_net',
+    'coordinate_points',
+  ]);
+  const svgMaxHeight = largerDiagramTemplates.has(template) ? 560 : 360;
   try {
     if (validationError) {
       content = <SilentDiagramFallback />;
@@ -2175,7 +2182,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
   return (
     <div className="my-6 flex justify-center bg-slate-900/40 p-4 rounded-3xl border border-white/5 backdrop-blur-sm">
       <svg viewBox={`0 0 ${W} ${H}`} className="max-w-full h-auto drop-shadow-2xl"
-        style={{ overflow: 'visible', maxHeight: 320 }}>
+        style={{ overflow: 'visible', maxHeight: svgMaxHeight }}>
         {content}
       </svg>
     </div>
