@@ -1460,6 +1460,17 @@ const COMPLEXITY_WINDOW_BY_GRADE_AND_DIFFICULTY = {
 const HARD_ADVANCED_KINDS = new Set([
   ...PYTHAGORAS_DIFFICULTY_BLUEPRINT.Hard.families,
 ]);
+const HARD_CHALLENGE_KINDS = new Set([
+  'auxiliary_angle_hidden_segment',
+  'auxiliary_angle_hidden_leg',
+  'cylinder_shortest_path',
+  'rectangular_prism_surface_shortest_path',
+  'rectangular_prism_surface_opposite_corners',
+  'rectangular_prism_space_diagonal',
+  'rectangle_fold_reflection_corner',
+  'ladder_foot',
+  'coordinate_distance_shifted',
+]);
 const PYTHAGORAS_RENDER_CONTRACTS = {
   direct_hypotenuse: {
     questionIncludes: ['Find the length of AC', '求 AC', 'AC 的长度'],
@@ -1834,6 +1845,10 @@ function getCandidateScenarios(context) {
 
 function getHardCandidateScenarios(context) {
   const allCandidates = getCandidateScenarios(context);
+  const challenge = allCandidates.filter((scenario) => HARD_CHALLENGE_KINDS.has(scenario.kind));
+  if (challenge.length > 0) {
+    return challenge;
+  }
   const advanced = allCandidates.filter((scenario) => HARD_ADVANCED_KINDS.has(scenario.kind));
   return advanced.length > 0 ? advanced : allCandidates;
 }
@@ -1844,11 +1859,26 @@ function countUniqueKindsInTiers(tiers) {
 
 function getHardCandidateScenarioTiers(context) {
   const contextHardTiers = getCandidateScenarioTiers(context)
-    .map((tier) => tier.filter((scenario) => scenario.difficulties.includes('Hard') && HARD_ADVANCED_KINDS.has(scenario.kind)))
+    .map((tier) => tier.filter((scenario) => scenario.difficulties.includes('Hard') && HARD_CHALLENGE_KINDS.has(scenario.kind)))
     .filter((tier) => tier.length > 0);
 
   if (contextHardTiers.length > 0 && countUniqueKindsInTiers([contextHardTiers[0]]) >= 8) {
     return contextHardTiers;
+  }
+
+  const hardChallengeFallback = uniqueScenariosById(
+    PYTHAGORAS_SCENARIOS.filter(
+      (scenario) => scenario.difficulties.includes('Hard') && HARD_CHALLENGE_KINDS.has(scenario.kind)
+    )
+  );
+  if (hardChallengeFallback.length > 0) {
+    const mergedChallenge = uniqueScenariosById([
+      ...contextHardTiers.flat(),
+      ...hardChallengeFallback,
+    ]);
+    if (mergedChallenge.length > 0) {
+      return [mergedChallenge];
+    }
   }
 
   const hardAdvancedFallback = uniqueScenariosById(

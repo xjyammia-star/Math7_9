@@ -118,6 +118,37 @@ assert.match(cnBatch, /"template":"rectangle_diagonal"/);
 assert.match(cnBatch, /"labels":\{"A":"A","B":"B","C":"C","D":"D"\}/);
 assert.match(cnBatch, /Find the length of AC|diagonal AC/);
 
+const challengeItems = buildPythagorasExerciseItems(8, {
+  lang: 'en',
+  curriculum: 'CN',
+  grade: '8',
+  difficulty: 'Challenge',
+  random: makeSequenceRng([0.05, 0.15, 0.25, 0.35, 0.45]),
+  persistHistory: false,
+});
+
+const challengeKinds = new Set(challengeItems.map((item) => item.kind));
+assert.equal(challengeItems.length, 8);
+assert.ok(challengeKinds.size >= 6);
+assert.ok(!challengeKinds.has('show_right_triangle'));
+assert.ok(!challengeKinds.has('square_diagonal'));
+assert.ok(!challengeKinds.has('direct_hypotenuse'));
+assert.ok(
+  challengeItems.every((item) =>
+    [
+      'auxiliary_angle_hidden_segment',
+      'auxiliary_angle_hidden_leg',
+      'cylinder_shortest_path',
+      'rectangular_prism_surface_shortest_path',
+      'rectangular_prism_surface_opposite_corners',
+      'rectangular_prism_space_diagonal',
+      'rectangle_fold_reflection_corner',
+      'ladder_foot',
+      'coordinate_distance_shifted',
+    ].includes(item.kind)
+  )
+);
+
 const cnZhBatch = buildPythagorasExerciseBatch({
   count: 1,
   lang: 'zh',
@@ -368,7 +399,7 @@ const prismHard = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(prismHard, /rectangular_prism_net|space diagonal|path_start|label":"A"|label":"G"|auxiliary_angle_hidden_segment|auxiliary_angle_hidden_leg|rectangle_perimeter_diagonal|rectangle_area_diagonal|rectangle_diagonal/);
+assert.match(prismHard, /"template":"rectangle_fold"|"template":"rectangular_prism_net"|"template":"coordinate_points"|"template":"cylinder_unrolled"/);
 
 const cnRepeatItems = buildPythagorasExerciseItems(3, {
   lang: 'en',
