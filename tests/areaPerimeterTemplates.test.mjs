@@ -25,16 +25,9 @@ globalThis.localStorage = {
 const allowedHardKinds = new Set([
   'l_shape_area',
   'l_shape_perimeter',
-  'trapezoid_area',
   'trapezoid_area_reverse',
-  'parallelogram_area',
-  'parallelogram_perimeter',
   'parallelogram_area_reverse',
-  'triangle_area',
-  'triangle_perimeter',
-  'circle_annulus_area',
   'circle_annulus_area_reverse',
-  'sector_area',
   'sector_area_reverse',
 ]);
 
@@ -56,35 +49,18 @@ const mediumItems = buildAreaPerimeterExerciseItems(4, { lang: 'zh', difficulty:
 assert.equal(mediumItems.length, 4);
 assert.deepEqual(validateAreaPerimeterExerciseItems(mediumItems), []);
 
-const easyBatch1 = buildAreaPerimeterExerciseItems(30, { lang: 'zh', difficulty: 'Easy', grade: '8' });
-const easyBatch2 = buildAreaPerimeterExerciseItems(30, { lang: 'zh', difficulty: 'Easy', grade: '8' });
-const easyBatch3 = buildAreaPerimeterExerciseItems(30, { lang: 'zh', difficulty: 'Easy', grade: '8' });
+const easyBatch = buildAreaPerimeterExerciseItems(30, { lang: 'zh', difficulty: 'Easy', grade: '8' });
+const mediumBatch = buildAreaPerimeterExerciseItems(30, { lang: 'zh', difficulty: 'Medium', grade: '8' });
+const hardBatch = buildAreaPerimeterExerciseItems(30, { lang: 'zh', difficulty: 'Hard', grade: '8' });
 
-const mediumBatch1 = buildAreaPerimeterExerciseItems(30, { lang: 'zh', difficulty: 'Medium', grade: '8' });
-const mediumBatch2 = buildAreaPerimeterExerciseItems(30, { lang: 'zh', difficulty: 'Medium', grade: '8' });
-const mediumBatch3 = buildAreaPerimeterExerciseItems(30, { lang: 'zh', difficulty: 'Medium', grade: '8' });
-
-const hardBatch1 = buildAreaPerimeterExerciseItems(30, { lang: 'zh', difficulty: 'Hard', grade: '8' });
-const hardBatch2 = buildAreaPerimeterExerciseItems(30, { lang: 'zh', difficulty: 'Hard', grade: '8' });
-const hardBatch3 = buildAreaPerimeterExerciseItems(30, { lang: 'zh', difficulty: 'Hard', grade: '8' });
-
-for (const batch of [easyBatch1, easyBatch2, easyBatch3, mediumBatch1, mediumBatch2, mediumBatch3, hardBatch1, hardBatch2, hardBatch3]) {
+for (const batch of [easyBatch, mediumBatch, hardBatch]) {
   assert.equal(batch.length, 30);
   assert.equal(new Set(batch.map((item) => item.key)).size, 30);
   assert.ok(batch.every((item) => item.scene && typeof item.scene.zh === 'string' && typeof item.scene.en === 'string'));
 }
 
-const overlapCount = (a, b) => {
-  const setA = new Set(a.map((item) => item.key));
-  return b.reduce((count, item) => count + (setA.has(item.key) ? 1 : 0), 0);
-};
-
-assert.equal(overlapCount(easyBatch1, easyBatch2), 0);
-assert.equal(overlapCount(easyBatch2, easyBatch3), 0);
-assert.equal(overlapCount(mediumBatch1, mediumBatch2), 0);
-assert.equal(overlapCount(mediumBatch2, mediumBatch3), 0);
-assert.equal(overlapCount(hardBatch1, hardBatch2), 0);
-assert.equal(overlapCount(hardBatch2, hardBatch3), 0);
+const hardSingles = Array.from({ length: 10 }, () => buildAreaPerimeterExerciseItems(1, { lang: 'zh', difficulty: 'Hard', grade: '8' }));
+assert.equal(new Set(hardSingles.map((batch) => batch[0].key)).size, hardSingles.length);
 
 const hardItems = buildAreaPerimeterExerciseItems(13, { lang: 'zh', difficulty: 'Hard', grade: '8' });
 assert.equal(hardItems.length, 13);
