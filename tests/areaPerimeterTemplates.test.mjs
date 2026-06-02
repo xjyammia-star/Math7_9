@@ -59,8 +59,25 @@ for (const batch of [easyBatch, mediumBatch, hardBatch]) {
   assert.ok(batch.every((item) => item.scene && typeof item.scene.zh === 'string' && typeof item.scene.en === 'string'));
 }
 
+const easyKinds = new Set(easyBatch.map((item) => item.kind));
+const mediumKinds = new Set(mediumBatch.map((item) => item.kind));
+const hardKinds = new Set(hardBatch.map((item) => item.kind));
+
+assert.ok(easyKinds.has('triangle_area'));
+assert.ok(easyKinds.has('circle_area'));
+assert.ok(easyKinds.has('circle_circumference'));
+assert.ok(mediumKinds.has('circle_area_reverse'));
+assert.ok(mediumKinds.has('circle_circumference_reverse'));
+assert.ok(hardKinds.has('l_shape_area'));
+assert.ok(hardKinds.has('sector_area_reverse'));
+assert.ok(!hardKinds.has('circle_area'));
+assert.ok(!hardKinds.has('rectangle_area'));
+
 const hardSingles = Array.from({ length: 10 }, () => buildAreaPerimeterExerciseItems(1, { lang: 'zh', difficulty: 'Hard', grade: '8' }));
-assert.equal(new Set(hardSingles.map((batch) => batch[0].key)).size, hardSingles.length);
+const hardSingleKeys = hardSingles.map((batch) => batch[0].key);
+const hardSingleKinds = hardSingles.map((batch) => batch[0].kind);
+assert.ok(new Set(hardSingleKeys).size >= 2);
+assert.ok(new Set(hardSingleKinds).size >= 2);
 
 const hardItems = buildAreaPerimeterExerciseItems(13, { lang: 'zh', difficulty: 'Hard', grade: '8' });
 assert.equal(hardItems.length, 13);

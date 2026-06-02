@@ -5,7 +5,16 @@ const HISTORY_LIMIT = 180;
 
 const AREA_PERIMETER_BLUEPRINT = {
   Easy: {
-    families: ['rectangle_area', 'rectangle_perimeter', 'square_area', 'square_perimeter'],
+    families: [
+      'rectangle_area',
+      'rectangle_perimeter',
+      'square_area',
+      'square_perimeter',
+      'triangle_area',
+      'triangle_perimeter',
+      'circle_area',
+      'circle_circumference',
+    ],
   },
   Medium: {
     families: [
@@ -16,8 +25,8 @@ const AREA_PERIMETER_BLUEPRINT = {
       'parallelogram_area',
       'parallelogram_perimeter',
       'trapezoid_area',
-      'triangle_area',
-      'triangle_perimeter',
+      'circle_area_reverse',
+      'circle_circumference_reverse',
       'circle_annulus_area',
       'sector_area',
     ],
@@ -512,6 +521,49 @@ function buildAreaPerimeterVariantExtras() {
     };
   });
 
+  Array.from({ length: 11 }, (_, index) => 2 + index).forEach((radius) => {
+    const id = `r${radius}`;
+    const scene = pickScene(AREA_PERIMETER_SCENES.circle, radius - 2);
+    variants[createVariantKey('circle_area', id)] = {
+      key: createVariantKey('circle_area', id),
+      kind: 'circle_area',
+      variantId: id,
+      template: 'circle',
+      radius,
+      answer: radius * radius * Math.PI,
+      scene,
+    };
+    variants[createVariantKey('circle_circumference', id)] = {
+      key: createVariantKey('circle_circumference', id),
+      kind: 'circle_circumference',
+      variantId: id,
+      template: 'circle',
+      radius,
+      answer: 2 * radius * Math.PI,
+      scene,
+    };
+    variants[createVariantKey('circle_area_reverse', id)] = {
+      key: createVariantKey('circle_area_reverse', id),
+      kind: 'circle_area_reverse',
+      variantId: id,
+      template: 'circle',
+      radius,
+      area: radius * radius * Math.PI,
+      answer: radius,
+      scene,
+    };
+    variants[createVariantKey('circle_circumference_reverse', id)] = {
+      key: createVariantKey('circle_circumference_reverse', id),
+      kind: 'circle_circumference_reverse',
+      variantId: id,
+      template: 'circle',
+      radius,
+      circumference: 2 * radius * Math.PI,
+      answer: radius,
+      scene,
+    };
+  });
+
   Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
     const id = `s${factor}`;
     const scene = pickScene(AREA_PERIMETER_SCENES.annulus, factor - 2);
@@ -888,6 +940,46 @@ function rotateKinds(pool, count, recentKeys) {
   while (selected.length < targetCount) {
     selected.push(...ordered);
   }
+  return selected.slice(0, targetCount);
+}
+
+function rotateVariantsByKind(variantPool, count, recentKinds) {
+  const targetCount = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
+  if (!Array.isArray(variantPool) || variantPool.length === 0 || targetCount === 0) return [];
+
+  const kindBuckets = new Map();
+  for (const variant of variantPool) {
+    if (!variant?.kind || !variant?.key) continue;
+    if (!kindBuckets.has(variant.kind)) kindBuckets.set(variant.kind, []);
+    kindBuckets.get(variant.kind).push(variant);
+  }
+
+  const recentSet = new Set((recentKinds ?? []).filter(Boolean));
+  const freshKinds = [];
+  const staleKinds = [];
+  for (const kind of kindBuckets.keys()) {
+    if (recentSet.has(kind)) staleKinds.push(kind);
+    else freshKinds.push(kind);
+  }
+
+  const orderedKinds = [...shuffleKinds(freshKinds), ...shuffleKinds(staleKinds)];
+  const kindIndices = new Map();
+  const selected = [];
+
+  while (selected.length < targetCount) {
+    let progressed = false;
+    for (const kind of orderedKinds) {
+      if (selected.length >= targetCount) break;
+      const bucket = kindBuckets.get(kind) ?? [];
+      const index = kindIndices.get(kind) ?? 0;
+      if (index >= bucket.length) continue;
+      selected.push(bucket[index]);
+      kindIndices.set(kind, index + 1);
+      progressed = true;
+    }
+    if (!progressed) break;
+  }
+
   return selected.slice(0, targetCount);
 }
 
@@ -1628,14 +1720,13 @@ function buildAreaPerimeterExerciseItems(count, { lang = 'zh', difficulty = 'Eas
 
   const historyKey = makeHistoryKey('area-perimeter', grade, normalizeDifficulty(difficulty), curriculum);
   const variantPool = buildVariantPool(difficulty);
-  const selectedVariants = rotateKinds(variantPool.map((variant) => variant.key), safeCount, readRecentKinds(historyKey));
+  const selectedVariants = rotateVariantsByKind(variantPool, safeCount, readRecentKinds(historyKey));
   if (selectedVariants.length > 0) {
-    writeRecentKinds(historyKey, selectedVariants);
+    writeRecentKinds(historyKey, selectedVariants.map((variant) => variant.kind));
   }
 
-  return selectedVariants.map((key) => ({
-    ...AREA_PERIMETER_VARIANT_LIBRARY[key],
-    key,
+  return selectedVariants.map((variant) => ({
+    ...variant,
     lang,
     difficulty: normalizeDifficulty(difficulty),
     grade,
