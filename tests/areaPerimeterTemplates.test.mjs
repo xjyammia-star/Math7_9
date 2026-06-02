@@ -6,6 +6,11 @@ import {
   renderAreaPerimeterExerciseItem,
   validateAreaPerimeterExerciseItems,
 } from '../src/utils/areaPerimeterExerciseTemplates.js';
+import {
+  buildCompositeAreaPerimeterDiagramSpec,
+  buildCompositeAreaPerimeterQuestionText,
+  validateCompositeAreaPerimeterItem,
+} from '../src/utils/areaPerimeterCompositeFamilies.js';
 
 const storage = new Map();
 globalThis.localStorage = {
@@ -133,6 +138,38 @@ const hardCircleRectItem = hardBatch.find((item) => item.kind === 'circle_rectan
 assert.ok(hardCircleRectItem);
 assert.match(renderAreaPerimeterExerciseItem(hardCircleRectItem, 0, 'zh'), /"template":"composite_overlay"/);
 assert.match(renderAreaPerimeterExerciseItem(hardCircleRectItem, 0, 'zh'), /"kind":"circle"/);
+
+const circleCutNonReverseItem = {
+  kind: 'circle_rectangle_cut_perimeter',
+  radius: 10,
+  rectW: 4,
+  rectH: 6,
+  answer: 2 * Math.PI * 10 + 2 * (4 + 6),
+  scene: { zh: '圆形挖空', en: 'circle cut-out' },
+};
+assert.deepEqual(validateCompositeAreaPerimeterItem(circleCutNonReverseItem), []);
+const circleCutNonReverseDiagram = JSON.stringify(buildCompositeAreaPerimeterDiagramSpec(circleCutNonReverseItem));
+assert.match(buildCompositeAreaPerimeterQuestionText(circleCutNonReverseItem, 'zh'), /求剩余图形的周长/);
+assert.doesNotMatch(circleCutNonReverseDiagram, /"text":"\?"/);
+assert.doesNotMatch(circleCutNonReverseDiagram, /290\.1592653589793/);
+
+const circleCutReverseItem = {
+  kind: 'circle_rectangle_cut_area_reverse',
+  radius: 10,
+  rectW: 4,
+  rectH: 6,
+  area: Math.PI * 10 * 10 - 4 * 6,
+  answer: 4,
+  scene: { zh: '圆形挖空', en: 'circle cut-out' },
+};
+assert.deepEqual(validateCompositeAreaPerimeterItem(circleCutReverseItem), []);
+const circleCutReverseQuestion = buildCompositeAreaPerimeterQuestionText(circleCutReverseItem, 'zh');
+const circleCutReverseDiagram = JSON.stringify(buildCompositeAreaPerimeterDiagramSpec(circleCutReverseItem));
+assert.match(circleCutReverseQuestion, /100π - 24 cm²/);
+assert.doesNotMatch(circleCutReverseQuestion, /290\.1592653589793/);
+assert.match(circleCutReverseDiagram, /100π - 24 cm²/);
+assert.doesNotMatch(circleCutReverseDiagram, /290\.1592653589793/);
+assert.doesNotMatch(circleCutReverseDiagram, /"text":"\?"/);
 
 const hardSingles = Array.from({ length: 10 }, () => buildAreaPerimeterExerciseItems(1, { lang: 'zh', difficulty: 'Hard', grade: '8' }));
 const hardSingleKeys = hardSingles.map((batch) => batch[0].key);

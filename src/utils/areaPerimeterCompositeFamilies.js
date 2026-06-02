@@ -8,6 +8,12 @@ function formatArea(value) {
   return Number.isFinite(value) ? `${value} cm²` : '?';
 }
 
+function formatCircleCutAreaExpression(radius, rectW, rectH) {
+  const circleTerm = `${radius * radius}π`;
+  const cutTerm = rectW * rectH;
+  return `${circleTerm} - ${cutTerm} cm²`;
+}
+
 function isFinitePositiveNumber(value) {
   return typeof value === 'number' && Number.isFinite(value) && value > 0;
 }
@@ -232,8 +238,8 @@ export function buildCompositeAreaPerimeterQuestionText(item, lang) {
         : `As shown, a rectangle is cut out of a circle. Find the perimeter of the remaining shape.`;
     case 'circle_rectangle_cut_area_reverse':
       return zh
-        ? `如图，一个圆形中挖去一个长方形空洞，阴影部分面积是 ${formatArea(item.area)}，求长方形的宽。`
-        : `As shown, a rectangle is cut out of a circle. The shaded area is ${formatArea(item.area)}. Find the rectangle's width.`;
+        ? `如图，一个圆形中挖去一个长方形空洞，阴影部分面积是 ${formatCircleCutAreaExpression(item.radius, item.rectW, item.rectH)}，求长方形的宽。`
+        : `As shown, a rectangle is cut out of a circle. The shaded area is ${formatCircleCutAreaExpression(item.radius, item.rectW, item.rectH)}. Find the rectangle's width.`;
     default:
       return '';
   }
@@ -333,7 +339,9 @@ function buildCircleRectangleCutSpec(item) {
       { kind: 'segLabel', a: center, b: { x: radius, y: 0 }, label: formatLength(radius), color: '#f59e0b' },
       { kind: 'segLabel', a: { x: -rectW / 2, y: -rectH / 2 }, b: { x: rectW / 2, y: -rectH / 2 }, label: item.kind.endsWith('reverse') ? '?' : formatLength(rectW), color: '#f59e0b' },
       { kind: 'segLabel', a: { x: rectW / 2, y: -rectH / 2 }, b: { x: rectW / 2, y: rectH / 2 }, label: formatLength(rectH), color: '#f59e0b' },
-      { kind: 'text', x: 0, y: 0, text: item.kind.endsWith('reverse') ? formatArea(item.area) : '?', color: '#f59e0b' },
+      ...(item.kind.endsWith('reverse')
+        ? [{ kind: 'text', x: 0, y: 0, text: formatCircleCutAreaExpression(radius, rectW, rectH), color: '#f59e0b' }]
+        : []),
     ],
   };
 }
@@ -395,12 +403,13 @@ export function buildCompositeAreaPerimeterRenderContract(item) {
     case 'circle_rectangle_cut_perimeter':
       return {
         questionIncludes: ['圆形', '长方形空洞'],
-        diagramIncludes: ['"template":"composite_overlay"', '"kind":"circle"', '"kind":"poly"'],
+        diagramIncludes: ['"template":"composite_overlay"', '"kind":"circle"', '"kind":"poly"', '"kind":"segLabel"'],
+        diagramExcludes: ['"text":"?"'],
       };
     case 'circle_rectangle_cut_area_reverse':
       return {
         questionIncludes: ['圆形', '长方形空洞', '阴影部分面积'],
-        diagramIncludes: ['"template":"composite_overlay"', '"text":"', '"kind":"circle"', '"kind":"poly"'],
+        diagramIncludes: ['"template":"composite_overlay"', '"kind":"circle"', '"kind":"poly"', '"kind":"segLabel"', `"text":"${formatCircleCutAreaExpression(item.radius, item.rectW, item.rectH)}"`],
       };
     default:
       return { questionIncludes: [], diagramIncludes: [] };
