@@ -871,10 +871,17 @@ function CompositeOverlay({ data }: { data: any }) {
         const p = sc({ x: Number(layer.x), y: Number(layer.y) });
         const text = cleanDiagramLabelText(layer.text);
         if (!text) return null;
+        const fill = layer.color ?? GOLD;
+        const fontSize = Number.isFinite(Number(layer.fontSize)) ? Number(layer.fontSize) : 14;
         return (
-          <text key={index} x={p.x} y={p.y} fontSize={12} fontWeight="700"
-            textAnchor={layer.anchor ?? 'middle'} fill="none" stroke="#020617" strokeWidth={3.5}
-            strokeLinejoin="round">{text}</text>
+          <g key={index}>
+            <text x={p.x} y={p.y} fontSize={fontSize} fontWeight="700"
+              textAnchor={layer.anchor ?? 'middle'} dominantBaseline="middle"
+              fill="none" stroke="#020617" strokeWidth={4} strokeLinejoin="round">{text}</text>
+            <text x={p.x} y={p.y} fontSize={fontSize} fontWeight="700"
+              textAnchor={layer.anchor ?? 'middle'} dominantBaseline="middle"
+              fill={fill} style={{ pointerEvents: 'none' }}>{text}</text>
+          </g>
         );
       }
       case 'circle': {
