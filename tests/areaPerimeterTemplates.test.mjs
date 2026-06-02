@@ -3,6 +3,7 @@ import {
   buildAreaPerimeterExerciseBatch,
   buildAreaPerimeterExerciseItems,
   isAreaPerimeterConcept,
+  renderAreaPerimeterExerciseItem,
   validateAreaPerimeterExerciseItems,
 } from '../src/utils/areaPerimeterExerciseTemplates.js';
 
@@ -72,6 +73,11 @@ assert.ok(hardKinds.has('l_shape_area'));
 assert.ok(hardKinds.has('sector_area_reverse'));
 assert.ok(!hardKinds.has('circle_area'));
 assert.ok(!hardKinds.has('rectangle_area'));
+
+const easyCircleItem = easyBatch.find((item) => item.kind === 'circle_area' || item.kind === 'circle_circumference');
+assert.ok(easyCircleItem);
+assert.doesNotMatch(renderAreaPerimeterExerciseItem(easyCircleItem, 0, 'zh'), /\n\{\}\n/);
+assert.match(renderAreaPerimeterExerciseItem(easyCircleItem, 0, 'zh'), /"template":"circle"/);
 
 const hardSingles = Array.from({ length: 10 }, () => buildAreaPerimeterExerciseItems(1, { lang: 'zh', difficulty: 'Hard', grade: '8' }));
 const hardSingleKeys = hardSingles.map((batch) => batch[0].key);

@@ -1578,6 +1578,11 @@ function buildDiagramSpec(item) {
     case 'triangle_area':
     case 'triangle_perimeter':
       return buildTriangleSpec(item);
+    case 'circle_area':
+    case 'circle_circumference':
+    case 'circle_area_reverse':
+    case 'circle_circumference_reverse':
+      return buildCircleSpec(item);
     case 'circle_annulus_area':
     case 'circle_annulus_area_reverse':
       return buildCircleAnnulusSpec(item);
@@ -1767,5 +1772,6 @@ export {
   buildAreaPerimeterExerciseBatch,
   buildAreaPerimeterExerciseItems,
   isAreaPerimeterConcept,
+  renderAreaPerimeterExerciseItem,
   validateAreaPerimeterExerciseItems,
 };
