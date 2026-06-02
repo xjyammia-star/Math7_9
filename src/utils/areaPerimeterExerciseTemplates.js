@@ -40,6 +40,9 @@ const AREA_PERIMETER_BLUEPRINT = {
       't_shape_area_reverse',
       't_shape_perimeter_reverse',
       'adjacent_squares_diagonal_area',
+      'adjacent_squares_diagonal_area_reverse',
+      'adjacent_squares_diagonal_tall_area',
+      'adjacent_squares_diagonal_tall_area_reverse',
       'trapezoid_area_reverse',
       'parallelogram_area_reverse',
       'circle_annulus_area_reverse',
@@ -512,6 +515,54 @@ function buildAreaPerimeterVariantExtras() {
 
   Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
     const id = `s${factor}`;
+    const scene = pickScene(AREA_PERIMETER_SCENES.square, factor - 2);
+    const smallSide = 3 * factor;
+    const largeSide = 6 * factor;
+    const area = 15 * factor * factor;
+    variants[createVariantKey('adjacent_squares_diagonal_area_reverse', id)] = {
+      key: createVariantKey('adjacent_squares_diagonal_area_reverse', id),
+      kind: 'adjacent_squares_diagonal_area_reverse',
+      variantId: id,
+      template: 'adjacent_squares_diagonal',
+      small_side: smallSide,
+      large_side: largeSide,
+      area,
+      answer: smallSide,
+      scene,
+    };
+  });
+
+  Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
+    const id = `r${factor}`;
+    const scene = pickScene(AREA_PERIMETER_SCENES.square, factor - 2);
+    const smallSide = 4 * factor;
+    const largeSide = 12 * factor;
+    const area = 60 * factor * factor;
+    variants[createVariantKey('adjacent_squares_diagonal_tall_area', id)] = {
+      key: createVariantKey('adjacent_squares_diagonal_tall_area', id),
+      kind: 'adjacent_squares_diagonal_tall_area',
+      variantId: id,
+      template: 'adjacent_squares_diagonal',
+      small_side: smallSide,
+      large_side: largeSide,
+      answer: area,
+      scene,
+    };
+    variants[createVariantKey('adjacent_squares_diagonal_tall_area_reverse', id)] = {
+      key: createVariantKey('adjacent_squares_diagonal_tall_area_reverse', id),
+      kind: 'adjacent_squares_diagonal_tall_area_reverse',
+      variantId: id,
+      template: 'adjacent_squares_diagonal',
+      small_side: smallSide,
+      large_side: largeSide,
+      area,
+      answer: smallSide,
+      scene,
+    };
+  });
+
+  Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
+    const id = `s${factor}`;
     const scene = pickScene(AREA_PERIMETER_SCENES.trapezoid, factor - 2);
     const topBase = 4 * factor;
     const bottomBase = 8 * factor;
@@ -856,6 +907,29 @@ const AREA_PERIMETER_VARIANT_LIBRARY = {
     small_side: 6,
     large_side: 12,
     answer: 60,
+  },
+  adjacent_squares_diagonal_area_reverse: {
+    kind: 'adjacent_squares_diagonal_area_reverse',
+    template: 'adjacent_squares_diagonal',
+    small_side: 6,
+    large_side: 12,
+    area: 60,
+    answer: 6,
+  },
+  adjacent_squares_diagonal_tall_area: {
+    kind: 'adjacent_squares_diagonal_tall_area',
+    template: 'adjacent_squares_diagonal',
+    small_side: 4,
+    large_side: 12,
+    answer: 60,
+  },
+  adjacent_squares_diagonal_tall_area_reverse: {
+    kind: 'adjacent_squares_diagonal_tall_area_reverse',
+    template: 'adjacent_squares_diagonal',
+    small_side: 4,
+    large_side: 12,
+    area: 60,
+    answer: 4,
   },
   trapezoid_area: {
     kind: 'trapezoid_area',
@@ -1343,6 +1417,18 @@ function buildQuestionText(item, lang) {
       return zh
         ? `如图，左边正方形边长 ${item.small_side} cm，右边正方形边长 ${item.large_side} cm，斜线从左下角连到右上角。求阴影部分面积。`
         : `As shown, the left square has side ${item.small_side} cm and the right square has side ${item.large_side} cm. A diagonal joins the bottom-left corner to the top-right corner. Find the shaded area.`;
+    case 'adjacent_squares_diagonal_area_reverse':
+      return zh
+        ? `如图，两个正方形从左到右相邻摆放，右边正方形边长是左边的 2 倍。阴影部分面积是 ${formatArea(item.area)}，求左边正方形边长。`
+        : `As shown, two squares sit side by side and the right square has side length twice the left. The shaded area is ${formatArea(item.area)}. Find the left square's side length.`;
+    case 'adjacent_squares_diagonal_tall_area':
+      return zh
+        ? `如图，左边正方形边长 ${item.small_side} cm，右边正方形边长 ${item.large_side} cm（是左边的 3 倍），斜线从左下角连到右上角。求阴影部分面积。`
+        : `As shown, the left square has side ${item.small_side} cm and the right square has side ${item.large_side} cm (three times as long). A diagonal joins the bottom-left corner to the top-right corner. Find the shaded area.`;
+    case 'adjacent_squares_diagonal_tall_area_reverse':
+      return zh
+        ? `如图，两个正方形从左到右相邻摆放，右边正方形边长是左边的 3 倍。阴影部分面积是 ${formatArea(item.area)}，求左边正方形边长。`
+        : `As shown, two squares sit side by side and the right square has side length three times the left. The shaded area is ${formatArea(item.area)}. Find the left square's side length.`;
     case 'trapezoid_area':
       return zh
         ? `如图，梯形的上底为 ${item.topBase} cm，下底为 ${item.bottomBase} cm，高为 ${item.height} cm。求梯形的面积。`
@@ -1490,6 +1576,21 @@ function buildAreaPerimeterRenderContract(item) {
       return {
         questionIncludes: ['左边正方形', '右边正方形', '阴影部分面积'],
         diagramIncludes: ['"template":"adjacent_squares_diagonal"', '"label_small_side"', '"label_large_side"', '"label_area":"?"'],
+      };
+    case 'adjacent_squares_diagonal_area_reverse':
+      return {
+        questionIncludes: ['正方形', '2 倍', '阴影部分面积'],
+        diagramIncludes: ['"template":"adjacent_squares_diagonal"', '"label_small_side":"?"', '"label_large_side":"?"', `"label_area":"${formatArea(item.area)}"`],
+      };
+    case 'adjacent_squares_diagonal_tall_area':
+      return {
+        questionIncludes: ['左边正方形', '右边正方形', '3 倍', '阴影部分面积'],
+        diagramIncludes: ['"template":"adjacent_squares_diagonal"', '"label_small_side"', '"label_large_side"', '"label_area":"?"'],
+      };
+    case 'adjacent_squares_diagonal_tall_area_reverse':
+      return {
+        questionIncludes: ['正方形', '3 倍', '阴影部分面积'],
+        diagramIncludes: ['"template":"adjacent_squares_diagonal"', '"label_small_side":"?"', '"label_large_side":"?"', `"label_area":"${formatArea(item.area)}"`],
       };
     case 'trapezoid_area':
       return {
@@ -1823,6 +1924,33 @@ function buildDiagramSpec(item) {
         label_large_side: formatLength(item.large_side),
         label_area: '?',
       };
+    case 'adjacent_squares_diagonal_area_reverse':
+      return {
+        template: 'adjacent_squares_diagonal',
+        small_side: item.small_side,
+        large_side: item.large_side,
+        label_small_side: '?',
+        label_large_side: '?',
+        label_area: formatArea(item.area),
+      };
+    case 'adjacent_squares_diagonal_tall_area':
+      return {
+        template: 'adjacent_squares_diagonal',
+        small_side: item.small_side,
+        large_side: item.large_side,
+        label_small_side: formatLength(item.small_side),
+        label_large_side: formatLength(item.large_side),
+        label_area: '?',
+      };
+    case 'adjacent_squares_diagonal_tall_area_reverse':
+      return {
+        template: 'adjacent_squares_diagonal',
+        small_side: item.small_side,
+        large_side: item.large_side,
+        label_small_side: '?',
+        label_large_side: '?',
+        label_area: formatArea(item.area),
+      };
     case 'trapezoid_area':
     case 'trapezoid_area_reverse':
       return buildCoordinateSpec(item);
@@ -1916,6 +2044,20 @@ function validateAreaPerimeterExerciseItem(item) {
     case 'adjacent_squares_diagonal_area':
       if (!isFinitePositiveNumber(item.small_side) || !isFinitePositiveNumber(item.large_side) || item.large_side !== item.small_side * 2) issues.push('adjacent squares data is invalid');
       if (issues.length === 0 && !approxEqual(item.answer, (5 / 3) * item.small_side * item.small_side)) issues.push('adjacent squares diagonal area answer mismatch');
+      break;
+    case 'adjacent_squares_diagonal_area_reverse':
+      if (!isFinitePositiveNumber(item.small_side) || !isFinitePositiveNumber(item.large_side) || item.large_side !== item.small_side * 2 || !isFinitePositiveNumber(item.area)) issues.push('adjacent squares reverse data is invalid');
+      if (issues.length === 0 && !approxEqual(item.area, (5 / 3) * item.small_side * item.small_side)) issues.push('adjacent squares diagonal reverse area mismatch');
+      if (issues.length === 0 && !approxEqual(item.answer, item.small_side)) issues.push('adjacent squares diagonal reverse answer mismatch');
+      break;
+    case 'adjacent_squares_diagonal_tall_area':
+      if (!isFinitePositiveNumber(item.small_side) || !isFinitePositiveNumber(item.large_side) || item.large_side !== item.small_side * 3) issues.push('adjacent squares tall data is invalid');
+      if (issues.length === 0 && !approxEqual(item.answer, 15 / 4 * item.small_side * item.small_side)) issues.push('adjacent squares tall area answer mismatch');
+      break;
+    case 'adjacent_squares_diagonal_tall_area_reverse':
+      if (!isFinitePositiveNumber(item.small_side) || !isFinitePositiveNumber(item.large_side) || item.large_side !== item.small_side * 3 || !isFinitePositiveNumber(item.area)) issues.push('adjacent squares tall reverse data is invalid');
+      if (issues.length === 0 && !approxEqual(item.area, 15 / 4 * item.small_side * item.small_side)) issues.push('adjacent squares tall reverse area mismatch');
+      if (issues.length === 0 && !approxEqual(item.answer, item.small_side)) issues.push('adjacent squares tall reverse answer mismatch');
       break;
     case 'trapezoid_area':
       if (polygonArea(item.outline ?? []) !== item.answer) issues.push('trapezoid area answer mismatch');
