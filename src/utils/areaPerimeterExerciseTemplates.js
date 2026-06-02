@@ -51,9 +51,14 @@ const AREA_PERIMETER_BLUEPRINT = {
       'adjacent_squares_diagonal_area_reverse',
       'adjacent_squares_diagonal_tall_area',
       'adjacent_squares_diagonal_tall_area_reverse',
+      'overlap_rectangles_union_area',
+      'overlap_rectangles_union_area_reverse',
       'rectangle_triangle_cut_area',
       'rectangle_triangle_cut_perimeter',
       'rectangle_triangle_cut_area_reverse',
+      'rectangle_frame_area',
+      'rectangle_frame_perimeter',
+      'rectangle_frame_area_reverse',
       'circle_rectangle_cut_area',
       'circle_rectangle_cut_perimeter',
       'circle_rectangle_cut_area_reverse',
@@ -100,11 +105,11 @@ const AREA_PERIMETER_RENDER_CONTRACTS = {
   },
   l_shape_area: {
     questionIncludes: ['L 形', '面积'],
-    diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label_area":"?"'],
+    diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"polygons":[{', '"label_area":"?"'],
   },
   l_shape_perimeter: {
     questionIncludes: ['L 形', '周长'],
-    diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label_perimeter":"?"'],
+    diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"polygons":[{', '"label_perimeter":"?"'],
   },
   trapezoid_area: {
     questionIncludes: ['梯形', '面积'],
@@ -1737,6 +1742,13 @@ function buildCoordinateSpec(item) {
   if (item.kind === 'l_shape_area' || item.kind === 'l_shape_perimeter') {
     return {
       ...spec,
+      polygons: [
+        {
+          pts: outline.map(({ x, y }) => ({ x, y })),
+          fill: 'rgba(245,158,11,0.18)',
+          stroke: 'none',
+        },
+      ],
       segments: [
         ['A', 'B'],
         ['B', 'C'],
@@ -1771,6 +1783,13 @@ function buildCoordinateSpec(item) {
 
     return {
       ...spec,
+      polygons: [
+        {
+          pts: outline.map(({ x, y }) => ({ x, y })),
+          fill: 'rgba(245,158,11,0.18)',
+          stroke: 'none',
+        },
+      ],
       topWidth: item.topWidth,
       topThickness: item.topThickness,
       stemWidth: item.kind === 't_shape_area_reverse' ? '?' : item.stemWidth,
@@ -1788,6 +1807,13 @@ function buildCoordinateSpec(item) {
   if (item.kind === 'trapezoid_area') {
     return {
       ...spec,
+      polygons: [
+        {
+          pts: outline.map(({ x, y }) => ({ x, y })),
+          fill: 'rgba(245,158,11,0.18)',
+          stroke: 'none',
+        },
+      ],
       topBase: item.topBase,
       bottomBase: item.bottomBase,
       height: item.height,
@@ -1808,6 +1834,13 @@ function buildCoordinateSpec(item) {
   if (item.kind === 'trapezoid_area_reverse') {
     return {
       ...spec,
+      polygons: [
+        {
+          pts: outline.map(({ x, y }) => ({ x, y })),
+          fill: 'rgba(245,158,11,0.18)',
+          stroke: 'none',
+        },
+      ],
       topBase: '?',
       bottomBase: item.bottomBase,
       height: item.height,

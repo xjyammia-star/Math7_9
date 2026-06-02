@@ -514,7 +514,13 @@ function validateDiagramData(template: string, data: any): string | null {
       const points = Array.isArray(data.points) ? data.points : [];
       if (points.length === 0) return 'coordinate_points requires at least one point';
       const badPoint = points.some((p: any) => asFiniteNumber(p?.x) === null || asFiniteNumber(p?.y) === null);
-      return badPoint ? 'coordinate_points contains invalid point coordinates' : null;
+      if (badPoint) return 'coordinate_points contains invalid point coordinates';
+      const polygons = Array.isArray(data.polygons) ? data.polygons : [];
+      const badPolygon = polygons.some((polygon: any) => {
+        const pts = Array.isArray(polygon?.pts) ? polygon.pts : [];
+        return pts.length < 3 || pts.some((pt: any) => asFiniteNumber(pt?.x) === null || asFiniteNumber(pt?.y) === null);
+      });
+      return badPolygon ? 'coordinate_points contains invalid polygons' : null;
     }
     case 'similar_triangles': {
       const ratio = asFiniteNumber(data.ratio);
@@ -1475,6 +1481,8 @@ function CoordinatePoints({ data }: { data: any }) {
   const rawPts: { x: number; y: number; label?: string }[] = data.points ?? [];
   const segs: ([string, string] | { from: string; to: string; dash?: boolean; label?: string })[] =
     data.segments ?? data.lines ?? [];
+  const polygons: Array<{ pts: Array<{ x: number; y: number }>; fill?: string; stroke?: string; sw?: number; dash?: string }> =
+    data.polygons ?? [];
   const angleMarks: Array<{
     vertex?: string;
     at?: string;
@@ -1508,6 +1516,16 @@ function CoordinatePoints({ data }: { data: any }) {
   return (
     <g>
       {showAxes && <Axes sc={sc} xMin={xMin} xMax={xMax} yMin={yMin} yMax={yMax} />}
+      {polygons.map((polygon, index) => (
+        <Poly
+          key={`poly-${index}`}
+          pts={(polygon.pts ?? []).map(sc)}
+          fill={polygon.fill}
+          stroke={polygon.stroke}
+          sw={polygon.sw}
+          dash={polygon.dash}
+        />
+      ))}
       {/* Optional circle (e.g. for chord/tangent problems) */}
       {showCircle?.r && (() => {
         const cx = sc({ x: showCircle.cx ?? 0, y: showCircle.cy ?? 0 });
