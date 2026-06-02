@@ -71,6 +71,7 @@ const hardBatch3 = buildAreaPerimeterExerciseItems(30, { lang: 'zh', difficulty:
 for (const batch of [easyBatch1, easyBatch2, easyBatch3, mediumBatch1, mediumBatch2, mediumBatch3, hardBatch1, hardBatch2, hardBatch3]) {
   assert.equal(batch.length, 30);
   assert.equal(new Set(batch.map((item) => item.key)).size, 30);
+  assert.ok(batch.every((item) => item.scene && typeof item.scene.zh === 'string' && typeof item.scene.en === 'string'));
 }
 
 const overlapCount = (a, b) => {
@@ -88,6 +89,7 @@ assert.equal(overlapCount(hardBatch2, hardBatch3), 0);
 const hardItems = buildAreaPerimeterExerciseItems(13, { lang: 'zh', difficulty: 'Hard', grade: '8' });
 assert.equal(hardItems.length, 13);
 assert.ok(hardItems.every((item) => allowedHardKinds.has(item.kind)));
+assert.ok(hardItems.every((item) => item.scene && typeof item.scene.zh === 'string'));
 assert.deepEqual(validateAreaPerimeterExerciseItems(hardItems), []);
 
 const easyRendered = buildAreaPerimeterExerciseBatch({ count: 4, lang: 'zh', difficulty: 'Easy', grade: '8' });

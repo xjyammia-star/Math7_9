@@ -176,6 +176,85 @@ const TRAPEZOID_AREA = polygonArea(TRAPEZOID_POINTS.slice(0, 4));
 const TRIANGLE_AREA = polygonArea(TRIANGLE_POINTS);
 const TRIANGLE_PERIMETER = polygonPerimeter(TRIANGLE_POINTS);
 
+const AREA_PERIMETER_SCENES = {
+  rectangle: [
+    { zh: '花园', en: 'garden' },
+    { zh: '操场', en: 'playground' },
+    { zh: '地毯', en: 'rug' },
+    { zh: '海报', en: 'poster' },
+    { zh: '窗户', en: 'window' },
+    { zh: '菜地', en: 'vegetable patch' },
+    { zh: '泳池', en: 'swimming pool' },
+    { zh: '停车位', en: 'parking space' },
+    { zh: '黑板', en: 'classroom board' },
+  ],
+  square: [
+    { zh: '地砖', en: 'floor tile' },
+    { zh: '草坪', en: 'lawn' },
+    { zh: '棋盘', en: 'chessboard' },
+    { zh: '相框', en: 'photo frame' },
+    { zh: '便签纸', en: 'sticky note' },
+    { zh: '小花园', en: 'small garden' },
+    { zh: '屏幕', en: 'screen' },
+    { zh: '桌垫', en: 'table mat' },
+    { zh: '告示牌', en: 'notice board' },
+  ],
+  lShape: [
+    { zh: '花坛', en: 'flower bed' },
+    { zh: '走廊', en: 'corridor' },
+    { zh: '露台', en: 'terrace' },
+    { zh: '平台', en: 'platform' },
+    { zh: '展台', en: 'display stand' },
+  ],
+  trapezoid: [
+    { zh: '花坛', en: 'flower bed' },
+    { zh: '看台', en: 'bleachers' },
+    { zh: '屋顶', en: 'roof' },
+    { zh: '遮阳棚', en: 'canopy' },
+    { zh: '景观区', en: 'landscape area' },
+  ],
+  parallelogram: [
+    { zh: '广告牌', en: 'billboard' },
+    { zh: '风筝', en: 'kite' },
+    { zh: '地砖铺设区', en: 'tiled area' },
+    { zh: '帆布', en: 'canvas awning' },
+    { zh: '窗帘', en: 'curtain' },
+  ],
+  triangle: [
+    { zh: '支架', en: 'support frame' },
+    { zh: '坡道', en: 'ramp' },
+    { zh: '屋顶侧面', en: 'roof side' },
+    { zh: '帐篷侧面', en: 'tent side' },
+    { zh: '路标', en: 'signboard' },
+  ],
+  circle: [
+    { zh: '花坛', en: 'flower bed' },
+    { zh: '喷泉', en: 'fountain' },
+    { zh: '广场', en: 'plaza' },
+    { zh: '泳池', en: 'pool' },
+    { zh: '车轮', en: 'wheel' },
+  ],
+  annulus: [
+    { zh: '跑道', en: 'track' },
+    { zh: '环形花坛', en: 'ring-shaped garden' },
+    { zh: '靶环', en: 'target ring' },
+    { zh: '环形步道', en: 'ring walkway' },
+    { zh: '喷泉边', en: 'fountain border' },
+  ],
+  sector: [
+    { zh: '花坛', en: 'flower bed' },
+    { zh: '喷泉', en: 'fountain' },
+    { zh: '披萨片', en: 'pizza slice' },
+    { zh: '草坪', en: 'lawn' },
+    { zh: '扇形舞台', en: 'fan-shaped stage' },
+  ],
+};
+
+function pickScene(sceneList, index) {
+  if (!Array.isArray(sceneList) || sceneList.length === 0) return null;
+  return sceneList[index % sceneList.length];
+}
+
 function scalePoints(points, factor) {
   return points.map((point) => ({
     x: point.x * factor,
@@ -219,40 +298,42 @@ function buildAreaPerimeterVariantExtras() {
     const width = 4 + index;
     return [width, width + 1];
   });
-  rectanglePairs.forEach(([width, height]) => {
+  rectanglePairs.forEach(([width, height], index) => {
     const id = `${width}x${height}`;
+    const scene = pickScene(AREA_PERIMETER_SCENES.rectangle, index);
     variants[createVariantKey('rectangle_area', id)] = createRectangleVariant(
       'rectangle_area',
       id,
       width,
       height,
-      { answer: width * height }
+      { answer: width * height, scene }
     );
     variants[createVariantKey('rectangle_perimeter', id)] = createRectangleVariant(
       'rectangle_perimeter',
       id,
       width,
       height,
-      { answer: 2 * (width + height) }
+      { answer: 2 * (width + height), scene }
     );
     variants[createVariantKey('rectangle_area_reverse', id)] = createRectangleVariant(
       'rectangle_area_reverse',
       id,
       width,
       height,
-      { area: width * height, answer: height }
+      { area: width * height, answer: height, scene }
     );
     variants[createVariantKey('rectangle_perimeter_reverse', id)] = createRectangleVariant(
       'rectangle_perimeter_reverse',
       id,
       width,
       height,
-      { perimeter: 2 * (width + height), answer: height }
+      { perimeter: 2 * (width + height), answer: height, scene }
     );
   });
 
-  Array.from({ length: 27 }, (_, index) => 4 + index).forEach((side) => {
+  Array.from({ length: 27 }, (_, index) => 4 + index).forEach((side, index) => {
     const id = `${side}`;
+    const scene = pickScene(AREA_PERIMETER_SCENES.square, index);
     variants[createVariantKey('square_area', id)] = {
       key: createVariantKey('square_area', id),
       kind: 'square_area',
@@ -260,6 +341,7 @@ function buildAreaPerimeterVariantExtras() {
       template: 'rectangle',
       side,
       answer: side * side,
+      scene,
     };
     variants[createVariantKey('square_perimeter', id)] = {
       key: createVariantKey('square_perimeter', id),
@@ -268,6 +350,7 @@ function buildAreaPerimeterVariantExtras() {
       template: 'rectangle',
       side,
       answer: 4 * side,
+      scene,
     };
     variants[createVariantKey('square_area_reverse', id)] = {
       key: createVariantKey('square_area_reverse', id),
@@ -277,6 +360,7 @@ function buildAreaPerimeterVariantExtras() {
       side,
       area: side * side,
       answer: side,
+      scene,
     };
     variants[createVariantKey('square_perimeter_reverse', id)] = {
       key: createVariantKey('square_perimeter_reverse', id),
@@ -286,29 +370,32 @@ function buildAreaPerimeterVariantExtras() {
       side,
       perimeter: 4 * side,
       answer: side,
+      scene,
     };
   });
 
   Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
     const id = `s${factor}`;
+    const scene = pickScene(AREA_PERIMETER_SCENES.lShape, factor - 2);
     variants[createVariantKey('l_shape_area', id)] = createScaledShapeVariant(
       'l_shape_area',
       id,
       L_SHAPE_POINTS,
       factor,
-      { answer: L_SHAPE_AREA * factor * factor }
+      { answer: L_SHAPE_AREA * factor * factor, scene }
     );
     variants[createVariantKey('l_shape_perimeter', id)] = createScaledShapeVariant(
       'l_shape_perimeter',
       id,
       L_SHAPE_POINTS,
       factor,
-      { answer: L_SHAPE_PERIMETER * factor }
+      { answer: L_SHAPE_PERIMETER * factor, scene }
     );
   });
 
   Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
     const id = `s${factor}`;
+    const scene = pickScene(AREA_PERIMETER_SCENES.trapezoid, factor - 2);
     const topBase = 4 * factor;
     const bottomBase = 8 * factor;
     const height = 3 * factor;
@@ -324,6 +411,7 @@ function buildAreaPerimeterVariantExtras() {
       bottomBase,
       height,
       answer: area,
+      scene,
     };
     variants[createVariantKey('trapezoid_area_reverse', id)] = {
       key: createVariantKey('trapezoid_area_reverse', id),
@@ -337,11 +425,13 @@ function buildAreaPerimeterVariantExtras() {
       height,
       area,
       answer: topBase,
+      scene,
     };
   });
 
   Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
     const id = `s${factor}`;
+    const scene = pickScene(AREA_PERIMETER_SCENES.parallelogram, factor - 2);
     const base = 8 * factor;
     const side = 5 * factor;
     const height = 2.5 * factor;
@@ -356,6 +446,7 @@ function buildAreaPerimeterVariantExtras() {
       angle: 30,
       height,
       answer: area,
+      scene,
     };
     variants[createVariantKey('parallelogram_perimeter', id)] = {
       key: createVariantKey('parallelogram_perimeter', id),
@@ -367,6 +458,7 @@ function buildAreaPerimeterVariantExtras() {
       angle: 30,
       height,
       answer: 2 * (base + side),
+      scene,
     };
     variants[createVariantKey('parallelogram_area_reverse', id)] = {
       key: createVariantKey('parallelogram_area_reverse', id),
@@ -379,11 +471,13 @@ function buildAreaPerimeterVariantExtras() {
       height,
       area,
       answer: height,
+      scene,
     };
   });
 
   Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
     const id = `s${factor}`;
+    const scene = pickScene(AREA_PERIMETER_SCENES.triangle, factor - 2);
     const legA = 6 * factor;
     const legB = 8 * factor;
     const hypotenuse = 10 * factor;
@@ -401,6 +495,7 @@ function buildAreaPerimeterVariantExtras() {
       legB,
       hypotenuse,
       answer: area,
+      scene,
     };
     variants[createVariantKey('triangle_perimeter', id)] = {
       key: createVariantKey('triangle_perimeter', id),
@@ -413,11 +508,13 @@ function buildAreaPerimeterVariantExtras() {
       legB,
       hypotenuse,
       answer: perimeter,
+      scene,
     };
   });
 
   Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
     const id = `s${factor}`;
+    const scene = pickScene(AREA_PERIMETER_SCENES.annulus, factor - 2);
     const outerRadius = 6 * factor;
     const innerRadius = 3 * factor;
     const area = 27 * Math.PI * factor * factor;
@@ -429,6 +526,7 @@ function buildAreaPerimeterVariantExtras() {
       outerRadius,
       innerRadius,
       answer: area,
+      scene,
     };
     variants[createVariantKey('circle_annulus_area_reverse', id)] = {
       key: createVariantKey('circle_annulus_area_reverse', id),
@@ -439,11 +537,13 @@ function buildAreaPerimeterVariantExtras() {
       innerRadius,
       area,
       answer: innerRadius,
+      scene,
     };
   });
 
   Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
     const id = `s${factor}`;
+    const scene = pickScene(AREA_PERIMETER_SCENES.sector, factor - 2);
     const radius = 6 * factor;
     const angle = 120;
     const area = 12 * Math.PI * factor * factor;
@@ -455,6 +555,7 @@ function buildAreaPerimeterVariantExtras() {
       radius,
       angle,
       answer: area,
+      scene,
     };
     variants[createVariantKey('sector_area_reverse', id)] = {
       key: createVariantKey('sector_area_reverse', id),
@@ -465,6 +566,7 @@ function buildAreaPerimeterVariantExtras() {
       angle,
       area,
       answer: radius,
+      scene,
     };
   });
 
@@ -810,6 +912,101 @@ function formatPiMultiple(value, suffix) {
   return `${prefix}π${suffix}`;
 }
 
+function buildSceneQuestionText(item, lang) {
+  const zh = lang === 'zh';
+  const sceneZh = String(item.scene?.zh ?? '').trim();
+  const sceneEn = String(item.scene?.en ?? '').trim();
+
+  switch (item.kind) {
+    case 'rectangle_area':
+      return zh
+        ? `在一个长方形${sceneZh || '区域'} ABCD 中，AB = ${item.width} cm，BC = ${item.height} cm。求这个${sceneZh || '图形'}的面积。`
+        : `In a rectangular ${sceneEn || 'region'} ABCD, AB = ${item.width} cm and BC = ${item.height} cm. Find the area of the rectangle.`;
+    case 'rectangle_perimeter':
+      return zh
+        ? `在一个长方形${sceneZh || '区域'} ABCD 中，AB = ${item.width} cm，BC = ${item.height} cm。求这个${sceneZh || '图形'}的周长。`
+        : `In a rectangular ${sceneEn || 'region'} ABCD, AB = ${item.width} cm and BC = ${item.height} cm. Find the perimeter of the rectangle.`;
+    case 'square_area':
+      return zh
+        ? `一块正方形${sceneZh || '区域'}的边长是 ${item.side} cm。求它的面积。`
+        : `A square ${sceneEn || 'region'} has side length ${item.side} cm. Find its area.`;
+    case 'square_perimeter':
+      return zh
+        ? `一块正方形${sceneZh || '区域'}的边长是 ${item.side} cm。求它的周长。`
+        : `A square ${sceneEn || 'region'} has side length ${item.side} cm. Find its perimeter.`;
+    case 'rectangle_area_reverse':
+      return zh
+        ? `在一个长方形${sceneZh || '区域'} ABCD 中，面积是 ${formatArea(item.area)}，AB = ${item.width} cm。求 BC。`
+        : `In a rectangular ${sceneEn || 'region'} ABCD, the area is ${formatArea(item.area)} and AB = ${item.width} cm. Find BC.`;
+    case 'rectangle_perimeter_reverse':
+      return zh
+        ? `在一个长方形${sceneZh || '区域'} ABCD 中，周长是 ${formatLength(item.perimeter)}，AB = ${item.width} cm。求 BC。`
+        : `In a rectangular ${sceneEn || 'region'} ABCD, the perimeter is ${formatLength(item.perimeter)} and AB = ${item.width} cm. Find BC.`;
+    case 'square_area_reverse':
+      return zh
+        ? `一块正方形${sceneZh || '区域'}的面积是 ${formatArea(item.area)}。求边长。`
+        : `A square ${sceneEn || 'region'} has area ${formatArea(item.area)}. Find the side length.`;
+    case 'square_perimeter_reverse':
+      return zh
+        ? `一块正方形${sceneZh || '区域'}的周长是 ${formatLength(item.perimeter)}。求边长。`
+        : `A square ${sceneEn || 'region'} has perimeter ${formatLength(item.perimeter)}. Find the side length.`;
+    case 'l_shape_area':
+      return zh
+        ? `如图，一个L形${sceneZh || '区域'}是由大矩形挖去一块小矩形得到的。求阴影部分的面积。`
+        : `As shown, an L-shaped ${sceneEn || 'region'} is made by cutting a smaller rectangle out of a larger one. Find the shaded area.`;
+    case 'l_shape_perimeter':
+      return zh
+        ? `如图，一个L形${sceneZh || '区域'}是由大矩形挖去一块小矩形得到的。求这个图形的周长。`
+        : `As shown, an L-shaped ${sceneEn || 'region'} is made by cutting a smaller rectangle out of a larger one. Find the perimeter of the shape.`;
+    case 'trapezoid_area':
+      return zh
+        ? `如图，一个梯形${sceneZh || '区域'}的上底是 ${item.topBase} cm，下底是 ${item.bottomBase} cm，高是 ${item.height} cm。求这个梯形的面积。`
+        : `As shown, a trapezoid ${sceneEn || 'region'} has top base ${item.topBase} cm, bottom base ${item.bottomBase} cm, and height ${item.height} cm. Find the area.`;
+    case 'trapezoid_area_reverse':
+      return zh
+        ? `如图，一个梯形${sceneZh || '区域'}的面积是 ${formatArea(item.area)}，下底是 ${item.bottomBase} cm，高是 ${item.height} cm。求上底。`
+        : `As shown, a trapezoid ${sceneEn || 'region'} has area ${formatArea(item.area)}, bottom base ${item.bottomBase} cm, and height ${item.height} cm. Find the top base.`;
+    case 'parallelogram_area':
+      return zh
+        ? `如图，一个平行四边形${sceneZh || '区域'}的底是 ${item.base} cm，高是 ${item.height} cm。求面积。`
+        : `As shown, a parallelogram ${sceneEn || 'region'} has base ${item.base} cm and height ${item.height} cm. Find the area.`;
+    case 'parallelogram_perimeter':
+      return zh
+        ? `如图，一个平行四边形${sceneZh || '区域'}的底是 ${item.base} cm，边长是 ${item.side} cm。求周长。`
+        : `As shown, a parallelogram ${sceneEn || 'region'} has base ${item.base} cm and side length ${item.side} cm. Find the perimeter.`;
+    case 'parallelogram_area_reverse':
+      return zh
+        ? `如图，一个平行四边形${sceneZh || '区域'}的面积是 ${formatArea(item.area)}，底是 ${item.base} cm。求高。`
+        : `As shown, a parallelogram ${sceneEn || 'region'} has area ${formatArea(item.area)} and base ${item.base} cm. Find the height.`;
+    case 'triangle_area':
+      return zh
+        ? `如图，一个直角三角形${sceneZh || '支架'} ABC 的两直角边分别是 ${item.legA} cm 和 ${item.legB} cm。求面积。`
+        : `As shown, a right triangle ${sceneEn || 'frame'} ABC has legs ${item.legA} cm and ${item.legB} cm. Find the area.`;
+    case 'triangle_perimeter':
+      return zh
+        ? `如图，一个直角三角形${sceneZh || '支架'} ABC 的两直角边分别是 ${item.legA} cm 和 ${item.legB} cm，斜边是 ${item.hypotenuse} cm。求周长。`
+        : `As shown, a right triangle ${sceneEn || 'frame'} ABC has legs ${item.legA} cm and ${item.legB} cm, and hypotenuse ${item.hypotenuse} cm. Find the perimeter.`;
+    case 'circle_annulus_area':
+      return zh
+        ? `如图，一个圆环${sceneZh || '区域'}的外半径是 ${item.outerRadius} cm，内半径是 ${item.innerRadius} cm。求阴影部分面积。`
+        : `As shown, a circular annulus ${sceneEn || 'region'} has outer radius ${item.outerRadius} cm and inner radius ${item.innerRadius} cm. Find the shaded area.`;
+    case 'circle_annulus_area_reverse':
+      return zh
+        ? `如图，一个圆环${sceneZh || '区域'}的面积是 ${formatPiMultiple(item.area, ' cm²')}，外半径是 ${item.outerRadius} cm。求内半径。`
+        : `As shown, a circular annulus ${sceneEn || 'region'} has area ${formatPiMultiple(item.area, ' cm²')} and outer radius ${item.outerRadius} cm. Find the inner radius.`;
+    case 'sector_area':
+      return zh
+        ? `如图，一个扇形${sceneZh || '区域'}的半径是 ${item.radius} cm，圆心角是 ${item.angle}°。求面积。`
+        : `As shown, a sector ${sceneEn || 'region'} has radius ${item.radius} cm and central angle ${item.angle}°. Find the area.`;
+    case 'sector_area_reverse':
+      return zh
+        ? `如图，一个扇形${sceneZh || '区域'}的面积是 ${formatPiMultiple(item.area, ' cm²')}，圆心角是 ${item.angle}°。求半径。`
+        : `As shown, a sector ${sceneEn || 'region'} has area ${formatPiMultiple(item.area, ' cm²')} and central angle ${item.angle}°. Find the radius.`;
+    default:
+      return '';
+  }
+}
+
 function normalizePoint(point) {
   return { x: Number(point.x), y: Number(point.y), label: point.label };
 }
@@ -829,6 +1026,8 @@ function isAreaPerimeterConcept(conceptId = '', conceptTitle = '', conceptDesc =
 }
 
 function buildQuestionText(item, lang) {
+  const sceneQuestion = buildSceneQuestionText(item, lang);
+  if (sceneQuestion) return sceneQuestion;
   const zh = lang === 'zh';
   switch (item.kind) {
     case 'rectangle_area':
