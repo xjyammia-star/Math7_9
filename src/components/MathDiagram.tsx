@@ -401,6 +401,13 @@ function validateDiagramData(template: string, data: any): string | null {
         ? null
         : 'square_diagonal requires a positive side and optional positive diagonal';
     }
+    case 'adjacent_squares_diagonal': {
+      const small = asFiniteNumber(data.small_side ?? data.left_side ?? data.a);
+      const large = asFiniteNumber(data.large_side ?? data.right_side ?? data.b);
+      return small !== null && large !== null && small > 0 && large > small
+        ? null
+        : 'adjacent_squares_diagonal requires positive small_side and larger large_side';
+    }
     case 'rectangle_fold': {
       const w = asFiniteNumber(data.width);
       const h = asFiniteNumber(data.height);
@@ -835,6 +842,54 @@ function RectangleDiagonal({ data }: { data: any }) {
       {lAC && <SegLabel a={A} b={C} label={lAC} color={GOLD} />}
       {lArea && (
         <text x={(A.x + C.x) / 2} y={(A.y + C.y) / 2 + 8} fontSize={12} fontWeight="700"
+          textAnchor="middle" fill={GOLD}>{lArea}</text>
+      )}
+    </g>
+  );
+}
+
+/** adjacent_squares_diagonal: two adjacent squares split by a diagonal */
+function AdjacentSquaresDiagonal({ data }: { data: any }) {
+  const small: number = data.small_side ?? data.left_side ?? data.a ?? 3;
+  const large: number = data.large_side ?? data.right_side ?? data.b ?? 6;
+  const totalW = small + large;
+  const crossY = (large * small) / totalW;
+  const pad = Math.max(large, totalW) * 0.22;
+  const sc = makeScaler(-pad, totalW + pad, -pad, large + pad);
+
+  const A = { x: 0, y: 0 };
+  const B = { x: small, y: 0 };
+  const C = { x: small, y: small };
+  const D = { x: 0, y: small };
+  const E = { x: small, y: 0 };
+  const F = { x: totalW, y: 0 };
+  const G = { x: totalW, y: large };
+  const H = { x: small, y: large };
+  const P = { x: small, y: crossY };
+
+  const lSmall = String(data.label_small_side ?? `${small} cm`);
+  const lLarge = String(data.label_large_side ?? `${large} cm`);
+  const lArea = cleanDiagramLabelText(data.label_area ?? '');
+
+  return (
+    <g>
+      <Poly pts={[A, B, C, D].map(sc)} fill="rgba(248,250,252,0.03)" stroke={GREY} />
+      <Poly pts={[E, F, G, H].map(sc)} fill="rgba(248,250,252,0.03)" stroke={GREY} />
+      <Poly pts={[A, B, P].map(sc)} fill="rgba(245,158,11,0.18)" stroke="none" />
+      <Poly pts={[P, H, G].map(sc)} fill="rgba(245,158,11,0.18)" stroke="none" />
+      <Seg a={sc(A)} b={sc(G)} stroke={GOLD} sw={2.6} />
+      <Dot p={sc(A)} label={explicitLabel(data.label_A ?? 'A')} offset={{ x: -14, y: 12 }} />
+      <Dot p={sc(C)} label={explicitLabel(data.label_C ?? 'C')} offset={{ x: 8, y: -4 }} />
+      <Dot p={sc(H)} label={explicitLabel(data.label_H ?? 'H')} offset={{ x: 8, y: -4 }} />
+      <Dot p={sc(G)} label={explicitLabel(data.label_G ?? 'G')} offset={{ x: 8, y: 12 }} />
+      <SegLabel a={sc(A)} b={sc(B)} label={lSmall} color={GOLD} />
+      <SegLabel a={sc(B)} b={sc(C)} label={lSmall} color={GOLD} />
+      <SegLabel a={sc(E)} b={sc(F)} label={lLarge} color={GOLD} />
+      <SegLabel a={sc(F)} b={sc(G)} label={lLarge} color={GOLD} />
+      <SegLabel a={sc(D)} b={sc(A)} label={lSmall} color={GOLD} />
+      <SegLabel a={sc(H)} b={sc(G)} label={lLarge} color={GOLD} />
+      {lArea && (
+        <text x={(sc(A).x + sc(G).x) / 2} y={(sc(A).y + sc(G).y) / 2} fontSize={12} fontWeight="700"
           textAnchor="middle" fill={GOLD}>{lArea}</text>
       )}
     </g>
@@ -2290,6 +2345,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
     'rectangle_fold',
     'cylinder_unrolled',
     'rectangular_prism_net',
+    'adjacent_squares_diagonal',
     'coordinate_points',
   ]);
   const svgMaxHeight = largerDiagramTemplates.has(template) ? 560 : 360;
@@ -2303,6 +2359,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'circle':              content = <Circle data={parsed} />; break;
       case 'rectangle_diagonal':
       case 'square_diagonal':     content = <RectangleDiagonal data={parsed} />; break;
+      case 'adjacent_squares_diagonal': content = <AdjacentSquaresDiagonal data={parsed} />; break;
       case 'rectangle_fold':      content = <RectangleFold data={parsed} />; break;
       case 'parallelogram':       content = <Parallelogram data={parsed} />; break;
       case 'ladder':              content = <Ladder data={parsed} />; break;

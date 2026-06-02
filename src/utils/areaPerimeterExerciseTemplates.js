@@ -39,6 +39,7 @@ const AREA_PERIMETER_BLUEPRINT = {
       't_shape_perimeter',
       't_shape_area_reverse',
       't_shape_perimeter_reverse',
+      'adjacent_squares_diagonal_area',
       'trapezoid_area_reverse',
       'parallelogram_area_reverse',
       'circle_annulus_area_reverse',
@@ -493,6 +494,24 @@ function buildAreaPerimeterVariantExtras() {
 
   Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
     const id = `s${factor}`;
+    const scene = pickScene(AREA_PERIMETER_SCENES.rectangle, factor - 2);
+    const smallSide = 3 * factor;
+    const largeSide = 6 * factor;
+    const area = 15 * factor * factor;
+    variants[createVariantKey('adjacent_squares_diagonal_area', id)] = {
+      key: createVariantKey('adjacent_squares_diagonal_area', id),
+      kind: 'adjacent_squares_diagonal_area',
+      variantId: id,
+      template: 'adjacent_squares_diagonal',
+      small_side: smallSide,
+      large_side: largeSide,
+      answer: area,
+      scene,
+    };
+  });
+
+  Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
+    const id = `s${factor}`;
     const scene = pickScene(AREA_PERIMETER_SCENES.trapezoid, factor - 2);
     const topBase = 4 * factor;
     const bottomBase = 8 * factor;
@@ -830,6 +849,13 @@ const AREA_PERIMETER_VARIANT_LIBRARY = {
     stemHeight: 10,
     perimeter: 2 * (16 + 4 + 10),
     answer: 10,
+  },
+  adjacent_squares_diagonal_area: {
+    kind: 'adjacent_squares_diagonal_area',
+    template: 'adjacent_squares_diagonal',
+    small_side: 6,
+    large_side: 12,
+    answer: 60,
   },
   trapezoid_area: {
     kind: 'trapezoid_area',
@@ -1313,6 +1339,10 @@ function buildQuestionText(item, lang) {
       return zh
         ? '如图，L 形图形由长方形挖去一个小长方形得到。求这个图形的周长。'
         : 'In the figure, an L-shaped region is formed by removing a smaller rectangle from a larger one. Find the perimeter of the shape.';
+    case 'adjacent_squares_diagonal_area':
+      return zh
+        ? `如图，左边正方形边长 ${item.small_side} cm，右边正方形边长 ${item.large_side} cm，斜线从左下角连到右上角。求阴影部分面积。`
+        : `As shown, the left square has side ${item.small_side} cm and the right square has side ${item.large_side} cm. A diagonal joins the bottom-left corner to the top-right corner. Find the shaded area.`;
     case 'trapezoid_area':
       return zh
         ? `如图，梯形的上底为 ${item.topBase} cm，下底为 ${item.bottomBase} cm，高为 ${item.height} cm。求梯形的面积。`
@@ -1455,6 +1485,11 @@ function buildAreaPerimeterRenderContract(item) {
       return {
         questionIncludes: ['T形', '周长', '立柱高'],
         diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label_perimeter":"', '"label_stem_height":"?"'],
+      };
+    case 'adjacent_squares_diagonal_area':
+      return {
+        questionIncludes: ['左边正方形', '右边正方形', '阴影部分面积'],
+        diagramIncludes: ['"template":"adjacent_squares_diagonal"', '"label_small_side"', '"label_large_side"', '"label_area":"?"'],
       };
     case 'trapezoid_area':
       return {
@@ -1779,6 +1814,15 @@ function buildDiagramSpec(item) {
     case 't_shape_area_reverse':
     case 't_shape_perimeter_reverse':
       return buildCoordinateSpec(item);
+    case 'adjacent_squares_diagonal_area':
+      return {
+        template: 'adjacent_squares_diagonal',
+        small_side: item.small_side,
+        large_side: item.large_side,
+        label_small_side: formatLength(item.small_side),
+        label_large_side: formatLength(item.large_side),
+        label_area: '?',
+      };
     case 'trapezoid_area':
     case 'trapezoid_area_reverse':
       return buildCoordinateSpec(item);
@@ -1868,6 +1912,10 @@ function validateAreaPerimeterExerciseItem(item) {
     case 't_shape_perimeter_reverse':
       if (Math.round(polygonPerimeter(item.outline ?? item.points) * 100) / 100 !== Math.round(item.perimeter * 100) / 100) issues.push('T-shape reverse perimeter data mismatch');
       if (item.answer !== item.stemHeight) issues.push('T-shape reverse perimeter answer mismatch');
+      break;
+    case 'adjacent_squares_diagonal_area':
+      if (!isFinitePositiveNumber(item.small_side) || !isFinitePositiveNumber(item.large_side) || item.large_side !== item.small_side * 2) issues.push('adjacent squares data is invalid');
+      if (issues.length === 0 && !approxEqual(item.answer, (5 / 3) * item.small_side * item.small_side)) issues.push('adjacent squares diagonal area answer mismatch');
       break;
     case 'trapezoid_area':
       if (polygonArea(item.outline ?? []) !== item.answer) issues.push('trapezoid area answer mismatch');

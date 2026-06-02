@@ -30,6 +30,7 @@ const allowedHardKinds = new Set([
   't_shape_perimeter',
   't_shape_area_reverse',
   't_shape_perimeter_reverse',
+  'adjacent_squares_diagonal_area',
   'trapezoid_area_reverse',
   'parallelogram_area_reverse',
   'circle_annulus_area_reverse',
@@ -76,6 +77,7 @@ assert.ok(mediumKinds.has('circle_circumference_reverse'));
 assert.ok(hardKinds.has('l_shape_area'));
 assert.ok(hardKinds.has('sector_area_reverse'));
 assert.ok(hardKinds.has('t_shape_area') || hardKinds.has('t_shape_perimeter_reverse'));
+assert.ok(hardKinds.has('adjacent_squares_diagonal_area'));
 assert.ok(!hardKinds.has('circle_area'));
 assert.ok(!hardKinds.has('rectangle_area'));
 
@@ -88,6 +90,11 @@ const hardTItem = hardBatch.find((item) => item.kind.startsWith('t_shape_'));
 assert.ok(hardTItem);
 assert.match(renderAreaPerimeterExerciseItem(hardTItem, 0, 'zh'), /"template":"coordinate_points"/);
 assert.match(renderAreaPerimeterExerciseItem(hardTItem, 0, 'zh'), /"label_top_width"/);
+
+const hardAdjacentItem = hardBatch.find((item) => item.kind === 'adjacent_squares_diagonal_area');
+assert.ok(hardAdjacentItem);
+assert.match(renderAreaPerimeterExerciseItem(hardAdjacentItem, 0, 'zh'), /"template":"adjacent_squares_diagonal"/);
+assert.match(renderAreaPerimeterExerciseItem(hardAdjacentItem, 0, 'zh'), /"label_large_side"/);
 
 const hardSingles = Array.from({ length: 10 }, () => buildAreaPerimeterExerciseItems(1, { lang: 'zh', difficulty: 'Hard', grade: '8' }));
 const hardSingleKeys = hardSingles.map((batch) => batch[0].key);
