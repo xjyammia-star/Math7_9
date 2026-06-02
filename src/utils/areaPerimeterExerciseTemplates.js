@@ -51,6 +51,12 @@ const AREA_PERIMETER_BLUEPRINT = {
       'adjacent_squares_diagonal_area_reverse',
       'adjacent_squares_diagonal_tall_area',
       'adjacent_squares_diagonal_tall_area_reverse',
+      'rectangle_triangle_cut_area',
+      'rectangle_triangle_cut_perimeter',
+      'rectangle_triangle_cut_area_reverse',
+      'circle_rectangle_cut_area',
+      'circle_rectangle_cut_perimeter',
+      'circle_rectangle_cut_area_reverse',
       'trapezoid_area_reverse',
       'parallelogram_area_reverse',
       'circle_annulus_area_reverse',
@@ -1169,15 +1175,36 @@ function shuffleKinds(pool) {
   return items;
 }
 
+function buildKindSelectionOrder(kinds, recentKinds) {
+  const uniqueKinds = [...new Set(kinds.filter(Boolean))];
+  if (uniqueKinds.length === 0) return [];
+
+  const usageCounts = new Map();
+  for (const kind of recentKinds ?? []) {
+    if (!kind) continue;
+    usageCounts.set(kind, (usageCounts.get(kind) ?? 0) + 1);
+  }
+
+  const buckets = new Map();
+  for (const kind of uniqueKinds) {
+    const count = usageCounts.get(kind) ?? 0;
+    if (!buckets.has(count)) buckets.set(count, []);
+    buckets.get(count).push(kind);
+  }
+
+  const ordered = [];
+  [...buckets.keys()].sort((a, b) => a - b).forEach((count) => {
+    ordered.push(...shuffleKinds(buckets.get(count)));
+  });
+  return ordered;
+}
+
 function rotateKinds(pool, count, recentKeys) {
   const uniquePool = Array.from(new Set(pool.filter(Boolean)));
   const targetCount = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
   if (uniquePool.length === 0 || targetCount === 0) return [];
 
-  const recentSet = new Set(recentKeys.filter(Boolean));
-  const fresh = uniquePool.filter((key) => !recentSet.has(key));
-  const stale = uniquePool.filter((key) => recentSet.has(key));
-  const ordered = [...shuffleKinds(fresh), ...shuffleKinds(stale)];
+  const ordered = buildKindSelectionOrder(uniquePool, recentKeys);
 
   const selected = [];
   while (selected.length < targetCount) {
@@ -1197,15 +1224,7 @@ function rotateVariantsByKind(variantPool, count, recentKinds) {
     kindBuckets.get(variant.kind).push(variant);
   }
 
-  const recentSet = new Set((recentKinds ?? []).filter(Boolean));
-  const freshKinds = [];
-  const staleKinds = [];
-  for (const kind of kindBuckets.keys()) {
-    if (recentSet.has(kind)) staleKinds.push(kind);
-    else freshKinds.push(kind);
-  }
-
-  const orderedKinds = [...shuffleKinds(freshKinds), ...shuffleKinds(staleKinds)];
+  const orderedKinds = buildKindSelectionOrder([...kindBuckets.keys()], recentKinds);
   const kindIndices = new Map();
   const selected = [];
 
@@ -2005,7 +2024,8 @@ function validateAreaPerimeterExerciseItem(item) {
     return ['item must be an object'];
   }
 
-  if (!Object.prototype.hasOwnProperty.call(AREA_PERIMETER_VARIANT_LIBRARY, item.kind)) {
+  const supportedKind = Object.values(AREA_PERIMETER_VARIANT_LIBRARY).some((variant) => variant?.kind === item.kind);
+  if (!supportedKind) {
     issues.push(`unsupported kind: ${String(item.kind)}`);
     return issues;
   }

@@ -34,6 +34,12 @@ const allowedHardKinds = new Set([
   'adjacent_squares_diagonal_area_reverse',
   'adjacent_squares_diagonal_tall_area',
   'adjacent_squares_diagonal_tall_area_reverse',
+  'rectangle_triangle_cut_area',
+  'rectangle_triangle_cut_perimeter',
+  'rectangle_triangle_cut_area_reverse',
+  'circle_rectangle_cut_area',
+  'circle_rectangle_cut_perimeter',
+  'circle_rectangle_cut_area_reverse',
   'trapezoid_area_reverse',
   'parallelogram_area_reverse',
   'circle_annulus_area_reverse',
@@ -84,6 +90,8 @@ assert.ok(hardKinds.has('adjacent_squares_diagonal_area'));
 assert.ok(hardKinds.has('adjacent_squares_diagonal_area_reverse'));
 assert.ok(hardKinds.has('adjacent_squares_diagonal_tall_area'));
 assert.ok(hardKinds.has('adjacent_squares_diagonal_tall_area_reverse'));
+assert.ok(hardKinds.has('rectangle_triangle_cut_area'));
+assert.ok(hardKinds.has('circle_rectangle_cut_area'));
 assert.ok(!hardKinds.has('circle_area'));
 assert.ok(!hardKinds.has('rectangle_area'));
 
@@ -115,6 +123,16 @@ const hardAdjacentTallReverseItem = hardBatch.find((item) => item.kind === 'adja
 assert.ok(hardAdjacentTallReverseItem);
 assert.match(renderAreaPerimeterExerciseItem(hardAdjacentTallReverseItem, 0, 'zh'), /"template":"composite_overlay"/);
 assert.match(renderAreaPerimeterExerciseItem(hardAdjacentTallReverseItem, 0, 'zh'), /"text":"\d+ cm²"/);
+
+const hardRectTriangleItem = hardBatch.find((item) => item.kind === 'rectangle_triangle_cut_area');
+assert.ok(hardRectTriangleItem);
+assert.match(renderAreaPerimeterExerciseItem(hardRectTriangleItem, 0, 'zh'), /"template":"composite_overlay"/);
+assert.match(renderAreaPerimeterExerciseItem(hardRectTriangleItem, 0, 'zh'), /"kind":"poly"/);
+
+const hardCircleRectItem = hardBatch.find((item) => item.kind === 'circle_rectangle_cut_area');
+assert.ok(hardCircleRectItem);
+assert.match(renderAreaPerimeterExerciseItem(hardCircleRectItem, 0, 'zh'), /"template":"composite_overlay"/);
+assert.match(renderAreaPerimeterExerciseItem(hardCircleRectItem, 0, 'zh'), /"kind":"circle"/);
 
 const hardSingles = Array.from({ length: 10 }, () => buildAreaPerimeterExerciseItems(1, { lang: 'zh', difficulty: 'Hard', grade: '8' }));
 const hardSingleKeys = hardSingles.map((batch) => batch[0].key);
