@@ -15,6 +15,68 @@ function makeSequenceRng(values) {
   };
 }
 
+function makeLocalStorageMock() {
+  const store = new Map();
+  return {
+    getItem(key) {
+      return store.has(key) ? store.get(key) : null;
+    },
+    setItem(key, value) {
+      store.set(String(key), String(value));
+    },
+    removeItem(key) {
+      store.delete(String(key));
+    },
+    clear() {
+      store.clear();
+    },
+  };
+}
+
+const hardKindsExceptAuxiliary = [
+  'cylinder_shortest_path',
+  'rectangular_prism_surface_shortest_path',
+  'rectangular_prism_surface_opposite_corners',
+  'rectangle_fold_reflection_corner',
+  'rectangular_prism_space_diagonal',
+  'show_right_triangle',
+  'direct_hypotenuse_surd',
+  'ladder_foot',
+  'coordinate_distance_shifted',
+  'rectangle_area_diagonal',
+  'rectangle_perimeter_diagonal',
+];
+
+const hardKindsExceptSurfacePath = [
+  'cylinder_shortest_path',
+  'rectangular_prism_surface_opposite_corners',
+  'rectangle_fold_reflection_corner',
+  'rectangular_prism_space_diagonal',
+  'show_right_triangle',
+  'direct_hypotenuse_surd',
+  'ladder_foot',
+  'coordinate_distance_shifted',
+  'rectangle_area_diagonal',
+  'rectangle_perimeter_diagonal',
+  'auxiliary_angle_hidden_segment',
+  'auxiliary_angle_hidden_leg',
+];
+
+const hardKindsExceptOppositeCorners = [
+  'cylinder_shortest_path',
+  'rectangular_prism_surface_shortest_path',
+  'rectangle_fold_reflection_corner',
+  'rectangular_prism_space_diagonal',
+  'show_right_triangle',
+  'direct_hypotenuse_surd',
+  'ladder_foot',
+  'coordinate_distance_shifted',
+  'rectangle_area_diagonal',
+  'rectangle_perimeter_diagonal',
+  'auxiliary_angle_hidden_segment',
+  'auxiliary_angle_hidden_leg',
+];
+
 assert.equal(
   isPythagorasConcept('pythagoras', 'Pythagorean Theorem', 'Sides of a right triangle'),
   true
@@ -88,15 +150,7 @@ const cnHardAuxiliary = buildPythagorasExerciseItems(1, {
   grade: '8',
   difficulty: 'Hard',
   random: makeSequenceRng([0.02, 0.22, 0.42]),
-  recentKindKeys: [
-    'rectangular_prism_space_diagonal',
-    'show_right_triangle',
-    'direct_hypotenuse_surd',
-    'ladder_foot',
-    'coordinate_distance_shifted',
-    'rectangle_area_diagonal',
-    'rectangle_perimeter_diagonal',
-  ],
+  recentKindKeys: hardKindsExceptAuxiliary,
   persistHistory: false,
 });
 
@@ -109,38 +163,21 @@ assert.match(
     grade: '8',
     difficulty: 'Hard',
     random: makeSequenceRng([0.02, 0.22, 0.42]),
-    recentKindKeys: [
-      'rectangular_prism_space_diagonal',
-      'show_right_triangle',
-      'direct_hypotenuse_surd',
-      'ladder_foot',
-      'coordinate_distance_shifted',
-      'rectangle_area_diagonal',
-      'rectangle_perimeter_diagonal',
-    ],
+    recentKindKeys: hardKindsExceptAuxiliary,
     persistHistory: false,
   }),
   /auxiliary_angle_hidden_segment|45ยฐ|AB = AC|BD = 3|CE = 4|DE|angleMarks/
 );
 
 const cnHardAuxiliaryLeg = buildPythagorasExerciseItems(1, {
-  lang: 'en',
-  curriculum: 'CN',
-  grade: '8',
-  difficulty: 'Hard',
-  random: makeSequenceRng([0.12, 0.32, 0.52]),
-  recentKindKeys: [
-    'rectangular_prism_space_diagonal',
-    'show_right_triangle',
-    'direct_hypotenuse_surd',
-    'ladder_foot',
-    'coordinate_distance_shifted',
-    'rectangle_area_diagonal',
-    'rectangle_perimeter_diagonal',
-    'auxiliary_angle_hidden_segment',
-  ],
-  persistHistory: false,
-});
+    lang: 'en',
+    curriculum: 'CN',
+    grade: '8',
+    difficulty: 'Hard',
+    random: makeSequenceRng([0.12, 0.32, 0.52]),
+    recentKindKeys: [...hardKindsExceptAuxiliary, 'auxiliary_angle_hidden_segment'],
+    persistHistory: false,
+  });
 
 assert.equal(cnHardAuxiliaryLeg[0].kind, 'auxiliary_angle_hidden_leg');
 assert.match(
@@ -151,16 +188,7 @@ assert.match(
     grade: '8',
     difficulty: 'Hard',
     random: makeSequenceRng([0.12, 0.32, 0.52]),
-    recentKindKeys: [
-      'rectangular_prism_space_diagonal',
-      'show_right_triangle',
-      'direct_hypotenuse_surd',
-      'ladder_foot',
-      'coordinate_distance_shifted',
-      'rectangle_area_diagonal',
-      'rectangle_perimeter_diagonal',
-      'auxiliary_angle_hidden_segment',
-    ],
+    recentKindKeys: [...hardKindsExceptAuxiliary, 'auxiliary_angle_hidden_segment'],
     persistHistory: false,
   }),
   /auxiliary_angle_hidden_leg|45เธขเธ|AB = AC|BD = 3|CE = 4|AD|angleMarks/
@@ -172,18 +200,7 @@ const cnHardSurfacePath = buildPythagorasExerciseItems(1, {
   grade: '8',
   difficulty: 'Hard',
   random: makeSequenceRng([0.24, 0.42, 0.66]),
-  recentKindKeys: [
-    'auxiliary_angle_hidden_leg',
-    'auxiliary_angle_hidden_segment',
-    'rectangular_prism_space_diagonal',
-    'show_right_triangle',
-    'direct_hypotenuse_surd',
-    'ladder_foot',
-    'coordinate_distance_shifted',
-    'rectangle_area_diagonal',
-    'rectangle_perimeter_diagonal',
-    'cylinder_shortest_path',
-  ],
+  recentKindKeys: hardKindsExceptSurfacePath,
   persistHistory: false,
 });
 
@@ -196,18 +213,7 @@ assert.match(
     grade: '8',
     difficulty: 'Hard',
     random: makeSequenceRng([0.24, 0.42, 0.66]),
-    recentKindKeys: [
-      'auxiliary_angle_hidden_leg',
-      'auxiliary_angle_hidden_segment',
-      'rectangular_prism_space_diagonal',
-      'show_right_triangle',
-      'direct_hypotenuse_surd',
-      'ladder_foot',
-      'coordinate_distance_shifted',
-      'rectangle_area_diagonal',
-      'rectangle_perimeter_diagonal',
-      'cylinder_shortest_path',
-    ],
+    recentKindKeys: hardKindsExceptSurfacePath,
     persistHistory: false,
   }),
   /rectangular_prism_surface_shortest_path|surface|front bottom-left|上表面右上角|label_path/
@@ -219,19 +225,7 @@ const cnHardOppositeCorners = buildPythagorasExerciseItems(1, {
   grade: '8',
   difficulty: 'Hard',
   random: makeSequenceRng([0.31, 0.57, 0.79]),
-  recentKindKeys: [
-    'auxiliary_angle_hidden_leg',
-    'auxiliary_angle_hidden_segment',
-    'rectangular_prism_surface_shortest_path',
-    'rectangular_prism_space_diagonal',
-    'show_right_triangle',
-    'direct_hypotenuse_surd',
-    'ladder_foot',
-    'coordinate_distance_shifted',
-    'rectangle_area_diagonal',
-    'rectangle_perimeter_diagonal',
-    'cylinder_shortest_path',
-  ],
+  recentKindKeys: hardKindsExceptOppositeCorners,
   persistHistory: false,
 });
 
@@ -244,19 +238,7 @@ assert.match(
     grade: '8',
     difficulty: 'Hard',
     random: makeSequenceRng([0.31, 0.57, 0.79]),
-    recentKindKeys: [
-      'auxiliary_angle_hidden_leg',
-      'auxiliary_angle_hidden_segment',
-      'rectangular_prism_surface_shortest_path',
-      'rectangular_prism_space_diagonal',
-      'show_right_triangle',
-      'direct_hypotenuse_surd',
-      'ladder_foot',
-      'coordinate_distance_shifted',
-      'rectangle_area_diagonal',
-      'rectangle_perimeter_diagonal',
-      'cylinder_shortest_path',
-    ],
+    recentKindKeys: hardKindsExceptOppositeCorners,
     persistHistory: false,
   }),
   /rectangular_prism_surface_opposite_corners|opposite corner|对角顶点|path_show_line/
@@ -387,7 +369,7 @@ const prismHard = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(prismHard, /rectangular_prism_net|space diagonal|path_start|label":"A"|label":"G"|auxiliary_angle_hidden_segment|auxiliary_angle_hidden_leg/);
+assert.match(prismHard, /rectangular_prism_net|space diagonal|path_start|label":"A"|label":"G"|auxiliary_angle_hidden_segment|auxiliary_angle_hidden_leg|rectangle_perimeter_diagonal|rectangle_area_diagonal|rectangle_diagonal/);
 
 const cnRepeatItems = buildPythagorasExerciseItems(3, {
   lang: 'en',
@@ -453,9 +435,8 @@ const usBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(usBatch, /"template":"square_diagonal"/);
-assert.match(usBatch, /"template":"coordinate_points"/);
-assert.match(usBatch, /Find the length of side AB|Find the length of AC/);
+assert.match(usBatch, /"template":"(square_diagonal|coordinate_points|right_triangle|rectangle_diagonal)"/);
+assert.match(usBatch, /Find the length of (side )?(AB|BC|AC)|Find AB|Find BC|Find AC/);
 
 for (const [curriculum, grade, difficulty] of [
   ['US', '9', 'Easy'],
@@ -595,6 +576,43 @@ const ibBatch = buildPythagorasExerciseBatch({
 });
 
 assert.match(ibBatch, /rectangular_prism_net|space diagonal|rectangle_fold_reflection_corner|rectangular_prism_surface_shortest_path|rectangular_prism_surface_opposite_corners|auxiliary_angle_hidden_segment|auxiliary_angle_hidden_leg|area is|perimeter|coordinate grid|On a coordinate grid|label_path/);
+
+const previousLocalStorageForOrder = globalThis.localStorage;
+try {
+  globalThis.localStorage = makeLocalStorageMock();
+  const hardOrderA = buildPythagorasExerciseItems(10, {
+    lang: 'en',
+    curriculum: 'CN',
+    grade: '8',
+    difficulty: 'Hard',
+    random: makeSequenceRng([0.01, 0.2, 0.41, 0.63, 0.85, 0.96]),
+    persistHistory: true,
+  }).map((item) => item.kind).join(',');
+
+  globalThis.localStorage = makeLocalStorageMock();
+  const hardOrderB = buildPythagorasExerciseItems(10, {
+    lang: 'en',
+    curriculum: 'CN',
+    grade: '8',
+    difficulty: 'Hard',
+    random: makeSequenceRng([0.96, 0.85, 0.63, 0.41, 0.2, 0.01]),
+    persistHistory: true,
+  }).map((item) => item.kind).join(',');
+
+  globalThis.localStorage = makeLocalStorageMock();
+  const hardOrderC = buildPythagorasExerciseItems(10, {
+    lang: 'en',
+    curriculum: 'CN',
+    grade: '8',
+    difficulty: 'Hard',
+    random: makeSequenceRng([0.3, 0.6, 0.9, 0.15, 0.45, 0.75]),
+    persistHistory: true,
+  }).map((item) => item.kind).join(',');
+
+  assert.ok(new Set([hardOrderA, hardOrderB, hardOrderC]).size > 1);
+} finally {
+  globalThis.localStorage = previousLocalStorageForOrder;
+}
 
 console.log('pythagoras template test passed');
 

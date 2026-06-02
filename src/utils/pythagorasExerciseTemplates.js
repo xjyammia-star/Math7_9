@@ -8,6 +8,7 @@
     diagramTemplate: 'right_triangle',
     values: [
       { variantId: '345', legAB: 3, legBC: 4, hypotenuse: 5 },
+      { variantId: '91215', legAB: 9, legBC: 12, hypotenuse: 15 },
       { variantId: '6810', legAB: 6, legBC: 8, hypotenuse: 10 },
       { variantId: '51213', legAB: 5, legBC: 12, hypotenuse: 13 },
     ],
@@ -21,6 +22,7 @@
     diagramTemplate: 'right_triangle',
     values: [
       { variantId: '51213', legAB: 12, legBC: 5, hypotenuse: 13 },
+      { variantId: '94041', legAB: 40, legBC: 9, hypotenuse: 41 },
       { variantId: '7825', legAB: 24, legBC: 7, hypotenuse: 25 },
     ],
   },
@@ -33,7 +35,9 @@
     diagramTemplate: 'right_triangle',
     values: [
       { variantId: '72425', legAB: 7, legBC: 24, hypotenuse: 25 },
+      { variantId: '202129', legAB: 20, legBC: 21, hypotenuse: 29 },
       { variantId: '81517', legAB: 8, legBC: 15, hypotenuse: 17 },
+      { variantId: '94041', legAB: 9, legBC: 40, hypotenuse: 41 },
     ],
   },
   {
@@ -45,6 +49,7 @@
     diagramTemplate: 'rectangle_diagonal',
     values: [
       { variantId: '345', width: 3, height: 4 },
+      { variantId: '91215', width: 9, height: 12 },
       { variantId: '6810', width: 6, height: 8 },
       { variantId: '51213', width: 5, height: 12 },
     ],
@@ -58,6 +63,7 @@
     diagramTemplate: 'square_diagonal',
     values: [
       { variantId: '4root2', side: 4, diagonal: 4 * Math.SQRT2 },
+      { variantId: '10root2', side: 10, diagonal: 10 * Math.SQRT2 },
       { variantId: '6root2', side: 6, diagonal: 6 * Math.SQRT2 },
       { variantId: '8root2', side: 8, diagonal: 8 * Math.SQRT2 },
     ],
@@ -71,6 +77,7 @@
     diagramTemplate: 'square_diagonal',
     values: [
       { variantId: '5root2', side: 5, diagonal: 5 * Math.SQRT2 },
+      { variantId: '10root2', side: 10, diagonal: 10 * Math.SQRT2 },
       { variantId: '12root2', side: 12, diagonal: 12 * Math.SQRT2 },
       { variantId: '13root2', side: 13, diagonal: 13 * Math.SQRT2 },
     ],
@@ -84,6 +91,7 @@
     diagramTemplate: 'right_triangle',
     values: [
       { variantId: '81517', legAB: 8, legBC: 15, hypotenuse: 17 },
+      { variantId: '202129', legAB: 20, legBC: 21, hypotenuse: 29 },
       { variantId: '94041', legAB: 9, legBC: 40, hypotenuse: 41 },
     ],
   },
@@ -410,6 +418,7 @@
     diagramTemplate: 'rectangle_diagonal',
     values: [
       { variantId: '6810', width: 6, height: 8 },
+      { variantId: '91215', width: 9, height: 12 },
       { variantId: '81517', width: 8, height: 15 },
     ],
   },
@@ -435,6 +444,7 @@
     diagramTemplate: 'square_diagonal',
     values: [
       { variantId: '5root2', side: 5, diagonal: 5 * Math.SQRT2 },
+      { variantId: '10root2', side: 10, diagonal: 10 * Math.SQRT2 },
       { variantId: '7root2', side: 7, diagonal: 7 * Math.SQRT2 },
       { variantId: '9root2', side: 9, diagonal: 9 * Math.SQRT2 },
     ],
@@ -613,6 +623,22 @@
           { x: 0, y: 0, label: 'A' },
           { x: 6, y: 0, label: 'B' },
           { x: 6, y: 8, label: 'C' },
+        ],
+      },
+      {
+        variantId: '1520',
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 15, y: 0, label: 'B' },
+          { x: 15, y: 20, label: 'C' },
+        ],
+      },
+      {
+        variantId: '151620',
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 15, y: 0, label: 'B' },
+          { x: 15, y: 20, label: 'C' },
         ],
       },
       {
@@ -868,6 +894,7 @@
     unit: 'm',
     values: [
       { variantId: '81517', length: 17, foot: 8, height: 15 },
+      { variantId: '91215', length: 15, foot: 9, height: 12 },
       { variantId: '261024', length: 26, foot: 10, height: 24 },
       { variantId: '131284', length: 85, foot: 13, height: 84 },
       { variantId: '151225', length: 25, foot: 15, height: 20 },
@@ -895,6 +922,7 @@
     diagramTemplate: 'rectangle_diagonal',
     values: [
       { variantId: '81517', width: 8, height: 15 },
+      { variantId: '91215', width: 9, height: 12 },
       { variantId: '72425', width: 7, height: 24 },
     ],
   },
@@ -924,6 +952,22 @@
           { x: 0, y: 0, label: 'A' },
           { x: 6, y: 0, label: 'B' },
           { x: 6, y: 8, label: 'C' },
+        ],
+      },
+      {
+        variantId: '121620',
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 12, y: 0, label: 'B' },
+          { x: 12, y: 16, label: 'C' },
+        ],
+      },
+      {
+        variantId: '1520',
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 15, y: 0, label: 'B' },
+          { x: 15, y: 20, label: 'C' },
         ],
       },
       {
@@ -1526,37 +1570,12 @@ function normalizeRecentKindOrder(value) {
 
 function orderVariantsByDifficulty(variants, difficulty, randomSource, recentKindOrder = []) {
   const normalizedDifficulty = normalizeDifficulty(difficulty);
-  const priority = DIFFICULTY_KIND_PRIORITY[normalizedDifficulty] ?? [];
-  const priorityIndex = new Map(priority.map((kind, index) => [kind, index]));
   const recentIndex = new Map(recentKindOrder.map((kind, index) => [kind, index]));
   const recentOrderSize = recentKindOrder.length;
-
-  if (normalizedDifficulty === 'Hard') {
-    return [...variants]
-      .map((variant) => ({
-        variant,
-        kindRecency: recentIndex.has(variant.scenario.kind)
-          ? 1 + (recentOrderSize - recentIndex.get(variant.scenario.kind))
-          : 0,
-        priority: priorityIndex.has(variant.scenario.kind)
-          ? priorityIndex.get(variant.scenario.kind)
-          : priority.length,
-        tieBreaker: rngValue(randomSource),
-      }))
-      .sort((a, b) =>
-        a.kindRecency - b.kindRecency ||
-        a.priority - b.priority ||
-        a.tieBreaker - b.tieBreaker
-      )
-      .map(({ variant }) => variant);
-  }
 
   return [...variants]
     .map((variant) => ({
       variant,
-      priority: priorityIndex.has(variant.scenario.kind)
-        ? priorityIndex.get(variant.scenario.kind)
-        : priority.length,
       kindRecency: recentIndex.has(variant.scenario.kind)
         ? 1 + (recentOrderSize - recentIndex.get(variant.scenario.kind))
         : 0,
@@ -1564,7 +1583,6 @@ function orderVariantsByDifficulty(variants, difficulty, randomSource, recentKin
     }))
     .sort((a, b) =>
       a.kindRecency - b.kindRecency ||
-      a.priority - b.priority ||
       a.tieBreaker - b.tieBreaker
     )
     .map(({ variant }) => variant);
@@ -1613,11 +1631,27 @@ function getHardCandidateScenarios(context) {
 }
 
 function getHardCandidateScenarioTiers(context) {
-  const tiers = getCandidateScenarioTiers(context)
-    .map((tier) => tier.filter((scenario) => HARD_ADVANCED_KINDS.has(scenario.kind)))
+  const contextHardTiers = getCandidateScenarioTiers(context)
+    .map((tier) => tier.filter((scenario) => scenario.difficulties.includes('Hard') && HARD_ADVANCED_KINDS.has(scenario.kind)))
     .filter((tier) => tier.length > 0);
 
-  return tiers.length > 0 ? tiers : getCandidateScenarioTiers(context);
+  if (contextHardTiers.length > 0) {
+    return contextHardTiers;
+  }
+
+  const hardAdvancedFallback = uniqueScenariosById(
+    PYTHAGORAS_SCENARIOS.filter(
+      (scenario) => scenario.difficulties.includes('Hard') && HARD_ADVANCED_KINDS.has(scenario.kind)
+    )
+  );
+  if (hardAdvancedFallback.length > 0) {
+    return [hardAdvancedFallback];
+  }
+
+  const hardOnlyFallback = uniqueScenariosById(
+    PYTHAGORAS_SCENARIOS.filter((scenario) => scenario.difficulties.includes('Hard'))
+  );
+  return hardOnlyFallback.length > 0 ? [hardOnlyFallback] : [];
 }
 
 function scenarioVariantKey(scenario, valueSet) {
@@ -1649,7 +1683,8 @@ function getCandidateScenarioTiers(context) {
   const seenIds = new Set();
   const normalizedCurriculum = normalizeCurriculum(context.curriculum);
   const normalizedGrade = normalizeGrade(context.grade);
-  const [minComplexity, maxComplexity] = getComplexityWindow(normalizedGrade, normalizeDifficulty(context.difficulty));
+  const normalizedDifficulty = normalizeDifficulty(context.difficulty);
+  const [minComplexity, maxComplexity] = getComplexityWindow(normalizedGrade, normalizedDifficulty);
   const complexityOk = (scenario) => {
     const complexity = scenarioComplexity(scenario.kind);
     return complexity >= minComplexity && complexity <= maxComplexity;
@@ -1665,7 +1700,12 @@ function getCandidateScenarioTiers(context) {
 
   if (normalizedCurriculum) {
     const curriculumFallback = uniqueScenariosById(
-      PYTHAGORAS_SCENARIOS.filter((scenario) => scenario.curricula.includes(normalizedCurriculum) && complexityOk(scenario)),
+      PYTHAGORAS_SCENARIOS.filter(
+        (scenario) =>
+          scenario.curricula.includes(normalizedCurriculum) &&
+          scenario.difficulties.includes(normalizedDifficulty) &&
+          complexityOk(scenario)
+      ),
       seenIds
     );
     if (curriculumFallback.length > 0) {
@@ -1674,14 +1714,24 @@ function getCandidateScenarioTiers(context) {
   }
 
   const gradeFallback = uniqueScenariosById(
-    PYTHAGORAS_SCENARIOS.filter((scenario) => scenario.grades.includes(normalizedGrade) && complexityOk(scenario)),
+    PYTHAGORAS_SCENARIOS.filter(
+      (scenario) =>
+        scenario.grades.includes(normalizedGrade) &&
+        scenario.difficulties.includes(normalizedDifficulty) &&
+        complexityOk(scenario)
+    ),
     seenIds
   );
   if (gradeFallback.length > 0) {
     tiers.push(gradeFallback);
   }
 
-  const allFallback = uniqueScenariosById(PYTHAGORAS_SCENARIOS.filter((scenario) => complexityOk(scenario)), seenIds);
+  const allFallback = uniqueScenariosById(
+    PYTHAGORAS_SCENARIOS.filter(
+      (scenario) => scenario.difficulties.includes(normalizedDifficulty) && complexityOk(scenario)
+    ),
+    seenIds
+  );
   if (allFallback.length > 0) {
     tiers.push(allFallback);
   }
