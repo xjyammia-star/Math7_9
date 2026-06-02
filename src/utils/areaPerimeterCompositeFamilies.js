@@ -5,13 +5,11 @@ function formatLength(value) {
 }
 
 function formatArea(value) {
-  return Number.isFinite(value) ? `${value} cmยฒ` : '?';
+  return Number.isFinite(value) ? `${value} cm²` : '?';
 }
 
 function formatCircleCutAreaExpression(radius, rectW, rectH) {
-  const circleTerm = `${radius * radius}ฯ€`;
-  const cutTerm = rectW * rectH;
-  return `${circleTerm} - ${cutTerm} cmยฒ`;
+  return `${radius * radius}π - ${rectW * rectH} cm²`;
 }
 
 function isFinitePositiveNumber(value) {
@@ -38,12 +36,17 @@ export const COMPOSITE_AREA_PERIMETER_KINDS = [
   'adjacent_squares_diagonal_tall_area_reverse',
   'overlap_rectangles_union_area',
   'overlap_rectangles_union_area_reverse',
+  'overlap_rectangles_union_perimeter',
   'rectangle_triangle_cut_area',
   'rectangle_triangle_cut_perimeter',
   'rectangle_triangle_cut_area_reverse',
   'rectangle_frame_area',
   'rectangle_frame_perimeter',
   'rectangle_frame_area_reverse',
+  'rectangle_frame_perimeter_reverse',
+  'house_shape_area',
+  'house_shape_perimeter',
+  'house_shape_area_reverse',
   'circle_rectangle_cut_area',
   'circle_rectangle_cut_perimeter',
   'circle_rectangle_cut_area_reverse',
@@ -54,10 +57,10 @@ export function buildCompositeAreaPerimeterVariantExtras() {
 
   Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
     const id = `s${factor}`;
-    const scene = { zh: '拼接正方形阴影', en: 'composite square shading' };
     const smallSide = 3 * factor;
     const largeSide = 6 * factor;
     const area = 15 * factor * factor;
+    const scene = { zh: '拼接正方形', en: 'adjacent squares' };
 
     variants[`adjacent_squares_diagonal_area:${id}`] = {
       key: `adjacent_squares_diagonal_area:${id}`,
@@ -85,10 +88,10 @@ export function buildCompositeAreaPerimeterVariantExtras() {
 
   Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
     const id = `r${factor}`;
-    const scene = { zh: '拼接正方形阴影', en: 'composite square shading' };
     const smallSide = 4 * factor;
     const largeSide = 12 * factor;
     const area = 60 * factor * factor;
+    const scene = { zh: '拼接正方形', en: 'adjacent squares' };
 
     variants[`adjacent_squares_diagonal_tall_area:${id}`] = {
       key: `adjacent_squares_diagonal_tall_area:${id}`,
@@ -116,7 +119,6 @@ export function buildCompositeAreaPerimeterVariantExtras() {
 
   Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
     const id = `o${factor}`;
-    const scene = { zh: '重叠长方形', en: 'overlapping rectangles' };
     const baseWidth = 8 * factor;
     const baseHeight = 4 * factor;
     const towerWidth = 5 * factor;
@@ -124,6 +126,8 @@ export function buildCompositeAreaPerimeterVariantExtras() {
     const overlapWidth = 3 * factor;
     const overlapHeight = baseHeight;
     const area = baseWidth * baseHeight + towerWidth * towerHeight - overlapWidth * overlapHeight;
+    const perimeter = 2 * (baseWidth - overlapWidth + towerWidth + towerHeight);
+    const scene = { zh: '重叠长方形', en: 'overlapping rectangles' };
 
     variants[`overlap_rectangles_union_area:${id}`] = {
       key: `overlap_rectangles_union_area:${id}`,
@@ -155,17 +159,32 @@ export function buildCompositeAreaPerimeterVariantExtras() {
       answer: overlapWidth,
       scene,
     };
+
+    variants[`overlap_rectangles_union_perimeter:${id}`] = {
+      key: `overlap_rectangles_union_perimeter:${id}`,
+      kind: 'overlap_rectangles_union_perimeter',
+      variantId: id,
+      template: 'composite_overlay',
+      baseWidth,
+      baseHeight,
+      towerWidth,
+      towerHeight,
+      overlapWidth,
+      overlapHeight,
+      answer: perimeter,
+      scene,
+    };
   });
 
   Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
     const id = `t${factor}`;
-    const scene = { zh: '切角长方形', en: 'cut-corner shading' };
     const width = 10 * factor;
     const height = 6 * factor;
     const cutW = 4 * factor;
     const cutH = 3 * factor;
-    const area = 54 * factor * factor;
-    const perimeter = 30 * factor;
+    const area = width * height - (cutW * cutH) / 2;
+    const perimeter = width + height + (width - cutW) + (height - cutH) + Math.sqrt(cutW * cutW + cutH * cutH);
+    const scene = { zh: '切角长方形', en: 'cut-corner rectangle' };
 
     variants[`rectangle_triangle_cut_area:${id}`] = {
       key: `rectangle_triangle_cut_area:${id}`,
@@ -208,13 +227,13 @@ export function buildCompositeAreaPerimeterVariantExtras() {
 
   Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
     const id = `f${factor}`;
-    const scene = { zh: '长方形相框', en: 'rectangular frame' };
     const outerWidth = 10 * factor;
     const outerHeight = 7 * factor;
     const innerWidth = 4 * factor;
     const innerHeight = 3 * factor;
     const area = outerWidth * outerHeight - innerWidth * innerHeight;
     const perimeter = 2 * (outerWidth + outerHeight) + 2 * (innerWidth + innerHeight);
+    const scene = { zh: '长方形相框', en: 'rectangular frame' };
 
     variants[`rectangle_frame_area:${id}`] = {
       key: `rectangle_frame_area:${id}`,
@@ -253,16 +272,74 @@ export function buildCompositeAreaPerimeterVariantExtras() {
       answer: innerWidth,
       scene,
     };
+    variants[`rectangle_frame_perimeter_reverse:${id}`] = {
+      key: `rectangle_frame_perimeter_reverse:${id}`,
+      kind: 'rectangle_frame_perimeter_reverse',
+      variantId: id,
+      template: 'composite_overlay',
+      outerWidth,
+      outerHeight,
+      innerWidth,
+      innerHeight,
+      perimeter,
+      answer: innerWidth,
+      scene,
+    };
+  });
+
+  Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
+    const id = `h${factor}`;
+    const width = 6 * factor;
+    const wallHeight = 5 * factor;
+    const roofRise = 4 * factor;
+    const area = width * wallHeight + (width * roofRise) / 2;
+    const perimeter = 26 * factor;
+    const scene = { zh: '小房子图形', en: 'house shape' };
+
+    variants[`house_shape_area:${id}`] = {
+      key: `house_shape_area:${id}`,
+      kind: 'house_shape_area',
+      variantId: id,
+      template: 'composite_overlay',
+      width,
+      wallHeight,
+      roofRise,
+      answer: area,
+      scene,
+    };
+    variants[`house_shape_perimeter:${id}`] = {
+      key: `house_shape_perimeter:${id}`,
+      kind: 'house_shape_perimeter',
+      variantId: id,
+      template: 'composite_overlay',
+      width,
+      wallHeight,
+      roofRise,
+      answer: perimeter,
+      scene,
+    };
+    variants[`house_shape_area_reverse:${id}`] = {
+      key: `house_shape_area_reverse:${id}`,
+      kind: 'house_shape_area_reverse',
+      variantId: id,
+      template: 'composite_overlay',
+      width,
+      wallHeight,
+      roofRise,
+      area,
+      answer: roofRise,
+      scene,
+    };
   });
 
   Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
     const id = `c${factor}`;
-    const scene = { zh: '圆形挖空', en: 'circle cut-out' };
     const radius = 5 * factor;
     const rectW = 2 * factor;
     const rectH = 3 * factor;
     const area = Math.PI * radius * radius - rectW * rectH;
     const perimeter = 2 * Math.PI * radius + 2 * (rectW + rectH);
+    const scene = { zh: '圆形挖空', en: 'circle cut-out' };
 
     variants[`circle_rectangle_cut_area:${id}`] = {
       key: `circle_rectangle_cut_area:${id}`,
@@ -331,6 +408,10 @@ export function buildCompositeAreaPerimeterQuestionText(item, lang) {
       return zh
         ? `如图，两个长方形部分重叠组成阴影图形。横放长方形长 ${item.baseWidth} cm、宽 ${item.baseHeight} cm，竖放长方形宽 ${item.towerWidth} cm、高 ${item.towerHeight} cm，阴影部分面积是 ${formatArea(item.area)}。求重叠部分的宽。`
         : `As shown, two rectangles overlap to form the shaded figure. The horizontal rectangle is ${item.baseWidth} cm by ${item.baseHeight} cm, the vertical rectangle is ${item.towerWidth} cm by ${item.towerHeight} cm, and the shaded area is ${formatArea(item.area)}. Find the overlap width.`;
+    case 'overlap_rectangles_union_perimeter':
+      return zh
+        ? `如图，两个长方形部分重叠组成阴影图形。横放长方形长 ${item.baseWidth} cm、宽 ${item.baseHeight} cm，竖放长方形宽 ${item.towerWidth} cm、高 ${item.towerHeight} cm，重叠部分的宽是 ${item.overlapWidth} cm。求阴影图形的周长。`
+        : `As shown, two rectangles overlap to form the shaded figure. The horizontal rectangle is ${item.baseWidth} cm by ${item.baseHeight} cm, the vertical rectangle is ${item.towerWidth} cm by ${item.towerHeight} cm, and the overlap width is ${item.overlapWidth} cm. Find the perimeter of the shaded figure.`;
     case 'rectangle_triangle_cut_area':
       return zh
         ? `如图，一个长方形右上角切去一个直角三角形。求阴影部分的面积。`
@@ -355,6 +436,22 @@ export function buildCompositeAreaPerimeterQuestionText(item, lang) {
       return zh
         ? `如图，一个长方形相框由大长方形中挖去一个小长方形得到。外框长 ${item.outerWidth} cm、宽 ${item.outerHeight} cm，内孔宽 ${item.innerHeight} cm，阴影部分面积是 ${formatArea(item.area)}。求内孔的长。`
         : `As shown, a rectangular frame is formed by cutting a smaller rectangle from a larger one. The outer rectangle is ${item.outerWidth} cm by ${item.outerHeight} cm, the inner height is ${item.innerHeight} cm, and the shaded area is ${formatArea(item.area)}. Find the inner width.`;
+    case 'rectangle_frame_perimeter_reverse':
+      return zh
+        ? `如图，一个长方形相框由大长方形中挖去一个小长方形得到。外框长 ${item.outerWidth} cm、宽 ${item.outerHeight} cm，内孔宽 ${item.innerHeight} cm，阴影部分周长是 ${formatLength(item.perimeter)}。求内孔的长。`
+        : `As shown, a rectangular frame is formed by cutting a smaller rectangle from a larger one. The outer rectangle is ${item.outerWidth} cm by ${item.outerHeight} cm, the inner height is ${item.innerHeight} cm, and the frame perimeter is ${formatLength(item.perimeter)}. Find the inner width.`;
+    case 'house_shape_area':
+      return zh
+        ? `如图，一个“小房子”图形由一个长方形和上方一个等腰三角形组成。底边长 ${item.width} cm，墙高 ${item.wallHeight} cm，屋顶高 ${item.roofRise} cm。求这个图形的面积。`
+        : `As shown, a house-shaped figure is made of a rectangle topped by an isosceles triangle. The base is ${item.width} cm, the wall height is ${item.wallHeight} cm, and the roof rise is ${item.roofRise} cm. Find the area.`;
+    case 'house_shape_perimeter':
+      return zh
+        ? `如图，一个“小房子”图形由一个长方形和上方一个等腰三角形组成。底边长 ${item.width} cm，墙高 ${item.wallHeight} cm，屋顶高 ${item.roofRise} cm。求这个图形的周长。`
+        : `As shown, a house-shaped figure is made of a rectangle topped by an isosceles triangle. The base is ${item.width} cm, the wall height is ${item.wallHeight} cm, and the roof rise is ${item.roofRise} cm. Find the perimeter.`;
+    case 'house_shape_area_reverse':
+      return zh
+        ? `如图，一个“小房子”图形由一个长方形和上方一个等腰三角形组成。底边长 ${item.width} cm，墙高 ${item.wallHeight} cm，图形面积是 ${formatArea(item.area)}。求屋顶的高。`
+        : `As shown, a house-shaped figure is made of a rectangle topped by an isosceles triangle. The base is ${item.width} cm, the wall height is ${item.wallHeight} cm, and the area is ${formatArea(item.area)}. Find the roof rise.`;
     case 'circle_rectangle_cut_area':
       return zh
         ? `如图，一个圆形中挖去一个长方形空洞。求剩余阴影部分的面积。`
@@ -412,60 +509,46 @@ function buildAdjacentSquaresCompositeSpec(item) {
 }
 
 function buildOverlapRectanglesUnionSpec(item) {
-  const baseLeft = 0;
-  const baseBottom = 0;
-  const baseRight = item.baseWidth;
-  const baseTop = item.baseHeight;
   const towerLeft = item.baseWidth - item.overlapWidth;
   const towerRight = towerLeft + item.towerWidth;
-  const towerTop = item.towerHeight;
 
   return {
     template: 'composite_overlay',
-    bounds: { xMin: 0, xMax: towerRight, yMin: 0, yMax: towerTop },
+    bounds: { xMin: 0, xMax: towerRight, yMin: 0, yMax: item.towerHeight },
     layers: [
-      { kind: 'poly', pts: buildRect(baseLeft, baseBottom, item.baseWidth, item.baseHeight), fill: 'rgba(245,158,11,0.18)', stroke: '#94a3b8', sw: 2 },
+      { kind: 'poly', pts: buildRect(0, 0, item.baseWidth, item.baseHeight), fill: 'rgba(245,158,11,0.18)', stroke: '#94a3b8', sw: 2 },
       { kind: 'poly', pts: buildRect(towerLeft, 0, item.towerWidth, item.towerHeight), fill: 'rgba(245,158,11,0.18)', stroke: '#94a3b8', sw: 2 },
-      { kind: 'segLabel', a: { x: baseLeft, y: baseBottom }, b: { x: baseRight, y: baseBottom }, label: formatLength(item.baseWidth), color: '#f59e0b' },
-      { kind: 'segLabel', a: { x: baseLeft, y: baseBottom }, b: { x: baseLeft, y: baseTop }, label: formatLength(item.baseHeight), color: '#f59e0b' },
-      { kind: 'segLabel', a: { x: towerLeft, y: towerTop }, b: { x: towerRight, y: towerTop }, label: formatLength(item.towerWidth), color: '#f59e0b' },
-      { kind: 'segLabel', a: { x: towerRight, y: 0 }, b: { x: towerRight, y: towerTop }, label: formatLength(item.towerHeight), color: '#f59e0b' },
-      { kind: 'segLabel', a: { x: towerLeft, y: baseTop }, b: { x: baseRight, y: baseTop }, label: item.kind.endsWith('reverse') ? '?' : formatLength(item.overlapWidth), color: '#f59e0b' },
-      { kind: 'text', x: towerRight / 2, y: towerTop / 2, text: item.kind.endsWith('reverse') ? formatArea(item.area) : '?', color: '#f59e0b' },
+      { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: item.baseWidth, y: 0 }, label: formatLength(item.baseWidth), color: '#f59e0b' },
+      { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: 0, y: item.baseHeight }, label: formatLength(item.baseHeight), color: '#f59e0b' },
+      { kind: 'segLabel', a: { x: towerLeft, y: item.towerHeight }, b: { x: towerRight, y: item.towerHeight }, label: formatLength(item.towerWidth), color: '#f59e0b' },
+      { kind: 'segLabel', a: { x: towerRight, y: 0 }, b: { x: towerRight, y: item.towerHeight }, label: formatLength(item.towerHeight), color: '#f59e0b' },
+      { kind: 'segLabel', a: { x: towerLeft, y: item.baseHeight }, b: { x: item.baseWidth, y: item.baseHeight }, label: item.kind === 'overlap_rectangles_union_area_reverse' ? '?' : formatLength(item.overlapWidth), color: '#f59e0b' },
+      { kind: 'text', x: towerRight / 2, y: item.towerHeight / 2, text: item.kind === 'overlap_rectangles_union_area_reverse' ? formatArea(item.area) : item.kind === 'overlap_rectangles_union_perimeter' ? '?' : '?', color: '#f59e0b' },
     ],
   };
 }
 
 function buildRectangleTriangleCutSpec(item) {
-  const width = item.width;
-  const height = item.height;
-  const cutW = item.cutW;
-  const cutH = item.cutH;
-  const pts = [
+  const notchA = { x: item.width, y: item.height - item.cutH };
+  const notchB = { x: item.width - item.cutW, y: item.height };
+  const outline = [
     { x: 0, y: 0 },
-    { x: width, y: 0 },
-    { x: width, y: height - cutH },
-    { x: width - cutW, y: height },
-    { x: 0, y: height },
+    { x: item.width, y: 0 },
+    notchA,
+    notchB,
+    { x: 0, y: item.height },
   ];
-  const notchA = { x: width, y: height - cutH };
-  const notchB = { x: width - cutW, y: height };
 
   return {
     template: 'composite_overlay',
-    bounds: { xMin: 0, xMax: width, yMin: 0, yMax: height },
+    bounds: { xMin: 0, xMax: item.width, yMin: 0, yMax: item.height },
     layers: [
-      { kind: 'poly', pts, fill: 'rgba(248,250,252,0.03)', stroke: '#94a3b8', sw: 2 },
-      { kind: 'seg', a: notchA, b: notchB, stroke: '#94a3b8', sw: 2 },
-      { kind: 'dot', p: { x: 0, y: 0 }, label: 'A', offset: { x: -14, y: 12 }, color: '#f8fafc' },
-      { kind: 'dot', p: { x: width, y: 0 }, label: 'B', offset: { x: 8, y: 12 }, color: '#f8fafc' },
-      { kind: 'dot', p: { x: width - cutW, y: height }, label: 'C', offset: { x: 8, y: -4 }, color: '#f8fafc' },
-      { kind: 'dot', p: { x: 0, y: height }, label: 'D', offset: { x: -14, y: -4 }, color: '#f8fafc' },
-      { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: width, y: 0 }, label: formatLength(width), color: '#f59e0b' },
-      { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: 0, y: height }, label: formatLength(height), color: '#f59e0b' },
-      { kind: 'segLabel', a: { x: width, y: 0 }, b: notchA, label: formatLength(cutH), color: '#f59e0b' },
-      { kind: 'segLabel', a: notchA, b: notchB, label: item.kind.endsWith('reverse') ? '?' : formatLength(cutW), color: '#f59e0b' },
-      { kind: 'text', x: width / 2, y: height / 2, text: item.kind.includes('area') && !item.kind.includes('reverse') ? '?' : formatArea(item.area), color: '#f59e0b' },
+      { kind: 'poly', pts: outline, fill: 'rgba(245,158,11,0.18)', stroke: '#94a3b8', sw: 2 },
+      { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: item.width, y: 0 }, label: formatLength(item.width), color: '#f59e0b' },
+      { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: 0, y: item.height }, label: formatLength(item.height), color: '#f59e0b' },
+      { kind: 'segLabel', a: { x: item.width, y: 0 }, b: notchA, label: formatLength(item.cutH), color: '#f59e0b' },
+      { kind: 'segLabel', a: notchA, b: notchB, label: item.kind.endsWith('reverse') ? '?' : formatLength(item.cutW), color: '#f59e0b' },
+      { kind: 'text', x: item.width / 2, y: item.height / 2, text: item.kind === 'rectangle_triangle_cut_area_reverse' ? formatArea(item.area) : '?', color: '#f59e0b' },
     ],
   };
 }
@@ -482,38 +565,61 @@ function buildRectangleFrameSpec(item) {
       { kind: 'poly', pts: buildRect(innerLeft, innerBottom, item.innerWidth, item.innerHeight), fill: '#020617', stroke: '#94a3b8', sw: 2 },
       { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: item.outerWidth, y: 0 }, label: formatLength(item.outerWidth), color: '#f59e0b' },
       { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: 0, y: item.outerHeight }, label: formatLength(item.outerHeight), color: '#f59e0b' },
-      { kind: 'segLabel', a: { x: innerLeft, y: innerBottom }, b: { x: innerLeft + item.innerWidth, y: innerBottom }, label: item.kind === 'rectangle_frame_area_reverse' ? '?' : formatLength(item.innerWidth), color: '#f59e0b' },
+      { kind: 'segLabel', a: { x: innerLeft, y: innerBottom }, b: { x: innerLeft + item.innerWidth, y: innerBottom }, label: (item.kind === 'rectangle_frame_area_reverse' || item.kind === 'rectangle_frame_perimeter_reverse') ? '?' : formatLength(item.innerWidth), color: '#f59e0b' },
       { kind: 'segLabel', a: { x: innerLeft + item.innerWidth, y: innerBottom }, b: { x: innerLeft + item.innerWidth, y: innerBottom + item.innerHeight }, label: formatLength(item.innerHeight), color: '#f59e0b' },
-      { kind: 'text', x: item.outerWidth / 2, y: item.outerHeight / 2, text: item.kind === 'rectangle_frame_area_reverse' ? formatArea(item.area) : '?', color: '#f59e0b' },
+      { kind: 'text', x: item.outerWidth / 2, y: item.outerHeight / 2, text: item.kind === 'rectangle_frame_area_reverse' ? formatArea(item.area) : item.kind === 'rectangle_frame_perimeter_reverse' ? formatLength(item.perimeter) : '?', color: '#f59e0b' },
+    ],
+  };
+}
+
+function buildHouseShapeSpec(item) {
+  const half = item.width / 2;
+  const leftRoof = { x: 0, y: item.wallHeight };
+  const apex = { x: half, y: item.wallHeight + item.roofRise };
+  const rightRoof = { x: item.width, y: item.wallHeight };
+  const outline = [
+    { x: 0, y: 0 },
+    { x: item.width, y: 0 },
+    rightRoof,
+    apex,
+    leftRoof,
+  ];
+
+  return {
+    template: 'composite_overlay',
+    bounds: { xMin: 0, xMax: item.width, yMin: 0, yMax: item.wallHeight + item.roofRise },
+    layers: [
+      { kind: 'poly', pts: outline, fill: 'rgba(245,158,11,0.18)', stroke: '#94a3b8', sw: 2 },
+      { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: item.width, y: 0 }, label: formatLength(item.width), color: '#f59e0b' },
+      { kind: 'segLabel', a: { x: 0, y: 0 }, b: leftRoof, label: formatLength(item.wallHeight), color: '#f59e0b' },
+      { kind: 'segLabel', a: leftRoof, b: apex, label: item.kind === 'house_shape_area_reverse' ? '?' : formatLength(5 * (item.width / 6)), color: '#f59e0b' },
+      { kind: 'segLabel', a: { x: half, y: item.wallHeight }, b: apex, label: item.kind === 'house_shape_area_reverse' ? '?' : formatLength(item.roofRise), color: '#f59e0b' },
+      { kind: 'text', x: item.width / 2, y: item.wallHeight / 2, text: item.kind === 'house_shape_area_reverse' ? formatArea(item.area) : '?', color: '#f59e0b' },
     ],
   };
 }
 
 function buildCircleRectangleCutSpec(item) {
-  const radius = item.radius;
-  const rectW = item.rectW;
-  const rectH = item.rectH;
-  const center = { x: 0, y: 0 };
   const rect = [
-    { x: -rectW / 2, y: -rectH / 2 },
-    { x: rectW / 2, y: -rectH / 2 },
-    { x: rectW / 2, y: rectH / 2 },
-    { x: -rectW / 2, y: rectH / 2 },
+    { x: -item.rectW / 2, y: -item.rectH / 2 },
+    { x: item.rectW / 2, y: -item.rectH / 2 },
+    { x: item.rectW / 2, y: item.rectH / 2 },
+    { x: -item.rectW / 2, y: item.rectH / 2 },
   ];
 
   return {
     template: 'composite_overlay',
-    bounds: { xMin: -radius, xMax: radius, yMin: -radius, yMax: radius },
+    bounds: { xMin: -item.radius, xMax: item.radius, yMin: -item.radius, yMax: item.radius },
     layers: [
-      { kind: 'circle', c: center, r: radius, fill: 'rgba(248,250,252,0.03)', stroke: '#94a3b8', sw: 2.2 },
+      { kind: 'circle', c: { x: 0, y: 0 }, r: item.radius, fill: 'rgba(248,250,252,0.03)', stroke: '#94a3b8', sw: 2.2 },
       { kind: 'poly', pts: rect, fill: '#020617', stroke: '#94a3b8', sw: 2 },
-      { kind: 'dot', p: center, label: 'O', offset: { x: 8, y: 12 }, color: '#f8fafc' },
-      { kind: 'dot', p: { x: radius, y: 0 }, label: 'A', offset: { x: 8, y: -10 }, color: '#f8fafc' },
-      { kind: 'segLabel', a: center, b: { x: radius, y: 0 }, label: formatLength(radius), color: '#f59e0b' },
-      { kind: 'segLabel', a: { x: -rectW / 2, y: -rectH / 2 }, b: { x: rectW / 2, y: -rectH / 2 }, label: item.kind.endsWith('reverse') ? '?' : formatLength(rectW), color: '#f59e0b' },
-      { kind: 'segLabel', a: { x: rectW / 2, y: -rectH / 2 }, b: { x: rectW / 2, y: rectH / 2 }, label: formatLength(rectH), color: '#f59e0b' },
+      { kind: 'dot', p: { x: 0, y: 0 }, label: 'O', offset: { x: 8, y: 12 }, color: '#f8fafc' },
+      { kind: 'dot', p: { x: item.radius, y: 0 }, label: 'A', offset: { x: 8, y: -10 }, color: '#f8fafc' },
+      { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: item.radius, y: 0 }, label: formatLength(item.radius), color: '#f59e0b' },
+      { kind: 'segLabel', a: { x: -item.rectW / 2, y: -item.rectH / 2 }, b: { x: item.rectW / 2, y: -item.rectH / 2 }, label: item.kind.endsWith('reverse') ? '?' : formatLength(item.rectW), color: '#f59e0b' },
+      { kind: 'segLabel', a: { x: item.rectW / 2, y: -item.rectH / 2 }, b: { x: item.rectW / 2, y: item.rectH / 2 }, label: formatLength(item.rectH), color: '#f59e0b' },
       ...(item.kind.endsWith('reverse')
-        ? [{ kind: 'text', x: 0, y: 0, text: formatCircleCutAreaExpression(radius, rectW, rectH), color: '#f59e0b' }]
+        ? [{ kind: 'text', x: 0, y: 0, text: formatCircleCutAreaExpression(item.radius, item.rectW, item.rectH), color: '#f59e0b' }]
         : []),
     ],
   };
@@ -528,6 +634,7 @@ export function buildCompositeAreaPerimeterDiagramSpec(item) {
       return buildAdjacentSquaresCompositeSpec(item);
     case 'overlap_rectangles_union_area':
     case 'overlap_rectangles_union_area_reverse':
+    case 'overlap_rectangles_union_perimeter':
       return buildOverlapRectanglesUnionSpec(item);
     case 'rectangle_triangle_cut_area':
     case 'rectangle_triangle_cut_perimeter':
@@ -536,7 +643,12 @@ export function buildCompositeAreaPerimeterDiagramSpec(item) {
     case 'rectangle_frame_area':
     case 'rectangle_frame_perimeter':
     case 'rectangle_frame_area_reverse':
+    case 'rectangle_frame_perimeter_reverse':
       return buildRectangleFrameSpec(item);
+    case 'house_shape_area':
+    case 'house_shape_perimeter':
+    case 'house_shape_area_reverse':
+      return buildHouseShapeSpec(item);
     case 'circle_rectangle_cut_area':
     case 'circle_rectangle_cut_perimeter':
     case 'circle_rectangle_cut_area_reverse':
@@ -547,65 +659,43 @@ export function buildCompositeAreaPerimeterDiagramSpec(item) {
 }
 
 export function buildCompositeAreaPerimeterRenderContract(item) {
+  const genericComposite = ['"template":"composite_overlay"', '"kind":"poly"', '"kind":"segLabel"'];
+
   switch (item.kind) {
     case 'adjacent_squares_diagonal_area':
+    case 'adjacent_squares_diagonal_tall_area':
+    case 'overlap_rectangles_union_area':
+    case 'overlap_rectangles_union_perimeter':
+    case 'rectangle_triangle_cut_area':
+    case 'rectangle_triangle_cut_perimeter':
+    case 'rectangle_frame_area':
+    case 'rectangle_frame_perimeter':
+    case 'house_shape_area':
+    case 'house_shape_perimeter':
       return {
-        questionIncludes: ['正方形', '阴影', '面积'],
-        diagramIncludes: ['"template":"composite_overlay"', '"kind":"poly"', '"kind":"seg"', '"kind":"segLabel"', '"text":"?"'],
+        questionIncludes: ['如图'],
+        diagramIncludes: [...genericComposite, '"text":"?"'],
       };
     case 'adjacent_squares_diagonal_area_reverse':
     case 'adjacent_squares_diagonal_tall_area_reverse':
-      return {
-        questionIncludes: ['正方形', '阴影', '面积'],
-        diagramIncludes: ['"template":"composite_overlay"', '"kind":"poly"', '"kind":"seg"', '"kind":"segLabel"', `"text":"${formatArea(item.area)}"`],
-      };
-    case 'adjacent_squares_diagonal_tall_area':
-      return {
-        questionIncludes: ['正方形', '阴影', '面积'],
-        diagramIncludes: ['"template":"composite_overlay"', '"kind":"poly"', '"kind":"seg"', '"kind":"segLabel"', '"text":"?"'],
-      };
-    case 'overlap_rectangles_union_area':
-      return {
-        questionIncludes: ['长方形', '重叠', '面积'],
-        diagramIncludes: ['"template":"composite_overlay"', '"kind":"poly"', '"kind":"segLabel"', '"text":"?"'],
-      };
     case 'overlap_rectangles_union_area_reverse':
-      return {
-        questionIncludes: ['长方形', '重叠', '面积'],
-        diagramIncludes: ['"template":"composite_overlay"', '"kind":"poly"', '"kind":"segLabel"', `"text":"${formatArea(item.area)}"`],
-      };
-    case 'rectangle_triangle_cut_area':
-    case 'rectangle_triangle_cut_perimeter':
-      return {
-        questionIncludes: ['长方形', '三角形'],
-        diagramIncludes: ['"template":"composite_overlay"', '"kind":"poly"', '"kind":"segLabel"'],
-      };
     case 'rectangle_triangle_cut_area_reverse':
-      return {
-        questionIncludes: ['长方形', '面积'],
-        diagramIncludes: ['"template":"composite_overlay"', '"text":"', '"kind":"segLabel"'],
-      };
-    case 'rectangle_frame_area':
-    case 'rectangle_frame_perimeter':
-      return {
-        questionIncludes: ['相框', '长方形'],
-        diagramIncludes: ['"template":"composite_overlay"', '"kind":"poly"', '"kind":"segLabel"', '"text":"?"'],
-      };
     case 'rectangle_frame_area_reverse':
+    case 'rectangle_frame_perimeter_reverse':
+    case 'house_shape_area_reverse':
       return {
-        questionIncludes: ['相框', '面积'],
-        diagramIncludes: ['"template":"composite_overlay"', '"kind":"poly"', '"kind":"segLabel"', `"text":"${formatArea(item.area)}"`],
+        questionIncludes: ['如图'],
+        diagramIncludes: ['"template":"composite_overlay"', '"kind":"poly"', '"kind":"segLabel"', '"text":"'],
       };
     case 'circle_rectangle_cut_area':
     case 'circle_rectangle_cut_perimeter':
       return {
-        questionIncludes: ['圆形', '长方形'],
+        questionIncludes: ['圆形'],
         diagramIncludes: ['"template":"composite_overlay"', '"kind":"circle"', '"kind":"poly"', '"kind":"segLabel"'],
-        diagramExcludes: ['"text":"?"'],
       };
     case 'circle_rectangle_cut_area_reverse':
       return {
-        questionIncludes: ['圆形', '面积'],
+        questionIncludes: ['圆形'],
         diagramIncludes: ['"template":"composite_overlay"', '"kind":"circle"', '"kind":"poly"', '"kind":"segLabel"', `"text":"${formatCircleCutAreaExpression(item.radius, item.rectW, item.rectH)}"`],
       };
     default:
@@ -645,6 +735,10 @@ export function validateCompositeAreaPerimeterItem(item) {
       if (issues.length === 0 && !approxEqual(item.area, item.baseWidth * item.baseHeight + item.towerWidth * item.towerHeight - item.overlapWidth * item.overlapHeight)) issues.push('overlap rectangles reverse area mismatch');
       if (issues.length === 0 && !approxEqual(item.answer, item.overlapWidth)) issues.push('overlap rectangles reverse answer mismatch');
       break;
+    case 'overlap_rectangles_union_perimeter':
+      if (!isFinitePositiveNumber(item.baseWidth) || !isFinitePositiveNumber(item.towerWidth) || !isFinitePositiveNumber(item.towerHeight) || !isFinitePositiveNumber(item.overlapWidth)) issues.push('overlap rectangles perimeter data is invalid');
+      if (issues.length === 0 && !approxEqual(item.answer, 2 * (item.baseWidth - item.overlapWidth + item.towerWidth + item.towerHeight))) issues.push('overlap rectangles perimeter mismatch');
+      break;
     case 'rectangle_triangle_cut_area':
       if (!isFinitePositiveNumber(item.width) || !isFinitePositiveNumber(item.height) || !isFinitePositiveNumber(item.cutW) || !isFinitePositiveNumber(item.cutH)) issues.push('rectangle triangle cut data is invalid');
       if (issues.length === 0 && !approxEqual(item.answer, item.width * item.height - (item.cutW * item.cutH) / 2)) issues.push('rectangle triangle cut area mismatch');
@@ -670,6 +764,27 @@ export function validateCompositeAreaPerimeterItem(item) {
       if (!isFinitePositiveNumber(item.outerWidth) || !isFinitePositiveNumber(item.outerHeight) || !isFinitePositiveNumber(item.innerWidth) || !isFinitePositiveNumber(item.innerHeight) || !isFinitePositiveNumber(item.area)) issues.push('rectangle frame reverse data is invalid');
       if (issues.length === 0 && !approxEqual(item.area, item.outerWidth * item.outerHeight - item.innerWidth * item.innerHeight)) issues.push('rectangle frame reverse area mismatch');
       if (issues.length === 0 && !approxEqual(item.answer, item.innerWidth)) issues.push('rectangle frame reverse answer mismatch');
+      break;
+    case 'rectangle_frame_perimeter_reverse':
+      if (!isFinitePositiveNumber(item.outerWidth) || !isFinitePositiveNumber(item.outerHeight) || !isFinitePositiveNumber(item.innerWidth) || !isFinitePositiveNumber(item.innerHeight) || !isFinitePositiveNumber(item.perimeter)) issues.push('rectangle frame perimeter reverse data is invalid');
+      if (issues.length === 0 && !approxEqual(item.perimeter, 2 * (item.outerWidth + item.outerHeight) + 2 * (item.innerWidth + item.innerHeight))) issues.push('rectangle frame perimeter reverse mismatch');
+      if (issues.length === 0 && !approxEqual(item.answer, item.innerWidth)) issues.push('rectangle frame perimeter reverse answer mismatch');
+      break;
+    case 'house_shape_area':
+      if (!isFinitePositiveNumber(item.width) || !isFinitePositiveNumber(item.wallHeight) || !isFinitePositiveNumber(item.roofRise)) issues.push('house shape data is invalid');
+      if (issues.length === 0 && !approxEqual(item.answer, item.width * item.wallHeight + (item.width * item.roofRise) / 2)) issues.push('house shape area mismatch');
+      break;
+    case 'house_shape_perimeter':
+      if (!isFinitePositiveNumber(item.width) || !isFinitePositiveNumber(item.wallHeight) || !isFinitePositiveNumber(item.roofRise)) issues.push('house shape perimeter data is invalid');
+      if (issues.length === 0) {
+        const slant = Math.sqrt((item.width / 2) ** 2 + item.roofRise ** 2);
+        if (!approxEqual(item.answer, item.width + 2 * item.wallHeight + 2 * slant)) issues.push('house shape perimeter mismatch');
+      }
+      break;
+    case 'house_shape_area_reverse':
+      if (!isFinitePositiveNumber(item.width) || !isFinitePositiveNumber(item.wallHeight) || !isFinitePositiveNumber(item.roofRise) || !isFinitePositiveNumber(item.area)) issues.push('house shape reverse data is invalid');
+      if (issues.length === 0 && !approxEqual(item.area, item.width * item.wallHeight + (item.width * item.roofRise) / 2)) issues.push('house shape reverse area mismatch');
+      if (issues.length === 0 && !approxEqual(item.answer, item.roofRise)) issues.push('house shape reverse answer mismatch');
       break;
     case 'circle_rectangle_cut_area':
       if (!isFinitePositiveNumber(item.radius) || !isFinitePositiveNumber(item.rectW) || !isFinitePositiveNumber(item.rectH)) issues.push('circle rectangle cut data is invalid');

@@ -41,12 +41,17 @@ const allowedHardKinds = new Set([
   'adjacent_squares_diagonal_tall_area_reverse',
   'overlap_rectangles_union_area',
   'overlap_rectangles_union_area_reverse',
+  'overlap_rectangles_union_perimeter',
   'rectangle_triangle_cut_area',
   'rectangle_triangle_cut_perimeter',
   'rectangle_triangle_cut_area_reverse',
   'rectangle_frame_area',
   'rectangle_frame_perimeter',
   'rectangle_frame_area_reverse',
+  'rectangle_frame_perimeter_reverse',
+  'house_shape_area',
+  'house_shape_perimeter',
+  'house_shape_area_reverse',
   'circle_rectangle_cut_area',
   'circle_rectangle_cut_perimeter',
   'circle_rectangle_cut_area_reverse',
@@ -128,7 +133,7 @@ assert.match(renderAreaPerimeterExerciseItem(hardAdjacentItem, 0, 'zh'), /"kind"
 const hardAdjacentReverseItem = hardBatch.find((item) => item.kind === 'adjacent_squares_diagonal_area_reverse');
 assert.ok(hardAdjacentReverseItem);
 assert.match(renderAreaPerimeterExerciseItem(hardAdjacentReverseItem, 0, 'zh'), /"template":"composite_overlay"/);
-assert.match(renderAreaPerimeterExerciseItem(hardAdjacentReverseItem, 0, 'zh'), /"text":"\d+ cmยฒ"/);
+assert.match(renderAreaPerimeterExerciseItem(hardAdjacentReverseItem, 0, 'zh'), /"text":"\d+ cm²"/);
 
 const hardAdjacentTallItem = hardBatch.find((item) => item.kind === 'adjacent_squares_diagonal_tall_area');
 assert.ok(hardAdjacentTallItem);
@@ -137,7 +142,7 @@ assert.match(renderAreaPerimeterExerciseItem(hardAdjacentTallItem, 0, 'zh'), /"t
 const hardAdjacentTallReverseItem = hardBatch.find((item) => item.kind === 'adjacent_squares_diagonal_tall_area_reverse');
 assert.ok(hardAdjacentTallReverseItem);
 assert.match(renderAreaPerimeterExerciseItem(hardAdjacentTallReverseItem, 0, 'zh'), /"template":"composite_overlay"/);
-assert.match(renderAreaPerimeterExerciseItem(hardAdjacentTallReverseItem, 0, 'zh'), /"text":"\d+ cmยฒ"/);
+assert.match(renderAreaPerimeterExerciseItem(hardAdjacentTallReverseItem, 0, 'zh'), /"text":"\d+ cm²"/);
 
 const hardRectTriangleItem = hardBatch.find((item) => item.kind === 'rectangle_triangle_cut_area');
 assert.ok(hardRectTriangleItem);
@@ -153,6 +158,7 @@ const hardWideBatch = buildAreaPerimeterExerciseItems(24, { lang: 'zh', difficul
 const hardWideKinds = new Set(hardWideBatch.map((item) => item.kind));
 assert.ok(hardWideKinds.has('overlap_rectangles_union_area') || hardWideKinds.has('overlap_rectangles_union_area_reverse'));
 assert.ok(hardWideKinds.has('rectangle_frame_area') || hardWideKinds.has('rectangle_frame_perimeter') || hardWideKinds.has('rectangle_frame_area_reverse'));
+assert.ok(hardWideKinds.has('house_shape_area') || hardWideKinds.has('house_shape_perimeter') || hardWideKinds.has('house_shape_area_reverse'));
 
 const circleCutNonReverseItem = {
   kind: 'circle_rectangle_cut_perimeter',
@@ -180,9 +186,9 @@ const circleCutReverseItem = {
 assert.deepEqual(validateCompositeAreaPerimeterItem(circleCutReverseItem), []);
 const circleCutReverseQuestion = buildCompositeAreaPerimeterQuestionText(circleCutReverseItem, 'zh');
 const circleCutReverseDiagram = JSON.stringify(buildCompositeAreaPerimeterDiagramSpec(circleCutReverseItem));
-assert.match(circleCutReverseQuestion, /100ฯ€ - 24 cmยฒ/);
+assert.match(circleCutReverseQuestion, /100π - 24 cm²/);
 assert.doesNotMatch(circleCutReverseQuestion, /290\.1592653589793/);
-assert.match(circleCutReverseDiagram, /100ฯ€ - 24 cmยฒ/);
+assert.match(circleCutReverseDiagram, /100π - 24 cm²/);
 assert.doesNotMatch(circleCutReverseDiagram, /290\.1592653589793/);
 assert.doesNotMatch(circleCutReverseDiagram, /"text":"\?"/);
 
@@ -204,6 +210,20 @@ assert.match(overlapRectanglesQuestion, /重叠/);
 assert.match(overlapRectanglesDiagram, /"kind":"poly"/);
 assert.match(overlapRectanglesDiagram, /"text":"\?"/);
 
+const overlapRectanglesPerimeterItem = {
+  kind: 'overlap_rectangles_union_perimeter',
+  baseWidth: 24,
+  baseHeight: 12,
+  towerWidth: 15,
+  towerHeight: 21,
+  overlapWidth: 9,
+  overlapHeight: 12,
+  answer: 2 * (24 - 9 + 15 + 21),
+  scene: { zh: '重叠长方形', en: 'overlapping rectangles' },
+};
+assert.deepEqual(validateCompositeAreaPerimeterItem(overlapRectanglesPerimeterItem), []);
+assert.match(buildCompositeAreaPerimeterQuestionText(overlapRectanglesPerimeterItem, 'zh'), /周长/);
+
 const frameReverseItem = {
   kind: 'rectangle_frame_area_reverse',
   outerWidth: 40,
@@ -218,8 +238,36 @@ assert.deepEqual(validateCompositeAreaPerimeterItem(frameReverseItem), []);
 const frameReverseQuestion = buildCompositeAreaPerimeterQuestionText(frameReverseItem, 'zh');
 const frameReverseDiagram = JSON.stringify(buildCompositeAreaPerimeterDiagramSpec(frameReverseItem));
 assert.match(frameReverseQuestion, /相框/);
-assert.match(frameReverseDiagram, /"text":"928 cmยฒ"/);
+assert.match(frameReverseDiagram, /"text":"928 cm²"/);
 assert.match(frameReverseDiagram, /"label":"\?"/);
+
+const framePerimeterReverseItem = {
+  kind: 'rectangle_frame_perimeter_reverse',
+  outerWidth: 40,
+  outerHeight: 28,
+  innerWidth: 16,
+  innerHeight: 12,
+  perimeter: 2 * (40 + 28) + 2 * (16 + 12),
+  answer: 16,
+  scene: { zh: '长方形相框', en: 'rectangular frame' },
+};
+assert.deepEqual(validateCompositeAreaPerimeterItem(framePerimeterReverseItem), []);
+assert.match(buildCompositeAreaPerimeterQuestionText(framePerimeterReverseItem, 'zh'), /周长/);
+
+const houseReverseItem = {
+  kind: 'house_shape_area_reverse',
+  width: 12,
+  wallHeight: 10,
+  roofRise: 8,
+  area: 12 * 10 + (12 * 8) / 2,
+  answer: 8,
+  scene: { zh: '小房子图形', en: 'house shape' },
+};
+assert.deepEqual(validateCompositeAreaPerimeterItem(houseReverseItem), []);
+const houseReverseQuestion = buildCompositeAreaPerimeterQuestionText(houseReverseItem, 'zh');
+const houseReverseDiagram = JSON.stringify(buildCompositeAreaPerimeterDiagramSpec(houseReverseItem));
+assert.match(houseReverseQuestion, /小房子/);
+assert.match(houseReverseDiagram, /"text":"168 cm²"/);
 
 const hardSingles = Array.from({ length: 10 }, () => buildAreaPerimeterExerciseItems(1, { lang: 'zh', difficulty: 'Hard', grade: '8' }));
 const hardSingleKeys = hardSingles.map((batch) => batch[0].key);
@@ -277,6 +325,7 @@ assert.ok([...hardSpotKinds].some((kind) => kind.startsWith('circle_rectangle_cu
 assert.ok([...hardSpotKinds].some((kind) => kind.startsWith('adjacent_squares_diagonal')));
 assert.ok([...hardSpotKinds].some((kind) => kind.startsWith('overlap_rectangles_union')));
 assert.ok([...hardSpotKinds].some((kind) => kind.startsWith('rectangle_frame')));
+assert.ok([...hardSpotKinds].some((kind) => kind.startsWith('house_shape')));
 assert.ok([...hardSpotKinds].some((kind) => kind.startsWith('rectangle_triangle_cut')));
 
 console.log('area-perimeter template test passed');
