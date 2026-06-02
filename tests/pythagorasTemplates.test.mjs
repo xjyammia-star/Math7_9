@@ -100,7 +100,7 @@ assert.equal(cnItems.length, 3);
 assert.equal(new Set(cnItems.map((item) => item.kind)).size, 3);
 assert.deepEqual(validatePythagorasExerciseItems(cnItems), []);
 assert.ok(cnItems.some((item) => item.kind === 'rectangle_diagonal'));
-assert.ok(cnItems.some((item) => item.kind === 'square_diagonal'));
+assert.ok(cnItems.some((item) => item.kind === 'direct_hypotenuse'));
 assert.ok(cnItems.some((item) => item.diagramTemplate === 'right_triangle'));
 
 const cnBatch = buildPythagorasExerciseBatch({
@@ -115,7 +115,6 @@ const cnBatch = buildPythagorasExerciseBatch({
 
 assert.match(cnBatch, /"template":"right_triangle"/);
 assert.match(cnBatch, /"template":"rectangle_diagonal"/);
-assert.match(cnBatch, /"template":"square_diagonal"/);
 assert.match(cnBatch, /"labels":\{"A":"A","B":"B","C":"C","D":"D"\}/);
 assert.match(cnBatch, /Find the length of AC|diagonal AC/);
 
@@ -435,8 +434,8 @@ const usBatch = buildPythagorasExerciseBatch({
   persistHistory: false,
 });
 
-assert.match(usBatch, /"template":"(square_diagonal|coordinate_points|right_triangle|rectangle_diagonal)"/);
-assert.match(usBatch, /Find the length of (side )?(AB|BC|AC)|Find AB|Find BC|Find AC/);
+assert.match(usBatch, /"template":"(square_diagonal|coordinate_points|right_triangle|rectangle_diagonal|ladder)"/);
+assert.match(usBatch, /Find the length of (side )?(AB|BC|AC)|Find AB|Find BC|Find AC|How high up the wall does it reach\?|How far is the foot of the ladder from the wall\?/);
 
 for (const [curriculum, grade, difficulty] of [
   ['US', '9', 'Easy'],

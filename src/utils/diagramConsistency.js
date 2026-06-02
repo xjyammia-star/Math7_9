@@ -607,8 +607,16 @@ export function needsCircleDiameterRepair({ conceptTitle = "", conceptDesc = "",
 
   const expectedPoints = extractExpectedPointNames(source);
   const actualPoints = collectDiagramPointLabels(data);
+  const templateName = String(data.template ?? "");
+  if (templateName === "circle_diameter_points") {
+    const hasCoreLabels = ["A", "B", "C", "D"].every((point) => actualPoints.has(point));
+    const hasRadiusField = hasAnyDiagramField(data, ["radius", "label_radius", "label_diameter", "diameter"]);
+    if (hasCoreLabels && hasRadiusField) {
+      return false;
+    }
+  }
   if (expectedPoints.some((point) => !actualPoints.has(point))) return true;
-  if (hasDiameterCue(source) && !hasAnyDiagramField(data, ["label_ab", "label_diameter", "diameter"])) return true;
+  if (hasDiameterCue(source) && !hasAnyDiagramField(data, ["label_ab", "label_diameter", "diameter"]) && templateName !== "circle_diameter_points") return true;
   if (!hasAnyDiagramField(data, ["radius"])) return true;
 
   const askedAngles = extractAskedTargets(source).angles;
@@ -760,7 +768,8 @@ export function needsTangentChordRepair({ conceptTitle = "", conceptDesc = "", g
 
   if (wantsDualArcPoints) {
     if (!data || typeof data !== "object") return true;
-    if (!hasExpectedDualTangentChordLabels(generatedText, tangentPointCue)) return true;
+    const hasCoreDualLabels = ["A", "B", "C", "D"].every((label) => String(data[`label_${label}`] ?? "").toUpperCase() === label);
+    if (!hasCoreDualLabels) return true;
     if (expectedCArcType && !hasExpectedArcTypeField(source, data, 'C', 'arc_type')) return true;
     if (expectedDArcType && !hasExpectedArcTypeField(source, data, 'D', 'd_arc_type')) return true;
     return false;

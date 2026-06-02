@@ -1191,6 +1191,190 @@
       { variantId: '9643', length: 9, width: 6, height: 4 },
     ],
   },
+  {
+    id: 'all_ladder_height',
+    curricula: ['CN', 'US', 'UK', 'SG', 'IB'],
+    grades: ['7', '8', '9'],
+    difficulties: ['Easy', 'Medium'],
+    kind: 'ladder_height',
+    diagramTemplate: 'ladder',
+    unit: 'm',
+    values: [
+      { variantId: '13125', length: 13, foot: 5, height: 12 },
+      { variantId: '17158', length: 17, foot: 8, height: 15 },
+      { variantId: '201612', length: 20, foot: 12, height: 16 },
+    ],
+  },
+  {
+    id: 'all_ladder_foot_basic',
+    curricula: ['CN', 'US', 'UK', 'SG', 'IB'],
+    grades: ['7', '8', '9'],
+    difficulties: ['Easy', 'Medium'],
+    kind: 'ladder_foot_basic',
+    diagramTemplate: 'ladder',
+    unit: 'm',
+    values: [
+      { variantId: '13125', length: 13, height: 12, foot: 5 },
+      { variantId: '17158', length: 17, height: 15, foot: 8 },
+      { variantId: '201612', length: 20, height: 16, foot: 12 },
+      { variantId: '25724', length: 25, height: 24, foot: 7 },
+    ],
+  },
+  {
+    id: 'all_coordinate_distance',
+    curricula: ['CN', 'US', 'UK', 'SG', 'IB'],
+    grades: ['7', '8', '9'],
+    difficulties: ['Easy', 'Medium'],
+    kind: 'coordinate_distance',
+    diagramTemplate: 'coordinate_points',
+    values: [
+      {
+        variantId: '068',
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 6, y: 0, label: 'B' },
+          { x: 6, y: 8, label: 'C' },
+        ],
+      },
+      {
+        variantId: '0912',
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 9, y: 0, label: 'B' },
+          { x: 9, y: 12, label: 'C' },
+        ],
+      },
+      {
+        variantId: '121620',
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 12, y: 0, label: 'B' },
+          { x: 12, y: 16, label: 'C' },
+        ],
+      },
+      {
+        variantId: '1520',
+        points: [
+          { x: 0, y: 0, label: 'A' },
+          { x: 15, y: 0, label: 'B' },
+          { x: 15, y: 20, label: 'C' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'all_show_right_triangle',
+    curricula: ['CN', 'US', 'UK', 'SG', 'IB'],
+    grades: ['7', '8', '9'],
+    difficulties: ['Easy', 'Medium'],
+    kind: 'show_right_triangle',
+    diagramTemplate: 'right_triangle',
+    values: [
+      { variantId: '345', legAB: 3, legBC: 4, hypotenuse: 5 },
+      { variantId: '51213', legAB: 5, legBC: 12, hypotenuse: 13 },
+      { variantId: '81517', legAB: 8, legBC: 15, hypotenuse: 17 },
+      { variantId: '202129', legAB: 20, legBC: 21, hypotenuse: 29 },
+    ],
+  },
+  {
+    id: 'all_direct_leg_ab',
+    curricula: ['CN', 'US', 'UK', 'SG', 'IB'],
+    grades: ['7', '8', '9'],
+    difficulties: ['Easy', 'Medium'],
+    kind: 'direct_leg_ab',
+    diagramTemplate: 'right_triangle',
+    values: [
+      { variantId: '51213', legAB: 12, legBC: 5, hypotenuse: 13 },
+      { variantId: '94041', legAB: 40, legBC: 9, hypotenuse: 41 },
+      { variantId: '7825', legAB: 24, legBC: 7, hypotenuse: 25 },
+      { variantId: '151717', legAB: 15, legBC: 8, hypotenuse: 17 },
+    ],
+  },
+  {
+    id: 'all_direct_hypotenuse',
+    curricula: ['CN', 'US', 'UK', 'SG', 'IB'],
+    grades: ['7', '8', '9'],
+    difficulties: ['Easy', 'Medium'],
+    kind: 'direct_hypotenuse',
+    diagramTemplate: 'right_triangle',
+    values: [
+      { variantId: '345', legAB: 3, legBC: 4, hypotenuse: 5 },
+      { variantId: '6810', legAB: 6, legBC: 8, hypotenuse: 10 },
+      { variantId: '51213', legAB: 5, legBC: 12, hypotenuse: 13 },
+      { variantId: '91215', legAB: 9, legBC: 12, hypotenuse: 15 },
+    ],
+  },
+  {
+    id: 'all_rectangle_diagonal',
+    curricula: ['CN', 'US', 'UK', 'SG', 'IB'],
+    grades: ['7', '8', '9'],
+    difficulties: ['Easy', 'Medium'],
+    kind: 'rectangle_diagonal',
+    diagramTemplate: 'rectangle_diagonal',
+    values: [
+      { variantId: '345', width: 3, height: 4 },
+      { variantId: '51213', width: 5, height: 12 },
+      { variantId: '6810', width: 6, height: 8 },
+      { variantId: '91215', width: 9, height: 12 },
+    ],
+  },
+  {
+    id: 'all_square_diagonal',
+    curricula: ['CN', 'US', 'UK', 'SG', 'IB'],
+    grades: ['7', '8', '9'],
+    difficulties: ['Easy', 'Medium'],
+    kind: 'square_diagonal',
+    diagramTemplate: 'square_diagonal',
+    values: [
+      { variantId: '4root2', side: 4, diagonal: 4 * Math.SQRT2 },
+      { variantId: '6root2', side: 6, diagonal: 6 * Math.SQRT2 },
+      { variantId: '8root2', side: 8, diagonal: 8 * Math.SQRT2 },
+      { variantId: '10root2', side: 10, diagonal: 10 * Math.SQRT2 },
+    ],
+  },
+  {
+    id: 'all_direct_leg_bc',
+    curricula: ['CN', 'US', 'UK', 'SG', 'IB'],
+    grades: ['7', '8', '9'],
+    difficulties: ['Medium'],
+    kind: 'direct_leg_bc',
+    diagramTemplate: 'right_triangle',
+    values: [
+      { variantId: '72425', legAB: 7, legBC: 24, hypotenuse: 25 },
+      { variantId: '202129', legAB: 20, legBC: 21, hypotenuse: 29 },
+      { variantId: '81517', legAB: 8, legBC: 15, hypotenuse: 17 },
+      { variantId: '94041', legAB: 9, legBC: 40, hypotenuse: 41 },
+    ],
+  },
+  {
+    id: 'all_rectangle_perimeter_diagonal',
+    curricula: ['CN', 'US', 'UK', 'SG', 'IB'],
+    grades: ['7', '8', '9'],
+    difficulties: ['Medium', 'Hard'],
+    kind: 'rectangle_perimeter_diagonal',
+    diagramTemplate: 'rectangle_diagonal',
+    values: [
+      { variantId: 'frame36213', scene: 'frame', unit: 'cm', width: 5, height: 13, perimeter: 36, diagonal: Math.sqrt(194) },
+      { variantId: 'rug40216', scene: 'rug', unit: 'cm', width: 8, height: 12, perimeter: 40, diagonal: Math.sqrt(208) },
+      { variantId: 'garden44218', scene: 'garden', unit: 'm', width: 10, height: 12, perimeter: 44, diagonal: Math.sqrt(244) },
+      { variantId: 'poster4868', scene: 'poster', unit: 'cm', width: 6, height: 8, perimeter: 28, diagonal: Math.sqrt(100) },
+    ],
+  },
+  {
+    id: 'all_rectangle_area_diagonal',
+    curricula: ['CN', 'US', 'UK', 'SG', 'IB'],
+    grades: ['7', '8', '9'],
+    difficulties: ['Medium', 'Hard'],
+    kind: 'rectangle_area_diagonal',
+    diagramTemplate: 'rectangle_diagonal',
+    values: [
+      { variantId: 'park45213', scene: 'park', unit: 'm', width: 4, height: 13, area: 52, diagonal: Math.sqrt(185) },
+      { variantId: 'screen78412', scene: 'screen', unit: 'cm', width: 7, height: 12, area: 84, diagonal: Math.sqrt(193) },
+      { variantId: 'garden89612', scene: 'garden', unit: 'm', width: 8, height: 12, area: 96, diagonal: Math.sqrt(208) },
+      { variantId: 'court6513', scene: 'courtyard', unit: 'm', width: 5, height: 13, area: 65, diagonal: Math.sqrt(194) },
+      { variantId: 'poster4868', scene: 'poster', unit: 'cm', width: 6, height: 8, area: 48, diagonal: Math.sqrt(100) },
+    ],
+  },
 ];
 
 const HISTORY_KEY = 'math7-9:pythagoras-variant-history:v4';
@@ -1198,10 +1382,29 @@ const KIND_HISTORY_KEY = 'math7-9:pythagoras-kind-history:v1';
 const DIFFICULTY_ORDER = { Easy: 0, Medium: 1, Hard: 2 };
 const PYTHAGORAS_DIFFICULTY_BLUEPRINT = {
   Easy: {
-    families: ['direct_hypotenuse', 'rectangle_diagonal', 'square_diagonal', 'ladder_height'],
+    families: [
+      'direct_hypotenuse',
+      'rectangle_diagonal',
+      'square_diagonal',
+      'direct_leg_ab',
+      'ladder_height',
+      'ladder_foot_basic',
+      'coordinate_distance',
+      'show_right_triangle',
+    ],
   },
   Medium: {
-    families: ['direct_leg_ab', 'direct_leg_bc', 'square_side_from_diagonal', 'coordinate_distance'],
+    families: [
+      'direct_leg_ab',
+      'direct_leg_bc',
+      'square_side_from_diagonal',
+      'coordinate_distance',
+      'ladder_height',
+      'ladder_foot_basic',
+      'rectangle_perimeter_diagonal',
+      'rectangle_area_diagonal',
+      'show_right_triangle',
+    ],
   },
   Hard: {
     families: [
@@ -1229,6 +1432,7 @@ const KIND_COMPLEXITY = {
   rectangle_diagonal: 0,
   square_diagonal: 0,
   ladder_height: 0,
+  ladder_foot_basic: 1,
   direct_leg_ab: 1,
   direct_leg_bc: 1,
   coordinate_distance: 1,
@@ -1248,10 +1452,10 @@ const KIND_COMPLEXITY = {
   cylinder_shortest_path: 5,
 };
 const COMPLEXITY_WINDOW_BY_GRADE_AND_DIFFICULTY = {
-  '6': { Easy: [0, 0], Medium: [1, 2], Hard: [2, 3] },
-  '7': { Easy: [0, 0], Medium: [1, 2], Hard: [2, 3] },
-  '8': { Easy: [0, 0], Medium: [1, 2], Hard: [4, 4] },
-  '9': { Easy: [0, 0], Medium: [1, 2], Hard: [4, 4] },
+  '6': { Easy: [0, 2], Medium: [1, 4], Hard: [3, 8] },
+  '7': { Easy: [0, 2], Medium: [1, 4], Hard: [3, 8] },
+  '8': { Easy: [0, 2], Medium: [1, 4], Hard: [3, 8] },
+  '9': { Easy: [0, 2], Medium: [1, 4], Hard: [3, 8] },
 };
 const HARD_ADVANCED_KINDS = new Set([
   ...PYTHAGORAS_DIFFICULTY_BLUEPRINT.Hard.families,
@@ -1290,6 +1494,10 @@ const PYTHAGORAS_RENDER_CONTRACTS = {
     diagramIncludes: ['"template":"ladder"', '"label_foot_pt":"B"', '"label_foot":"'],
   },
   ladder_foot: {
+    questionIncludes: ['ladder', '梯子', 'foot', '梯脚'],
+    diagramIncludes: ['"template":"ladder"', '"label_foot":"?"'],
+  },
+  ladder_foot_basic: {
     questionIncludes: ['ladder', '梯子', 'foot', '梯脚'],
     diagramIncludes: ['"template":"ladder"', '"label_foot":"?"'],
   },
@@ -1630,12 +1838,16 @@ function getHardCandidateScenarios(context) {
   return advanced.length > 0 ? advanced : allCandidates;
 }
 
+function countUniqueKindsInTiers(tiers) {
+  return new Set((tiers ?? []).flat().map((scenario) => scenario?.kind).filter(Boolean)).size;
+}
+
 function getHardCandidateScenarioTiers(context) {
   const contextHardTiers = getCandidateScenarioTiers(context)
     .map((tier) => tier.filter((scenario) => scenario.difficulties.includes('Hard') && HARD_ADVANCED_KINDS.has(scenario.kind)))
     .filter((tier) => tier.length > 0);
 
-  if (contextHardTiers.length > 0) {
+  if (contextHardTiers.length > 0 && countUniqueKindsInTiers([contextHardTiers[0]]) >= 8) {
     return contextHardTiers;
   }
 
@@ -1645,7 +1857,13 @@ function getHardCandidateScenarioTiers(context) {
     )
   );
   if (hardAdvancedFallback.length > 0) {
-    return [hardAdvancedFallback];
+    const merged = uniqueScenariosById([
+      ...contextHardTiers.flat(),
+      ...hardAdvancedFallback,
+    ]);
+    if (merged.length > 0) {
+      return [merged];
+    }
   }
 
   const hardOnlyFallback = uniqueScenariosById(
@@ -1736,6 +1954,16 @@ function getCandidateScenarioTiers(context) {
     tiers.push(allFallback);
   }
 
+  if (normalizedDifficulty !== 'Hard' && countUniqueKindsInTiers(tiers) < 8) {
+    const globalDifficultyFallback = uniqueScenariosById(
+      PYTHAGORAS_SCENARIOS.filter((scenario) => scenario.difficulties.includes(normalizedDifficulty)),
+      seenIds
+    );
+    if (globalDifficultyFallback.length > 0) {
+      tiers.push(globalDifficultyFallback);
+    }
+  }
+
   return tiers;
 }
 
@@ -1821,6 +2049,9 @@ function buildQuestionText(item, lang, context) {
     }
     if (item.kind === 'ladder_height') {
       return `一把长度为 ${formatLength(item.length, unit)} 的梯子靠在墙上，梯脚离墙 ${formatLength(item.foot, unit)}。梯子能爬到墙上的多高？`;
+    }
+    if (item.kind === 'ladder_foot_basic') {
+      return `一把长度为 ${formatLength(item.length, unit)} 的梯子靠在墙上，梯子顶端离地 ${formatLength(item.height, unit)}。梯脚离墙多远？`;
     }
     if (item.kind === 'ladder_foot') {
       return `一把长度为 ${formatLength(item.length, unit)} 的梯子靠在墙上，梯子顶端离地 ${formatLength(item.height, unit)}。梯脚离墙多远？`;
@@ -1952,6 +2183,13 @@ function buildQuestionText(item, lang, context) {
     return `A ladder of length ${formatLength(item.length, unit)} leans against a wall. The foot of the ladder is ${formatLength(item.foot, unit)} from the wall. How high up the wall does it reach?`;
   }
 
+  if (item.kind === 'ladder_foot_basic') {
+    if (zh) {
+      return `一把长度为 ${formatLength(item.length, unit)} 的梯子靠在墙上，梯子顶端离地 ${formatLength(item.height, unit)}。梯脚离墙多远？`;
+    }
+    return `A ladder of length ${formatLength(item.length, unit)} leans against a wall. The top of the ladder is ${formatLength(item.height, unit)} above the ground. How far is the foot of the ladder from the wall?`;
+  }
+
   if (item.kind === 'ladder_foot') {
     if (zh) {
       return `ไธ€ๆ้•ฟๅบฆไธบ ${formatLength(item.length, unit)} ็ๆขฏๅญ้ ๅจๅขไธ๏ผ梯子顶端离地 ${formatLength(item.height, unit)}。梯脚离墙多远？`;
@@ -2039,7 +2277,7 @@ function buildDiagramSpec(item) {
       length: item.length,
       foot_dist: item.foot,
       label_ladder: formatLength(item.length, item.unit),
-      label_foot: item.kind === 'ladder_foot' ? '?' : formatLength(item.foot, item.unit),
+      label_foot: item.kind === 'ladder_foot' || item.kind === 'ladder_foot_basic' ? '?' : formatLength(item.foot, item.unit),
       label_wall: formatLength(item.height, item.unit),
       label_top: 'A',
       label_foot_pt: 'B',
@@ -2336,7 +2574,7 @@ function validateScenarioItem(item) {
     }
   }
 
-  if (item.kind === 'ladder_foot') {
+  if (item.kind === 'ladder_foot_basic' || item.kind === 'ladder_foot') {
     if (!isFinitePositiveNumber(item.length)) issues.push('length must be a positive finite number');
     if (!isFinitePositiveNumber(item.height)) issues.push('height must be a positive finite number');
     if (!isFinitePositiveNumber(item.foot)) issues.push('foot must be a positive finite number');
@@ -2729,11 +2967,11 @@ function validateRenderedScenarioItem(item, rendered) {
     issues.push('square side-from-diagonal question text is missing side wording');
   }
 
-  if (item.kind === 'ladder_foot' && !rendered.includes('How far is the foot of the ladder from the wall') && !rendered.includes('梯脚离墙多远')) {
+  if ((item.kind === 'ladder_foot' || item.kind === 'ladder_foot_basic') && !rendered.includes('How far is the foot of the ladder from the wall') && !rendered.includes('梯脚离墙多远')) {
     issues.push('ladder-foot question text is missing inverse wording');
   }
 
-  if (item.kind === 'ladder_foot' && !rendered.includes('"label_foot":"?"')) {
+  if ((item.kind === 'ladder_foot' || item.kind === 'ladder_foot_basic') && !rendered.includes('"label_foot":"?"')) {
     issues.push('ladder-foot diagram must hide the foot distance');
   }
 
