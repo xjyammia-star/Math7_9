@@ -35,6 +35,10 @@ const AREA_PERIMETER_BLUEPRINT = {
     families: [
       'l_shape_area',
       'l_shape_perimeter',
+      't_shape_area',
+      't_shape_perimeter',
+      't_shape_area_reverse',
+      't_shape_perimeter_reverse',
       'trapezoid_area_reverse',
       'parallelogram_area_reverse',
       'circle_annulus_area_reverse',
@@ -300,6 +304,21 @@ function createScaledShapeVariant(kind, variantId, basePoints, factor, extra = {
   };
 }
 
+function createTShapePoints(width, thickness, stemWidth, stemHeight) {
+  const leftStemX = (width - stemWidth) / 2;
+  const rightStemX = leftStemX + stemWidth;
+  return [
+    { x: 0, y: 0, label: 'A' },
+    { x: width, y: 0, label: 'B' },
+    { x: width, y: thickness, label: 'C' },
+    { x: rightStemX, y: thickness, label: 'D' },
+    { x: rightStemX, y: thickness + stemHeight, label: 'E' },
+    { x: leftStemX, y: thickness + stemHeight, label: 'F' },
+    { x: leftStemX, y: thickness, label: 'G' },
+    { x: 0, y: thickness, label: 'H' },
+  ];
+}
+
 function buildAreaPerimeterVariantExtras() {
   const variants = {};
 
@@ -400,6 +419,76 @@ function buildAreaPerimeterVariantExtras() {
       factor,
       { answer: L_SHAPE_PERIMETER * factor, scene }
     );
+  });
+
+  Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
+    const id = `s${factor}`;
+    const scene = pickScene(AREA_PERIMETER_SCENES.lShape, factor - 2);
+    const width = 8 * factor;
+    const thickness = 2 * factor;
+    const stemWidth = 4 * factor;
+    const stemHeight = 5 * factor;
+    const points = createTShapePoints(width, thickness, stemWidth, stemHeight);
+    const area = width * thickness + stemWidth * stemHeight;
+    const perimeter = 2 * (width + thickness + stemHeight);
+    variants[createVariantKey('t_shape_area', id)] = {
+      key: createVariantKey('t_shape_area', id),
+      kind: 't_shape_area',
+      variantId: id,
+      template: 'coordinate_points',
+      points,
+      outline: points,
+      topWidth: width,
+      topThickness: thickness,
+      stemWidth,
+      stemHeight,
+      answer: area,
+      scene,
+    };
+    variants[createVariantKey('t_shape_perimeter', id)] = {
+      key: createVariantKey('t_shape_perimeter', id),
+      kind: 't_shape_perimeter',
+      variantId: id,
+      template: 'coordinate_points',
+      points,
+      outline: points,
+      topWidth: width,
+      topThickness: thickness,
+      stemWidth,
+      stemHeight,
+      answer: perimeter,
+      scene,
+    };
+    variants[createVariantKey('t_shape_area_reverse', id)] = {
+      key: createVariantKey('t_shape_area_reverse', id),
+      kind: 't_shape_area_reverse',
+      variantId: id,
+      template: 'coordinate_points',
+      points,
+      outline: points,
+      topWidth: width,
+      topThickness: thickness,
+      stemWidth,
+      stemHeight,
+      area,
+      answer: stemWidth,
+      scene,
+    };
+    variants[createVariantKey('t_shape_perimeter_reverse', id)] = {
+      key: createVariantKey('t_shape_perimeter_reverse', id),
+      kind: 't_shape_perimeter_reverse',
+      variantId: id,
+      template: 'coordinate_points',
+      points,
+      outline: points,
+      topWidth: width,
+      topThickness: thickness,
+      stemWidth,
+      stemHeight,
+      perimeter,
+      answer: stemHeight,
+      scene,
+    };
   });
 
   Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
@@ -695,6 +784,52 @@ const AREA_PERIMETER_VARIANT_LIBRARY = {
     points: L_SHAPE_POINTS,
     outline: L_SHAPE_POINTS,
     answer: L_SHAPE_PERIMETER,
+  },
+  t_shape_area: {
+    kind: 't_shape_area',
+    template: 'coordinate_points',
+    points: createTShapePoints(16, 4, 8, 10),
+    outline: createTShapePoints(16, 4, 8, 10),
+    topWidth: 16,
+    topThickness: 4,
+    stemWidth: 8,
+    stemHeight: 10,
+    answer: 16 * 4 + 8 * 10,
+  },
+  t_shape_perimeter: {
+    kind: 't_shape_perimeter',
+    template: 'coordinate_points',
+    points: createTShapePoints(16, 4, 8, 10),
+    outline: createTShapePoints(16, 4, 8, 10),
+    topWidth: 16,
+    topThickness: 4,
+    stemWidth: 8,
+    stemHeight: 10,
+    answer: 2 * (16 + 4 + 10),
+  },
+  t_shape_area_reverse: {
+    kind: 't_shape_area_reverse',
+    template: 'coordinate_points',
+    points: createTShapePoints(16, 4, 8, 10),
+    outline: createTShapePoints(16, 4, 8, 10),
+    topWidth: 16,
+    topThickness: 4,
+    stemWidth: 8,
+    stemHeight: 10,
+    area: 16 * 4 + 8 * 10,
+    answer: 8,
+  },
+  t_shape_perimeter_reverse: {
+    kind: 't_shape_perimeter_reverse',
+    template: 'coordinate_points',
+    points: createTShapePoints(16, 4, 8, 10),
+    outline: createTShapePoints(16, 4, 8, 10),
+    topWidth: 16,
+    topThickness: 4,
+    stemWidth: 8,
+    stemHeight: 10,
+    perimeter: 2 * (16 + 4 + 10),
+    answer: 10,
   },
   trapezoid_area: {
     kind: 'trapezoid_area',
@@ -1050,6 +1185,22 @@ function buildSceneQuestionText(item, lang) {
       return zh
         ? `如图，一个L形${sceneZh || '区域'}是由大矩形挖去一块小矩形得到的。求这个图形的周长。`
         : `As shown, an L-shaped ${sceneEn || 'region'} is made by cutting a smaller rectangle out of a larger one. Find the perimeter of the shape.`;
+    case 't_shape_area':
+      return zh
+        ? `如图，一个T形${sceneZh || '区域'}由顶板和立柱组成。顶板宽 ${item.topWidth} cm，厚 ${item.topThickness} cm；立柱宽 ${item.stemWidth} cm，高 ${item.stemHeight} cm。求面积。`
+        : `As shown, a T-shaped ${sceneEn || 'region'} is made of a top bar and a stem. The top bar is ${item.topWidth} cm wide, ${item.topThickness} cm thick, the stem is ${item.stemWidth} cm wide and ${item.stemHeight} cm tall. Find the area.`;
+    case 't_shape_perimeter':
+      return zh
+        ? `如图，一个T形${sceneZh || '区域'}由顶板和立柱组成。顶板宽 ${item.topWidth} cm，厚 ${item.topThickness} cm；立柱宽 ${item.stemWidth} cm，高 ${item.stemHeight} cm。求周长。`
+        : `As shown, a T-shaped ${sceneEn || 'region'} is made of a top bar and a stem. The top bar is ${item.topWidth} cm wide, ${item.topThickness} cm thick, the stem is ${item.stemWidth} cm wide and ${item.stemHeight} cm tall. Find the perimeter.`;
+    case 't_shape_area_reverse':
+      return zh
+        ? `如图，一个T形${sceneZh || '区域'}的面积为 ${formatArea(item.area)}。顶板宽 ${item.topWidth} cm，厚 ${item.topThickness} cm，立柱高 ${item.stemHeight} cm。求立柱宽。`
+        : `As shown, a T-shaped ${sceneEn || 'region'} has area ${formatArea(item.area)}. The top bar is ${item.topWidth} cm wide, ${item.topThickness} cm thick, and the stem is ${item.stemHeight} cm tall. Find the stem width.`;
+    case 't_shape_perimeter_reverse':
+      return zh
+        ? `如图，一个T形${sceneZh || '区域'}的周长为 ${formatLength(item.perimeter)}。顶板宽 ${item.topWidth} cm，厚 ${item.topThickness} cm，立柱宽 ${item.stemWidth} cm。求立柱高。`
+        : `As shown, a T-shaped ${sceneEn || 'region'} has perimeter ${formatLength(item.perimeter)}. The top bar is ${item.topWidth} cm wide, ${item.topThickness} cm thick, and the stem is ${item.stemWidth} cm wide. Find the stem height.`;
     case 'trapezoid_area':
       return zh
         ? `如图，一个梯形${sceneZh || '区域'}的上底是 ${item.topBase} cm，下底是 ${item.bottomBase} cm，高是 ${item.height} cm。求这个梯形的面积。`
@@ -1285,6 +1436,26 @@ function buildAreaPerimeterRenderContract(item) {
         questionIncludes: ['L 形', '周长'],
         diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label_perimeter":"?"'],
       };
+    case 't_shape_area':
+      return {
+        questionIncludes: ['T形', '面积'],
+        diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label_top_width":"', '"label_stem_width":"', '"label_area":"?"'],
+      };
+    case 't_shape_perimeter':
+      return {
+        questionIncludes: ['T形', '周长'],
+        diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label_top_width":"', '"label_stem_height":"', '"label_perimeter":"?"'],
+      };
+    case 't_shape_area_reverse':
+      return {
+        questionIncludes: ['T形', '面积', '立柱宽'],
+        diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label_area":"', '"label_stem_width":"?"'],
+      };
+    case 't_shape_perimeter_reverse':
+      return {
+        questionIncludes: ['T形', '周长', '立柱高'],
+        diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label_perimeter":"', '"label_stem_height":"?"'],
+      };
     case 'trapezoid_area':
       return {
         questionIncludes: ['梯形', '面积'],
@@ -1403,6 +1574,41 @@ function buildCoordinateSpec(item) {
       ].map(([from, to]) => ({ from, to, label: edgeLabel(outline, from, to) })),
       label_area: item.kind === 'l_shape_area' ? '?' : undefined,
       label_perimeter: item.kind === 'l_shape_perimeter' ? '?' : undefined,
+    };
+  }
+
+  if (item.kind === 't_shape_area' || item.kind === 't_shape_perimeter' || item.kind === 't_shape_area_reverse' || item.kind === 't_shape_perimeter_reverse') {
+    const segments = [
+      ['A', 'B'],
+      ['B', 'C'],
+      ['C', 'D'],
+      ['D', 'E'],
+      ['E', 'F'],
+      ['F', 'G'],
+      ['G', 'H'],
+      ['H', 'A'],
+    ].map(([from, to]) => ({ from, to, label: edgeLabel(outline, from, to) }));
+
+    if (item.kind === 't_shape_area_reverse') {
+      segments[4] = { ...segments[4], label: '?' };
+    }
+    if (item.kind === 't_shape_perimeter_reverse') {
+      segments[3] = { ...segments[3], label: '?' };
+    }
+
+    return {
+      ...spec,
+      topWidth: item.topWidth,
+      topThickness: item.topThickness,
+      stemWidth: item.kind === 't_shape_area_reverse' ? '?' : item.stemWidth,
+      stemHeight: item.kind === 't_shape_perimeter_reverse' ? '?' : item.stemHeight,
+      segments,
+      label_top_width: formatLength(item.topWidth),
+      label_top_thickness: formatLength(item.topThickness),
+      label_stem_width: item.kind === 't_shape_area_reverse' ? '?' : formatLength(item.stemWidth),
+      label_stem_height: item.kind === 't_shape_perimeter_reverse' ? '?' : formatLength(item.stemHeight),
+      label_area: item.kind === 't_shape_area' ? '?' : item.kind === 't_shape_area_reverse' ? formatArea(item.area) : undefined,
+      label_perimeter: item.kind === 't_shape_perimeter' ? '?' : item.kind === 't_shape_perimeter_reverse' ? formatLength(item.perimeter) : undefined,
     };
   }
 
@@ -1568,6 +1774,11 @@ function buildDiagramSpec(item) {
       return buildRectangleSpec(item);
     case 'l_shape_area':
     case 'l_shape_perimeter':
+    case 't_shape_area':
+    case 't_shape_perimeter':
+    case 't_shape_area_reverse':
+    case 't_shape_perimeter_reverse':
+      return buildCoordinateSpec(item);
     case 'trapezoid_area':
     case 'trapezoid_area_reverse':
       return buildCoordinateSpec(item);
@@ -1643,6 +1854,20 @@ function validateAreaPerimeterExerciseItem(item) {
       break;
     case 'l_shape_perimeter':
       if (Math.round(polygonPerimeter(item.outline ?? item.points) * 100) / 100 !== Math.round(item.answer * 100) / 100) issues.push('L-shape perimeter answer mismatch');
+      break;
+    case 't_shape_area':
+      if (polygonArea(item.outline ?? item.points) !== item.answer) issues.push('T-shape area answer mismatch');
+      break;
+    case 't_shape_perimeter':
+      if (Math.round(polygonPerimeter(item.outline ?? item.points) * 100) / 100 !== Math.round(item.answer * 100) / 100) issues.push('T-shape perimeter answer mismatch');
+      break;
+    case 't_shape_area_reverse':
+      if (polygonArea(item.outline ?? item.points) !== item.area) issues.push('T-shape reverse area data mismatch');
+      if (item.answer !== item.stemWidth) issues.push('T-shape reverse area answer mismatch');
+      break;
+    case 't_shape_perimeter_reverse':
+      if (Math.round(polygonPerimeter(item.outline ?? item.points) * 100) / 100 !== Math.round(item.perimeter * 100) / 100) issues.push('T-shape reverse perimeter data mismatch');
+      if (item.answer !== item.stemHeight) issues.push('T-shape reverse perimeter answer mismatch');
       break;
     case 'trapezoid_area':
       if (polygonArea(item.outline ?? []) !== item.answer) issues.push('trapezoid area answer mismatch');
