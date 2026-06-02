@@ -1,4 +1,12 @@
 import { validateRenderContract } from './exerciseRenderContracts.js';
+import {
+  COMPOSITE_AREA_PERIMETER_KINDS,
+  buildCompositeAreaPerimeterDiagramSpec,
+  buildCompositeAreaPerimeterQuestionText,
+  buildCompositeAreaPerimeterRenderContract,
+  buildCompositeAreaPerimeterVariantExtras,
+  validateCompositeAreaPerimeterItem,
+} from './areaPerimeterCompositeFamilies.js';
 
 const HISTORY_KEY = 'math7-9:area-perimeter-kind-history:v4';
 const HISTORY_LIMIT = 180;
@@ -1058,7 +1066,7 @@ const AREA_PERIMETER_VARIANT_LIBRARY = {
   },
 };
 
-Object.assign(AREA_PERIMETER_VARIANT_LIBRARY, buildAreaPerimeterVariantExtras());
+Object.assign(AREA_PERIMETER_VARIANT_LIBRARY, buildAreaPerimeterVariantExtras(), buildCompositeAreaPerimeterVariantExtras());
 
 function isFinitePositiveNumber(value) {
   return typeof value === 'number' && Number.isFinite(value) && value > 0;
@@ -1371,6 +1379,10 @@ function isAreaPerimeterConcept(conceptId = '', conceptTitle = '', conceptDesc =
 function buildQuestionText(item, lang) {
   const sceneQuestion = buildSceneQuestionText(item, lang);
   if (sceneQuestion) return sceneQuestion;
+  if (COMPOSITE_AREA_PERIMETER_KINDS.includes(item.kind)) {
+    const compositeQuestion = buildCompositeAreaPerimeterQuestionText(item, lang);
+    if (compositeQuestion) return compositeQuestion;
+  }
   const zh = lang === 'zh';
   switch (item.kind) {
     case 'rectangle_area':
@@ -1495,6 +1507,12 @@ function buildQuestionText(item, lang) {
 }
 
 function buildAreaPerimeterRenderContract(item) {
+  if (COMPOSITE_AREA_PERIMETER_KINDS.includes(item.kind)) {
+    const compositeContract = buildCompositeAreaPerimeterRenderContract(item);
+    if (Array.isArray(compositeContract.questionIncludes) && Array.isArray(compositeContract.diagramIncludes) && compositeContract.questionIncludes.length > 0) {
+      return compositeContract;
+    }
+  }
   const width = formatLength(item.width);
   const height = formatLength(item.height);
   const side = formatLength(item.side);
@@ -1898,6 +1916,10 @@ function buildSectorSpec(item) {
 }
 
 function buildDiagramSpec(item) {
+  if (COMPOSITE_AREA_PERIMETER_KINDS.includes(item.kind)) {
+    const compositeSpec = buildCompositeAreaPerimeterDiagramSpec(item);
+    if (compositeSpec && Object.keys(compositeSpec).length > 0) return compositeSpec;
+  }
   switch (item.kind) {
     case 'rectangle_area':
     case 'rectangle_perimeter':
@@ -1986,6 +2008,10 @@ function validateAreaPerimeterExerciseItem(item) {
   if (!Object.prototype.hasOwnProperty.call(AREA_PERIMETER_VARIANT_LIBRARY, item.kind)) {
     issues.push(`unsupported kind: ${String(item.kind)}`);
     return issues;
+  }
+
+  if (COMPOSITE_AREA_PERIMETER_KINDS.includes(item.kind)) {
+    return validateCompositeAreaPerimeterItem(item);
   }
 
   switch (item.kind) {

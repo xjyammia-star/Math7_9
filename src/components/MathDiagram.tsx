@@ -401,6 +401,40 @@ function validateDiagramData(template: string, data: any): string | null {
         ? null
         : 'square_diagonal requires a positive side and optional positive diagonal';
     }
+    case 'composite_overlay': {
+      const bounds = data.bounds ?? {};
+      const xMin = asFiniteNumber(bounds.xMin ?? bounds.minX);
+      const xMax = asFiniteNumber(bounds.xMax ?? bounds.maxX);
+      const yMin = asFiniteNumber(bounds.yMin ?? bounds.minY);
+      const yMax = asFiniteNumber(bounds.yMax ?? bounds.maxY);
+      if (xMin === null || xMax === null || yMin === null || yMax === null || xMax <= xMin || yMax <= yMin) {
+        return 'composite_overlay requires numeric bounds';
+      }
+      if (!Array.isArray(data.layers) || data.layers.length === 0) {
+        return 'composite_overlay requires layers';
+      }
+      return data.layers.every((layer: any) => {
+        if (!layer || typeof layer !== 'object') return false;
+        switch (String(layer.kind ?? '').trim()) {
+          case 'poly':
+            return Array.isArray(layer.pts) && layer.pts.length >= 3 && layer.pts.every((pt: any) => asFiniteNumber(pt?.x) !== null && asFiniteNumber(pt?.y) !== null);
+          case 'seg':
+            return asFiniteNumber(layer.a?.x) !== null && asFiniteNumber(layer.a?.y) !== null && asFiniteNumber(layer.b?.x) !== null && asFiniteNumber(layer.b?.y) !== null;
+          case 'dot':
+            return asFiniteNumber(layer.p?.x) !== null && asFiniteNumber(layer.p?.y) !== null;
+          case 'segLabel':
+            return asFiniteNumber(layer.a?.x) !== null && asFiniteNumber(layer.a?.y) !== null && asFiniteNumber(layer.b?.x) !== null && asFiniteNumber(layer.b?.y) !== null && typeof layer.label === 'string';
+          case 'text':
+            return asFiniteNumber(layer.x) !== null && asFiniteNumber(layer.y) !== null && typeof layer.text === 'string';
+          case 'circle':
+            return asFiniteNumber(layer.c?.x) !== null && asFiniteNumber(layer.c?.y) !== null && asFiniteNumber(layer.r) !== null && layer.r > 0;
+          case 'arc':
+            return asFiniteNumber(layer.c?.x) !== null && asFiniteNumber(layer.c?.y) !== null && asFiniteNumber(layer.r) !== null && layer.r > 0 && asFiniteNumber(layer.startAngle) !== null && asFiniteNumber(layer.endAngle) !== null;
+          default:
+            return false;
+        }
+      }) ? null : 'composite_overlay contains invalid layers';
+    }
     case 'adjacent_squares_diagonal': {
       const small = asFiniteNumber(data.small_side ?? data.left_side ?? data.a);
       const large = asFiniteNumber(data.large_side ?? data.right_side ?? data.b);
@@ -809,6 +843,66 @@ function CircleAnnulus({ data }: { data: any }) {
       )}
     </g>
   );
+}
+
+/** composite_overlay: data-driven composite or shaded figure */
+function CompositeOverlay({ data }: { data: any }) {
+  const bounds = data.bounds ?? {};
+  const xMin: number = data.xMin ?? bounds.xMin ?? bounds.minX ?? 0;
+  const xMax: number = data.xMax ?? bounds.xMax ?? bounds.maxX ?? 10;
+  const yMin: number = data.yMin ?? bounds.yMin ?? bounds.minY ?? 0;
+  const yMax: number = data.yMax ?? bounds.yMax ?? bounds.maxY ?? 10;
+  const labels = data.labels ?? {};
+  const layers = Array.isArray(data.layers) ? data.layers : [];
+  const pad = Math.max(xMax - xMin, yMax - yMin) * 0.22;
+  const sc = makeScaler(xMin - pad, xMax + pad, yMin - pad, yMax + pad);
+
+  const renderLayer = (layer: any, index: number): React.ReactNode => {
+    switch (String(layer?.kind ?? '')) {
+      case 'poly':
+        return <Poly key={index} pts={(layer.pts ?? []).map(sc)} fill={layer.fill} stroke={layer.stroke} sw={layer.sw} dash={layer.dash} />;
+      case 'seg':
+        return <Seg key={index} a={sc(layer.a)} b={sc(layer.b)} stroke={layer.stroke} sw={layer.sw} dash={layer.dash} />;
+      case 'dot':
+        return <Dot key={index} p={sc(layer.p)} label={explicitLabel(layer.label ?? labels[layer.name])} color={layer.color} offset={layer.offset ?? { x: 8, y: -10 }} />;
+      case 'segLabel':
+        return <SegLabel key={index} a={sc(layer.a)} b={sc(layer.b)} label={String(layer.label ?? '')} color={layer.color} />;
+      case 'text': {
+        const p = sc({ x: Number(layer.x), y: Number(layer.y) });
+        const text = cleanDiagramLabelText(layer.text);
+        if (!text) return null;
+        return (
+          <text key={index} x={p.x} y={p.y} fontSize={12} fontWeight="700"
+            textAnchor={layer.anchor ?? 'middle'} fill="none" stroke="#020617" strokeWidth={3.5}
+            strokeLinejoin="round">{text}</text>
+        );
+      }
+      case 'circle': {
+        const center = sc(layer.c);
+        const edge = sc({ x: Number(layer.c?.x) + Number(layer.r), y: Number(layer.c?.y) });
+        const radius = Math.abs(edge.x - center.x);
+        return <circle key={index} cx={center.x} cy={center.y} r={radius} fill={layer.fill ?? 'none'} stroke={layer.stroke ?? GOLD} strokeWidth={layer.sw ?? 2.2} strokeDasharray={layer.dash ?? ''} />;
+      }
+      case 'arc': {
+        const center = sc(layer.c);
+        const start = Number(layer.startAngle);
+        const end = Number(layer.endAngle);
+        const radius = Math.abs(sc({ x: Number(layer.c?.x) + Number(layer.r), y: Number(layer.c?.y) }).x - center.x);
+        const x1 = center.x + radius * Math.cos(start);
+        const y1 = center.y + radius * Math.sin(start);
+        const x2 = center.x + radius * Math.cos(end);
+        const y2 = center.y + radius * Math.sin(end);
+        let diff = end - start;
+        while (diff < 0) diff += 2 * Math.PI;
+        const sweep = diff < Math.PI ? 1 : 0;
+        return <path key={index} d={`M${x1},${y1} A${radius},${radius} 0 0 ${sweep} ${x2},${y2}`} fill="none" stroke={layer.stroke ?? GOLD} strokeWidth={layer.sw ?? 2.2} />;
+      }
+      default:
+        return null;
+    }
+  };
+
+  return <g>{layers.map(renderLayer)}</g>;
 }
 
 /** rectangle_diagonal / square_diagonal: rectangle or square with diagonal AC */
@@ -2346,6 +2440,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
     'cylinder_unrolled',
     'rectangular_prism_net',
     'adjacent_squares_diagonal',
+    'composite_overlay',
     'coordinate_points',
   ]);
   const svgMaxHeight = largerDiagramTemplates.has(template) ? 560 : 360;
@@ -2360,6 +2455,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'rectangle_diagonal':
       case 'square_diagonal':     content = <RectangleDiagonal data={parsed} />; break;
       case 'adjacent_squares_diagonal': content = <AdjacentSquaresDiagonal data={parsed} />; break;
+      case 'composite_overlay': content = <CompositeOverlay data={parsed} />; break;
       case 'rectangle_fold':      content = <RectangleFold data={parsed} />; break;
       case 'parallelogram':       content = <Parallelogram data={parsed} />; break;
       case 'ladder':              content = <Ladder data={parsed} />; break;

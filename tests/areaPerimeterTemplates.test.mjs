@@ -99,22 +99,22 @@ assert.match(renderAreaPerimeterExerciseItem(hardTItem, 0, 'zh'), /"label_top_wi
 
 const hardAdjacentItem = hardBatch.find((item) => item.kind === 'adjacent_squares_diagonal_area');
 assert.ok(hardAdjacentItem);
-assert.match(renderAreaPerimeterExerciseItem(hardAdjacentItem, 0, 'zh'), /"template":"adjacent_squares_diagonal"/);
-assert.match(renderAreaPerimeterExerciseItem(hardAdjacentItem, 0, 'zh'), /"label_large_side"/);
+assert.match(renderAreaPerimeterExerciseItem(hardAdjacentItem, 0, 'zh'), /"template":"composite_overlay"/);
+assert.match(renderAreaPerimeterExerciseItem(hardAdjacentItem, 0, 'zh'), /"kind":"segLabel"/);
 
 const hardAdjacentReverseItem = hardBatch.find((item) => item.kind === 'adjacent_squares_diagonal_area_reverse');
 assert.ok(hardAdjacentReverseItem);
-assert.match(renderAreaPerimeterExerciseItem(hardAdjacentReverseItem, 0, 'zh'), /"label_area":"\d+ cm²"/);
-assert.match(renderAreaPerimeterExerciseItem(hardAdjacentReverseItem, 0, 'zh'), /"label_small_side":"\?"/);
+assert.match(renderAreaPerimeterExerciseItem(hardAdjacentReverseItem, 0, 'zh'), /"template":"composite_overlay"/);
+assert.match(renderAreaPerimeterExerciseItem(hardAdjacentReverseItem, 0, 'zh'), /"text":"\d+ cm²"/);
 
 const hardAdjacentTallItem = hardBatch.find((item) => item.kind === 'adjacent_squares_diagonal_tall_area');
 assert.ok(hardAdjacentTallItem);
-assert.match(renderAreaPerimeterExerciseItem(hardAdjacentTallItem, 0, 'zh'), /"template":"adjacent_squares_diagonal"/);
+assert.match(renderAreaPerimeterExerciseItem(hardAdjacentTallItem, 0, 'zh'), /"template":"composite_overlay"/);
 
 const hardAdjacentTallReverseItem = hardBatch.find((item) => item.kind === 'adjacent_squares_diagonal_tall_area_reverse');
 assert.ok(hardAdjacentTallReverseItem);
-assert.match(renderAreaPerimeterExerciseItem(hardAdjacentTallReverseItem, 0, 'zh'), /"label_area":"\d+ cm²"/);
-assert.match(renderAreaPerimeterExerciseItem(hardAdjacentTallReverseItem, 0, 'zh'), /"label_large_side":"\?"/);
+assert.match(renderAreaPerimeterExerciseItem(hardAdjacentTallReverseItem, 0, 'zh'), /"template":"composite_overlay"/);
+assert.match(renderAreaPerimeterExerciseItem(hardAdjacentTallReverseItem, 0, 'zh'), /"text":"\d+ cm²"/);
 
 const hardSingles = Array.from({ length: 10 }, () => buildAreaPerimeterExerciseItems(1, { lang: 'zh', difficulty: 'Hard', grade: '8' }));
 const hardSingleKeys = hardSingles.map((batch) => batch[0].key);
