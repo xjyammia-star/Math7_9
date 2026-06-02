@@ -194,4 +194,37 @@ assert.doesNotMatch(easyRendered, /undefined/);
 assert.doesNotMatch(mediumRendered, /undefined/);
 assert.doesNotMatch(hardRendered, /undefined/);
 
+function spotCheckAreaPerimeter(difficulty, rounds, count) {
+  const seenKinds = new Set();
+
+  for (let round = 0; round < rounds; round += 1) {
+    globalThis.localStorage.clear();
+    const items = buildAreaPerimeterExerciseItems(count, { lang: 'zh', difficulty, grade: '8' });
+    assert.equal(items.length, count);
+    assert.deepEqual(validateAreaPerimeterExerciseItems(items), []);
+
+    const renderedBatch = buildAreaPerimeterExerciseBatch({ count, lang: 'zh', difficulty, grade: '8' });
+    assert.doesNotMatch(renderedBatch, /undefined/);
+
+    items.forEach((item, index) => {
+      seenKinds.add(item.kind);
+      const renderedItem = renderAreaPerimeterExerciseItem(item, index, 'zh');
+      assert.doesNotMatch(renderedItem, /undefined/);
+    });
+  }
+
+  return seenKinds;
+}
+
+const easySpotKinds = spotCheckAreaPerimeter('Easy', 3, 6);
+const mediumSpotKinds = spotCheckAreaPerimeter('Medium', 3, 6);
+const hardSpotKinds = spotCheckAreaPerimeter('Hard', 4, 6);
+
+assert.ok(easySpotKinds.size >= 4);
+assert.ok(mediumSpotKinds.size >= 5);
+assert.ok(hardSpotKinds.size >= 8);
+assert.ok([...hardSpotKinds].some((kind) => kind.startsWith('circle_rectangle_cut')));
+assert.ok([...hardSpotKinds].some((kind) => kind.startsWith('adjacent_squares_diagonal')));
+assert.ok([...hardSpotKinds].some((kind) => kind.startsWith('rectangle_triangle_cut')));
+
 console.log('area-perimeter template test passed');

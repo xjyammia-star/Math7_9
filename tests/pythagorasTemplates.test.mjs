@@ -401,6 +401,49 @@ const prismHard = buildPythagorasExerciseBatch({
 
 assert.match(prismHard, /"template":"rectangle_fold"|"template":"rectangular_prism_net"|"template":"coordinate_points"|"template":"cylinder_unrolled"/);
 
+function spotCheckPythagorasSamples(label, options, rounds, count) {
+  const seenKinds = new Set();
+
+  for (let round = 0; round < rounds; round += 1) {
+    const sequence = [
+      0.07 + round * 0.11,
+      0.19 + round * 0.11,
+      0.31 + round * 0.11,
+      0.43 + round * 0.11,
+      0.55 + round * 0.11,
+    ];
+    const items = buildPythagorasExerciseItems(count, {
+      ...options,
+      random: makeSequenceRng(sequence),
+      persistHistory: false,
+    });
+    assert.equal(items.length, count, `${label} round ${round + 1} should produce ${count} items`);
+    assert.deepEqual(validatePythagorasExerciseItems(items), []);
+    assert.equal(new Set(items.map((item) => item.id)).size, count);
+    items.forEach((item) => seenKinds.add(item.kind));
+
+    const rendered = buildPythagorasExerciseBatch({
+      ...options,
+      count,
+      random: makeSequenceRng(sequence),
+      persistHistory: false,
+    });
+    assert.doesNotMatch(rendered, /undefined/);
+    assert.match(rendered, /```math-diagram/);
+  }
+
+  return seenKinds;
+}
+
+const cnEasySpotKinds = spotCheckPythagorasSamples('CN easy', { lang: 'en', curriculum: 'CN', grade: '7', difficulty: 'Easy' }, 3, 3);
+const cnMediumSpotKinds = spotCheckPythagorasSamples('CN medium', { lang: 'en', curriculum: 'CN', grade: '8', difficulty: 'Medium' }, 3, 3);
+const cnHardSpotKinds = spotCheckPythagorasSamples('CN hard', { lang: 'en', curriculum: 'CN', grade: '8', difficulty: 'Hard' }, 4, 3);
+
+assert.ok(cnEasySpotKinds.size >= 2);
+assert.ok(cnMediumSpotKinds.size >= 2);
+assert.ok(cnHardSpotKinds.size >= 3);
+assert.ok([...cnHardSpotKinds].every((kind) => pythagorasTierFamilies.Hard.includes(kind)));
+
 const cnRepeatItems = buildPythagorasExerciseItems(3, {
   lang: 'en',
   curriculum: 'CN',
