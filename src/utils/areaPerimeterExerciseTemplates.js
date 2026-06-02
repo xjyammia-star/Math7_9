@@ -1,7 +1,7 @@
 import { validateRenderContract } from './exerciseRenderContracts.js';
 
-const HISTORY_KEY = 'math7-9:area-perimeter-kind-history:v3';
-const HISTORY_LIMIT = 8;
+const HISTORY_KEY = 'math7-9:area-perimeter-kind-history:v4';
+const HISTORY_LIMIT = 180;
 
 const AREA_PERIMETER_BLUEPRINT = {
   Easy: {
@@ -175,6 +175,301 @@ const L_SHAPE_PERIMETER = polygonPerimeter(L_SHAPE_POINTS);
 const TRAPEZOID_AREA = polygonArea(TRAPEZOID_POINTS.slice(0, 4));
 const TRIANGLE_AREA = polygonArea(TRIANGLE_POINTS);
 const TRIANGLE_PERIMETER = polygonPerimeter(TRIANGLE_POINTS);
+
+function scalePoints(points, factor) {
+  return points.map((point) => ({
+    x: point.x * factor,
+    y: point.y * factor,
+    label: point.label,
+  }));
+}
+
+function createVariantKey(kind, variantId) {
+  return `${kind}:${variantId}`;
+}
+
+function createRectangleVariant(kind, variantId, width, height, extra = {}) {
+  return {
+    key: createVariantKey(kind, variantId),
+    kind,
+    variantId,
+    template: 'rectangle',
+    width,
+    height,
+    ...extra,
+  };
+}
+
+function createScaledShapeVariant(kind, variantId, basePoints, factor, extra = {}) {
+  const points = scalePoints(basePoints, factor);
+  return {
+    key: createVariantKey(kind, variantId),
+    kind,
+    variantId,
+    points,
+    outline: points,
+    ...extra,
+  };
+}
+
+function buildAreaPerimeterVariantExtras() {
+  const variants = {};
+
+  const rectanglePairs = Array.from({ length: 27 }, (_, index) => {
+    const width = 4 + index;
+    return [width, width + 1];
+  });
+  rectanglePairs.forEach(([width, height]) => {
+    const id = `${width}x${height}`;
+    variants[createVariantKey('rectangle_area', id)] = createRectangleVariant(
+      'rectangle_area',
+      id,
+      width,
+      height,
+      { answer: width * height }
+    );
+    variants[createVariantKey('rectangle_perimeter', id)] = createRectangleVariant(
+      'rectangle_perimeter',
+      id,
+      width,
+      height,
+      { answer: 2 * (width + height) }
+    );
+    variants[createVariantKey('rectangle_area_reverse', id)] = createRectangleVariant(
+      'rectangle_area_reverse',
+      id,
+      width,
+      height,
+      { area: width * height, answer: height }
+    );
+    variants[createVariantKey('rectangle_perimeter_reverse', id)] = createRectangleVariant(
+      'rectangle_perimeter_reverse',
+      id,
+      width,
+      height,
+      { perimeter: 2 * (width + height), answer: height }
+    );
+  });
+
+  Array.from({ length: 27 }, (_, index) => 4 + index).forEach((side) => {
+    const id = `${side}`;
+    variants[createVariantKey('square_area', id)] = {
+      key: createVariantKey('square_area', id),
+      kind: 'square_area',
+      variantId: id,
+      template: 'rectangle',
+      side,
+      answer: side * side,
+    };
+    variants[createVariantKey('square_perimeter', id)] = {
+      key: createVariantKey('square_perimeter', id),
+      kind: 'square_perimeter',
+      variantId: id,
+      template: 'rectangle',
+      side,
+      answer: 4 * side,
+    };
+    variants[createVariantKey('square_area_reverse', id)] = {
+      key: createVariantKey('square_area_reverse', id),
+      kind: 'square_area_reverse',
+      variantId: id,
+      template: 'rectangle',
+      side,
+      area: side * side,
+      answer: side,
+    };
+    variants[createVariantKey('square_perimeter_reverse', id)] = {
+      key: createVariantKey('square_perimeter_reverse', id),
+      kind: 'square_perimeter_reverse',
+      variantId: id,
+      template: 'rectangle',
+      side,
+      perimeter: 4 * side,
+      answer: side,
+    };
+  });
+
+  Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
+    const id = `s${factor}`;
+    variants[createVariantKey('l_shape_area', id)] = createScaledShapeVariant(
+      'l_shape_area',
+      id,
+      L_SHAPE_POINTS,
+      factor,
+      { answer: L_SHAPE_AREA * factor * factor }
+    );
+    variants[createVariantKey('l_shape_perimeter', id)] = createScaledShapeVariant(
+      'l_shape_perimeter',
+      id,
+      L_SHAPE_POINTS,
+      factor,
+      { answer: L_SHAPE_PERIMETER * factor }
+    );
+  });
+
+  Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
+    const id = `s${factor}`;
+    const topBase = 4 * factor;
+    const bottomBase = 8 * factor;
+    const height = 3 * factor;
+    const area = TRAPEZOID_AREA * factor * factor;
+    variants[createVariantKey('trapezoid_area', id)] = {
+      key: createVariantKey('trapezoid_area', id),
+      kind: 'trapezoid_area',
+      variantId: id,
+      template: 'coordinate_points',
+      points: scalePoints(TRAPEZOID_POINTS, factor),
+      outline: scalePoints(TRAPEZOID_POINTS.slice(0, 4), factor),
+      topBase,
+      bottomBase,
+      height,
+      answer: area,
+    };
+    variants[createVariantKey('trapezoid_area_reverse', id)] = {
+      key: createVariantKey('trapezoid_area_reverse', id),
+      kind: 'trapezoid_area_reverse',
+      variantId: id,
+      template: 'coordinate_points',
+      points: scalePoints(TRAPEZOID_POINTS, factor),
+      outline: scalePoints(TRAPEZOID_POINTS.slice(0, 4), factor),
+      topBase,
+      bottomBase,
+      height,
+      area,
+      answer: topBase,
+    };
+  });
+
+  Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
+    const id = `s${factor}`;
+    const base = 8 * factor;
+    const side = 5 * factor;
+    const height = 2.5 * factor;
+    const area = 20 * factor * factor;
+    variants[createVariantKey('parallelogram_area', id)] = {
+      key: createVariantKey('parallelogram_area', id),
+      kind: 'parallelogram_area',
+      variantId: id,
+      template: 'parallelogram',
+      base,
+      side,
+      angle: 30,
+      height,
+      answer: area,
+    };
+    variants[createVariantKey('parallelogram_perimeter', id)] = {
+      key: createVariantKey('parallelogram_perimeter', id),
+      kind: 'parallelogram_perimeter',
+      variantId: id,
+      template: 'parallelogram',
+      base,
+      side,
+      angle: 30,
+      height,
+      answer: 2 * (base + side),
+    };
+    variants[createVariantKey('parallelogram_area_reverse', id)] = {
+      key: createVariantKey('parallelogram_area_reverse', id),
+      kind: 'parallelogram_area_reverse',
+      variantId: id,
+      template: 'parallelogram',
+      base,
+      side,
+      angle: 30,
+      height,
+      area,
+      answer: height,
+    };
+  });
+
+  Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
+    const id = `s${factor}`;
+    const legA = 6 * factor;
+    const legB = 8 * factor;
+    const hypotenuse = 10 * factor;
+    const points = scalePoints(TRIANGLE_POINTS, factor);
+    const area = TRIANGLE_AREA * factor * factor;
+    const perimeter = TRIANGLE_PERIMETER * factor;
+    variants[createVariantKey('triangle_area', id)] = {
+      key: createVariantKey('triangle_area', id),
+      kind: 'triangle_area',
+      variantId: id,
+      template: 'triangle',
+      points,
+      outline: points,
+      legA,
+      legB,
+      hypotenuse,
+      answer: area,
+    };
+    variants[createVariantKey('triangle_perimeter', id)] = {
+      key: createVariantKey('triangle_perimeter', id),
+      kind: 'triangle_perimeter',
+      variantId: id,
+      template: 'triangle',
+      points,
+      outline: points,
+      legA,
+      legB,
+      hypotenuse,
+      answer: perimeter,
+    };
+  });
+
+  Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
+    const id = `s${factor}`;
+    const outerRadius = 6 * factor;
+    const innerRadius = 3 * factor;
+    const area = 27 * Math.PI * factor * factor;
+    variants[createVariantKey('circle_annulus_area', id)] = {
+      key: createVariantKey('circle_annulus_area', id),
+      kind: 'circle_annulus_area',
+      variantId: id,
+      template: 'circle_annulus',
+      outerRadius,
+      innerRadius,
+      answer: area,
+    };
+    variants[createVariantKey('circle_annulus_area_reverse', id)] = {
+      key: createVariantKey('circle_annulus_area_reverse', id),
+      kind: 'circle_annulus_area_reverse',
+      variantId: id,
+      template: 'circle_annulus',
+      outerRadius,
+      innerRadius,
+      area,
+      answer: innerRadius,
+    };
+  });
+
+  Array.from({ length: 11 }, (_, index) => 2 + index).forEach((factor) => {
+    const id = `s${factor}`;
+    const radius = 6 * factor;
+    const angle = 120;
+    const area = 12 * Math.PI * factor * factor;
+    variants[createVariantKey('sector_area', id)] = {
+      key: createVariantKey('sector_area', id),
+      kind: 'sector_area',
+      variantId: id,
+      template: 'circle_sector',
+      radius,
+      angle,
+      answer: area,
+    };
+    variants[createVariantKey('sector_area_reverse', id)] = {
+      key: createVariantKey('sector_area_reverse', id),
+      kind: 'sector_area_reverse',
+      variantId: id,
+      template: 'circle_sector',
+      radius,
+      angle,
+      area,
+      answer: radius,
+    };
+  });
+
+  return variants;
+}
 
 const AREA_PERIMETER_VARIANT_LIBRARY = {
   rectangle_area: {
@@ -374,8 +669,14 @@ const AREA_PERIMETER_VARIANT_LIBRARY = {
   },
 };
 
+Object.assign(AREA_PERIMETER_VARIANT_LIBRARY, buildAreaPerimeterVariantExtras());
+
 function isFinitePositiveNumber(value) {
   return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+function approxEqual(a, b, epsilon = 1e-9) {
+  return Math.abs(a - b) <= epsilon;
 }
 
 function normalizeDifficulty(difficulty) {
@@ -390,8 +691,18 @@ function getDifficultyFamilies(difficulty) {
   return AREA_PERIMETER_BLUEPRINT[normalizeDifficulty(difficulty)].families;
 }
 
+function buildVariantPool(difficulty) {
+  const families = new Set(getDifficultyFamilies(difficulty));
+  return Object.entries(AREA_PERIMETER_VARIANT_LIBRARY)
+    .filter(([, variant]) => families.has(variant.kind) && variant.variantId != null)
+    .map(([key, variant]) => ({ key, ...variant }));
+}
+
 function getVarietyStorage() {
   try {
+    if (typeof globalThis.localStorage !== 'undefined') {
+      return globalThis.localStorage;
+    }
     return typeof window !== 'undefined' ? window.localStorage : null;
   } catch {
     return null;
@@ -461,17 +772,15 @@ function shuffleKinds(pool) {
   return items;
 }
 
-function rotateKinds(pool, count, recentKinds) {
+function rotateKinds(pool, count, recentKeys) {
   const uniquePool = Array.from(new Set(pool.filter(Boolean)));
   const targetCount = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
   if (uniquePool.length === 0 || targetCount === 0) return [];
 
-  const recent = recentKinds.find((kind) => uniquePool.includes(kind));
-  const ordered = shuffleKinds(uniquePool);
-  if (recent && ordered.length > 1 && ordered[0] === recent) {
-    const swapIndex = 1 + randomIndex(ordered.length - 1);
-    [ordered[0], ordered[swapIndex]] = [ordered[swapIndex], ordered[0]];
-  }
+  const recentSet = new Set(recentKeys.filter(Boolean));
+  const fresh = uniquePool.filter((key) => !recentSet.has(key));
+  const stale = uniquePool.filter((key) => recentSet.has(key));
+  const ordered = [...shuffleKinds(fresh), ...shuffleKinds(stale)];
 
   const selected = [];
   while (selected.length < targetCount) {
@@ -624,6 +933,124 @@ function buildQuestionText(item, lang) {
         : `In the figure, the sector area is ${formatPiMultiple(item.area, ' cm²')} and the central angle is ${item.angle}°. Find the radius.`;
     default:
       return '';
+  }
+}
+
+function buildAreaPerimeterRenderContract(item) {
+  const width = formatLength(item.width);
+  const height = formatLength(item.height);
+  const side = formatLength(item.side);
+  const area = formatArea(item.area ?? item.answer);
+  const perimeter = formatLength(item.perimeter ?? item.answer);
+
+  switch (item.kind) {
+    case 'rectangle_area':
+      return {
+        questionIncludes: ['长方形', `AB = ${width}`, `BC = ${height}`],
+        diagramIncludes: ['"template":"rectangle"', `"label_width":"${width}"`, `"label_height":"${height}"`, '"label_area":"?"'],
+      };
+    case 'rectangle_perimeter':
+      return {
+        questionIncludes: ['长方形', `AB = ${width}`, `BC = ${height}`],
+        diagramIncludes: ['"template":"rectangle"', `"label_width":"${width}"`, `"label_height":"${height}"`, '"label_perimeter":"?"'],
+      };
+    case 'square_area':
+      return {
+        questionIncludes: ['正方形', `边长为 ${side}`],
+        diagramIncludes: ['"template":"rectangle"', `"label_width":"${side}"`, `"label_height":"${side}"`, '"label_area":"?"'],
+      };
+    case 'square_perimeter':
+      return {
+        questionIncludes: ['正方形', `边长为 ${side}`],
+        diagramIncludes: ['"template":"rectangle"', `"label_width":"${side}"`, `"label_height":"${side}"`, '"label_perimeter":"?"'],
+      };
+    case 'rectangle_area_reverse':
+      return {
+        questionIncludes: ['长方形', area, `AB = ${width}`],
+        diagramIncludes: ['"template":"rectangle"', `"label_area":"${area}"`, '"label_height":"?"'],
+      };
+    case 'rectangle_perimeter_reverse':
+      return {
+        questionIncludes: ['长方形', perimeter, `AB = ${width}`],
+        diagramIncludes: ['"template":"rectangle"', `"label_perimeter":"${perimeter}"`, '"label_height":"?"'],
+      };
+    case 'square_area_reverse':
+      return {
+        questionIncludes: ['正方形', area],
+        diagramIncludes: ['"template":"rectangle"', `"label_area":"${area}"`, '"label_width":"?"', '"label_height":"?"'],
+      };
+    case 'square_perimeter_reverse':
+      return {
+        questionIncludes: ['正方形', perimeter],
+        diagramIncludes: ['"template":"rectangle"', `"label_perimeter":"${perimeter}"`, '"label_width":"?"', '"label_height":"?"'],
+      };
+    case 'l_shape_area':
+      return {
+        questionIncludes: ['L 形', '面积'],
+        diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label_area":"?"'],
+      };
+    case 'l_shape_perimeter':
+      return {
+        questionIncludes: ['L 形', '周长'],
+        diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label_perimeter":"?"'],
+      };
+    case 'trapezoid_area':
+      return {
+        questionIncludes: ['梯形', '面积'],
+        diagramIncludes: ['"template":"coordinate_points"', '"axes":false', '"label_area":"?"'],
+      };
+    case 'trapezoid_area_reverse':
+      return {
+        questionIncludes: ['梯形', '面积', '求上底'],
+        diagramIncludes: ['"template":"coordinate_points"', '"axes":false', `"label_area":"${area}"`, '"label_top_base":"?"'],
+      };
+    case 'parallelogram_area':
+      return {
+        questionIncludes: ['平行四边形', '面积'],
+        diagramIncludes: ['"template":"parallelogram"', '"label_area":"?"'],
+      };
+    case 'parallelogram_perimeter':
+      return {
+        questionIncludes: ['平行四边形', '周长'],
+        diagramIncludes: ['"template":"parallelogram"', '"label_perimeter":"?"'],
+      };
+    case 'parallelogram_area_reverse':
+      return {
+        questionIncludes: ['平行四边形', '面积', '求高'],
+        diagramIncludes: ['"template":"parallelogram"', `"label_area":"${area}"`, '"label_height":"?"'],
+      };
+    case 'triangle_area':
+      return {
+        questionIncludes: ['直角三角形', '面积'],
+        diagramIncludes: ['"template":"triangle"', '"label_area":"?"'],
+      };
+    case 'triangle_perimeter':
+      return {
+        questionIncludes: ['直角三角形', '周长'],
+        diagramIncludes: ['"template":"triangle"', '"label_perimeter":"?"'],
+      };
+    case 'circle_annulus_area':
+      return {
+        questionIncludes: ['圆环', '面积'],
+        diagramIncludes: ['"template":"circle_annulus"', '"label_area":"?"'],
+      };
+    case 'circle_annulus_area_reverse':
+      return {
+        questionIncludes: ['圆环', '面积', '求内半径'],
+        diagramIncludes: ['"template":"circle_annulus"', `"label_area":"${formatPiMultiple(item.area, ' cm²')}"`, '"label_inner_radius":"?"'],
+      };
+    case 'sector_area':
+      return {
+        questionIncludes: ['扇形', '面积'],
+        diagramIncludes: ['"template":"circle_sector"', '"label_area":"?"'],
+      };
+    case 'sector_area_reverse':
+      return {
+        questionIncludes: ['扇形', '面积', '求半径'],
+        diagramIncludes: ['"template":"circle_sector"', `"label_area":"${formatPiMultiple(item.area, ' cm²')}"`, '"label_radius":"?"'],
+      };
+    default:
+      return {};
   }
 }
 
@@ -957,17 +1384,17 @@ function validateAreaPerimeterExerciseItem(item) {
       if (item.answer !== item.radius || item.circumference !== 2 * Math.PI * item.radius) issues.push('circle reverse circumference answer mismatch');
       break;
     case 'circle_annulus_area':
-      if (item.answer !== Math.PI * (item.outerRadius * item.outerRadius - item.innerRadius * item.innerRadius)) issues.push('annulus area answer mismatch');
+      if (!approxEqual(item.answer, Math.PI * (item.outerRadius * item.outerRadius - item.innerRadius * item.innerRadius))) issues.push('annulus area answer mismatch');
       break;
     case 'circle_annulus_area_reverse':
-      if (item.area !== Math.PI * (item.outerRadius * item.outerRadius - item.innerRadius * item.innerRadius)) issues.push('annulus reverse area data mismatch');
+      if (!approxEqual(item.area, Math.PI * (item.outerRadius * item.outerRadius - item.innerRadius * item.innerRadius))) issues.push('annulus reverse area data mismatch');
       if (item.answer !== item.innerRadius) issues.push('annulus reverse area answer mismatch');
       break;
     case 'sector_area':
-      if (item.answer !== (item.angle / 360) * Math.PI * item.radius * item.radius) issues.push('sector area answer mismatch');
+      if (!approxEqual(item.answer, (item.angle / 360) * Math.PI * item.radius * item.radius)) issues.push('sector area answer mismatch');
       break;
     case 'sector_area_reverse':
-      if (item.area !== (item.angle / 360) * Math.PI * item.radius * item.radius) issues.push('sector reverse area data mismatch');
+      if (!approxEqual(item.area, (item.angle / 360) * Math.PI * item.radius * item.radius)) issues.push('sector reverse area data mismatch');
       if (item.answer !== item.radius) issues.push('sector reverse area answer mismatch');
       break;
     default:
@@ -979,7 +1406,7 @@ function validateAreaPerimeterExerciseItem(item) {
 
 function validateRenderedAreaPerimeterExerciseItem(item, rendered) {
   const issues = validateAreaPerimeterExerciseItem(item);
-  const renderedContract = AREA_PERIMETER_RENDER_CONTRACTS[item.kind];
+  const renderedContract = buildAreaPerimeterRenderContract(item);
   issues.push(...validateRenderContract(rendered, renderedContract, item.kind));
 
   const expectedSpec = JSON.stringify(buildDiagramSpec(item));
@@ -1000,15 +1427,16 @@ function buildAreaPerimeterExerciseItems(count, { lang = 'zh', difficulty = 'Eas
   const safeCount = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
   if (safeCount === 0) return [];
 
-  const families = getDifficultyFamilies(difficulty);
   const historyKey = makeHistoryKey('area-perimeter', grade, normalizeDifficulty(difficulty), curriculum);
-  const selectedKinds = rotateKinds(families, safeCount, readRecentKinds(historyKey));
-  if (selectedKinds.length > 0) {
-    writeRecentKinds(historyKey, selectedKinds);
+  const variantPool = buildVariantPool(difficulty);
+  const selectedVariants = rotateKinds(variantPool.map((variant) => variant.key), safeCount, readRecentKinds(historyKey));
+  if (selectedVariants.length > 0) {
+    writeRecentKinds(historyKey, selectedVariants);
   }
 
-  return selectedKinds.map((kind) => ({
-    ...AREA_PERIMETER_VARIANT_LIBRARY[kind],
+  return selectedVariants.map((key) => ({
+    ...AREA_PERIMETER_VARIANT_LIBRARY[key],
+    key,
     lang,
     difficulty: normalizeDifficulty(difficulty),
     grade,
