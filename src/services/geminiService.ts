@@ -4,6 +4,8 @@ import { classifyDiagramNeed, shouldRequireDiagramBlock, stripDiagramArtifacts }
 import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleChordRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsLinearIntersectionRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
 import { buildAreaPerimeterExerciseBatch, isAreaPerimeterConcept } from "../utils/areaPerimeterExerciseTemplates.js";
 import { buildPythagorasExerciseBatch, isPythagorasConcept } from "../utils/pythagorasExerciseTemplates.js";
+import { buildDifficultyGuidance, genericProblemTypesByDifficulty, normalizeDifficulty, minTierPoolSize } from "../utils/exerciseTierPolicy.js";
+import { getConceptProblemTypeBoosters, getExerciseTypePool } from "../utils/exerciseTypeTaxonomy.js";
 import { sanitizeMath } from "../utils/mathUtils";
 import { buildChatCompletionBody } from "../utils/modelRequest";
 
@@ -1123,18 +1125,11 @@ const PROBLEM_TYPE_POOLS: Record<string, string[]> = {
   ],
 };
 
-const GENERIC_PROBLEM_TYPES = [
-  "real-world application with a concrete context",
-  "reverse problem: give the result or condition, ask for a missing value",
-  "proof or reasoning problem that asks students to justify a conclusion",
-  "comparison or judgment problem with multiple possible statements",
-  "multi-step computation with an intermediate unknown",
-  "diagram-based geometry or modeling problem",
-  "error analysis: find and correct a mistaken solution or claim",
-  "parameter variation: ask how the answer changes when a condition changes",
-  "open-ended construction: create an example satisfying given constraints",
-  "table or data interpretation problem",
-];
+const GENERIC_PROBLEM_TYPES_BY_DIFFICULTY: Record<'Easy' | 'Medium' | 'Hard', string[]> = {
+  Easy: genericProblemTypesByDifficulty.Easy,
+  Medium: genericProblemTypesByDifficulty.Medium,
+  Hard: genericProblemTypesByDifficulty.Hard,
+};
 
 const VARIETY_HISTORY_KEY = "math7-9:exercise-type-history:v1";
 const VARIETY_HISTORY_LIMIT = 8;
@@ -1236,12 +1231,22 @@ function pickDiverseExerciseTypes(
   return [...freshTypes, ...fallbackTypes].slice(0, targetCount);
 }
 
-function getTypePool(conceptTitle: string): string[] | null {
+function getTypePool(conceptTitle: string, difficulty: Difficulty, conceptId: string): string[] | null {
   const title = conceptTitle.toLowerCase();
+  const fallbackPool = GENERIC_PROBLEM_TYPES_BY_DIFFICULTY[normalizeDifficulty(difficulty)] ?? GENERIC_PROBLEM_TYPES_BY_DIFFICULTY.Easy;
+  const boosters = getConceptProblemTypeBoosters(conceptId, conceptTitle);
   for (const [key, pool] of Object.entries(PROBLEM_TYPE_POOLS)) {
-    if (title.includes(key.toLowerCase())) return pool;
+    if (title.includes(key.toLowerCase())) {
+      return Array.from(new Set([...pool, ...boosters, ...fallbackPool]));
+    }
   }
-  return null;
+
+  const modulePool = getExerciseTypePool(conceptId, conceptTitle, difficulty);
+  if (modulePool.length > 0) {
+    return Array.from(new Set([...modulePool, ...fallbackPool]));
+  }
+
+  return Array.from(new Set([...boosters, ...fallbackPool]));
 }
 
 export async function generateExercises(
@@ -1273,7 +1278,7 @@ export async function generateExercises(
   const system = SYSTEM_PROMPT_BASE + curriculumInstr + modelProfile.system;
   const diagramPolicy = classifyDiagramNeed({ conceptId, conceptTitle, conceptDesc });
 
-  const pool = getTypePool(conceptTitle) ?? GENERIC_PROBLEM_TYPES;
+  const pool = getTypePool(conceptTitle, difficulty, conceptId);
   const historyKey = makeExerciseVarietyKey(conceptTitle, grade, difficulty, curriculum);
   const recentTypes = readRecentExerciseTypes(historyKey);
   const pickedTypes = pickDiverseExerciseTypes(pool, count, recentTypes);
@@ -1286,12 +1291,7 @@ export async function generateExercises(
     ? recentTypes.map((type, i) => `  ${i + 1}. ${type}`).join("\n")
     : "  None";
   const selectedTypesText = pickedTypes.map((type, i) => `  ${i + 1}. ${type}`).join("\n");
-  const difficultyGuide =
-    difficulty === "Easy"
-      ? `Difficulty design:\n- Easy: one clear skill, direct setup, and the shortest reasonable solution path.\n- Prefer straightforward numbers and one obvious inference.\n`
-      : difficulty === "Medium"
-        ? `Difficulty design:\n- Medium: two-step reasoning or one small intermediate idea is expected.\n- Make the setup less direct than Easy, but still routine and classroom-appropriate.\n`
-        : `Difficulty design:\n- Hard: multi-step reasoning, at least one non-trivial intermediate step, or a small twist is required.\n- Avoid direct plug-in questions; combine two ideas when possible, and keep the prompt clearly more challenging than Medium.\n`;
+  const difficultyGuide = buildDifficultyGuidance(difficulty, lang);
   const forcedVarietyInstr =
     `\nPROBLEM TYPE CONTROL:\n` +
     `System-selected problem type(s) for THIS generation. You MUST use them in order, one per exercise:\n` +
@@ -1303,6 +1303,7 @@ export async function generateExercises(
     `- Do not merely change numbers from a previous problem.\n` +
     `- The scenario, known conditions, target question, and reasoning path must be noticeably different.\n` +
     `- Keep the requested knowledge point central; do not drift into unrelated topics.\n` +
+    `- Aim for at least ${Math.max(minTierPoolSize[normalizeDifficulty(difficulty)] ?? 30, pickedTypes.length)} distinct variants in the concept pool over time.\n` +
     (lang === "zh" ? `- Output in Chinese.\n` : "");
 
   const userMsg =
