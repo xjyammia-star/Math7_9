@@ -452,14 +452,26 @@ function randomIndex(max) {
   return Math.floor(Math.random() * max);
 }
 
+function shuffleKinds(pool) {
+  const items = [...new Set(pool.filter(Boolean))];
+  for (let i = items.length - 1; i > 0; i -= 1) {
+    const j = randomIndex(i + 1);
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+  return items;
+}
+
 function rotateKinds(pool, count, recentKinds) {
   const uniquePool = Array.from(new Set(pool.filter(Boolean)));
   const targetCount = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
   if (uniquePool.length === 0 || targetCount === 0) return [];
 
   const recent = recentKinds.find((kind) => uniquePool.includes(kind));
-  const startIndex = recent ? (uniquePool.indexOf(recent) + 1) % uniquePool.length : randomIndex(uniquePool.length);
-  const ordered = [...uniquePool.slice(startIndex), ...uniquePool.slice(0, startIndex)];
+  const ordered = shuffleKinds(uniquePool);
+  if (recent && ordered.length > 1 && ordered[0] === recent) {
+    const swapIndex = 1 + randomIndex(ordered.length - 1);
+    [ordered[0], ordered[swapIndex]] = [ordered[swapIndex], ordered[0]];
+  }
 
   const selected = [];
   while (selected.length < targetCount) {
