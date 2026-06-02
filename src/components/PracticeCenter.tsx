@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ClipboardList,
   Settings2,
@@ -57,11 +57,16 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
   const [showSolution, setShowSolution] = useState(false);
   const [isGuiding, setIsGuiding]   = useState(false);
   const [error, setError]           = useState<string | null>(null);
+  const isStructuredExerciseConcept = concept?.id === 'area-perimeter' || concept?.id === 'pythagoras';
+
+  useEffect(() => {
+    setCount(isStructuredExerciseConcept ? 30 : 1);
+  }, [isStructuredExerciseConcept]);
 
   const handleReset = () => {
     setExercises(null); setSolution(null); setShowSolution(false);
     setIsGuiding(false); setError(null);
-    setDifficulty('Medium'); setGrade('8'); setCount(1); setRequirement('');
+    setDifficulty('Medium'); setGrade('8'); setCount(isStructuredExerciseConcept ? 30 : 1); setRequirement('');
   };
 
   const t = {
@@ -115,12 +120,13 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
     setLoading(true);
     setExercises(null); setSolution(null); setShowSolution(false); setIsGuiding(false); setError(null);
     try {
+      const exerciseCount = isStructuredExerciseConcept ? Math.max(30, count) : count;
       const specificTitle = activeConcept.specificFocus ? activeConcept.specificFocus[lang] : activeConcept.title[lang];
       const promptContext = `${specificTitle}${requirement ? ` (Special focus: ${requirement})` : ' (Ensure maximum variety of problem types, randomize sub-scenarios)'}`;
       const result = await generateExercises(
         promptContext,
         activeConcept.description[lang],
-        grade, difficulty, count, lang,
+        grade, difficulty, exerciseCount, lang,
         curriculum,
         activeConcept.id
       );
@@ -279,9 +285,15 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
                 {t.countLabel}
               </label>
               <input
-                type="number" min="1" max="10"
+                type="number"
+                min={isStructuredExerciseConcept ? 30 : 1}
+                max={isStructuredExerciseConcept ? 30 : 10}
                 value={count}
-                onChange={e => setCount(parseInt(e.target.value))}
+                onChange={e => {
+                  const next = parseInt(e.target.value, 10);
+                  if (!Number.isFinite(next)) return;
+                  setCount(isStructuredExerciseConcept ? Math.max(30, next) : Math.max(1, Math.min(10, next)));
+                }}
                 className="w-full bg-[var(--color-brand-bg)] border border-[var(--color-brand-border)] rounded-xl px-4 py-2.5 text-sm text-slate-200 outline-none focus:ring-1 focus:ring-[var(--color-brand-accent)] transition-all"
               />
             </div>
