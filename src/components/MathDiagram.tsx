@@ -28,6 +28,7 @@
 import React from 'react';
 import { explicitLabel } from '../utils/diagramLabelPolicy';
 import { getLinearFunctionAnnotations, getQuadraticFunctionAnnotations } from '../utils/functionDiagramPolicy';
+import PythonCircleDiagram from './PythonCircleDiagram';
 
 // ─── SVG canvas constants ────────────────────────────────────────────────────
 const W = 480;
@@ -2511,7 +2512,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
     content = <SilentDiagramFallback />;
   }
 
-  return (
+  const fallback = (
     <div className="my-6 flex justify-center bg-slate-900/40 p-4 rounded-3xl border border-white/5 backdrop-blur-sm">
       <svg viewBox={`0 0 ${W} ${H}`} className="max-w-full h-auto drop-shadow-2xl"
         style={{ overflow: 'visible', maxHeight: svgMaxHeight }}>
@@ -2519,6 +2520,19 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       </svg>
     </div>
   );
+
+  if (template.startsWith('circle')) {
+    return (
+      <PythonCircleDiagram
+        template={template}
+        data={parsed}
+        fallback={fallback}
+        svgMaxHeight={svgMaxHeight}
+      />
+    );
+  }
+
+  return fallback;
 };
 
 function SilentDiagramFallback() {
