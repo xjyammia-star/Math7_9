@@ -6,6 +6,9 @@ const supportedConcepts = [
   'rational-numbers',
   'fractions-decimals',
   'ratio-proportion',
+  'powers-roots',
+  'indices-laws',
+  'surds',
 ];
 
 for (const conceptId of supportedConcepts) {
@@ -38,6 +41,20 @@ for (const conceptId of supportedConcepts) {
   }
 }
 
+for (const conceptId of ['powers-roots', 'indices-laws', 'surds']) {
+  const hardItems = buildBankItems(10, {
+    conceptId,
+    lang: 'zh',
+    difficulty: 'Hard',
+    grade: '8',
+    curriculum: 'CN',
+  });
+
+  const hardText = hardItems.map((item) => item.question).join('\n');
+  assert.ok(!/^计算[:：]?\s*[0-9]/m.test(hardText), `${conceptId} Hard should not fall back to simple calculate-only wording`);
+  assert.ok(/(如果|已知|比较|再|反求|推导|判断|证明)/.test(hardText), `${conceptId} Hard should show challenge-style wording`);
+}
+
 const firstBatch = buildBankItems(5, {
   conceptId: 'arithmetic',
   lang: 'zh',
@@ -66,5 +83,17 @@ const rendered = buildAlgebraExerciseBatch({
 assert.ok(!rendered.includes('math-diagram'));
 assert.ok(!rendered.includes('```'));
 assert.match(rendered, /^1\.\s+/m);
+
+const hardRatioBatch = buildBankItems(10, {
+  conceptId: 'ratio-proportion',
+  lang: 'zh',
+  difficulty: 'Hard',
+  grade: '8',
+  curriculum: 'CN',
+});
+const hardRatioText = hardRatioBatch.map((item) => item.question).join('\n');
+assert.ok(!hardRatioText.includes('化简比'), 'Hard ratio-proportion questions should not fall back to simple ratio simplification');
+assert.ok(!hardRatioText.includes('单价是多少'), 'Hard ratio-proportion questions should not use the easy unit-rate wording');
+assert.ok(!hardRatioText.includes('地图比例尺'), 'Hard ratio-proportion questions should not use the basic scale-map wording');
 
 console.log('algebra question bank test passed');

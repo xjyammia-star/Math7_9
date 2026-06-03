@@ -1,8 +1,13 @@
+import { buildAdvancedAlgebraExerciseItems, isAdvancedAlgebraQuestionBankConcept } from "./algebraAdvancedExerciseTemplates.js";
+
 const ALGEBRA_QBANK_CONCEPT_IDS = new Set([
   'arithmetic',
   'rational-numbers',
   'fractions-decimals',
   'ratio-proportion',
+  'powers-roots',
+  'indices-laws',
+  'surds',
 ]);
 
 const ALGEBRA_HISTORY_KEY = 'math7-9:algebra-qbank-history:v1';
@@ -635,6 +640,13 @@ function buildQuestion(kind, payload, lang, difficulty) {
       const a = factor * absInt(payload.seed * 2, 2, 8);
       const b = factor * absInt(payload.seed * 3, 2, 9);
       const reduced = reduceFraction(a, b);
+      if (difficulty === 'Hard') {
+        const diff = a - b;
+        return {
+          question: t(lang, `两个数的比是 ${a}:${b}，它们的差是 ${diff}。求这两个数。`, `Two numbers are in the ratio ${a}:${b}, and their difference is ${diff}. Find the two numbers.`),
+          answer: `${a} 和 ${b}`,
+        };
+      }
       return {
         question: t(lang, `化简比 ${a}:${b}。`, `Simplify the ratio ${a}:${b}.`),
         answer: `${reduced.numerator}:${reduced.denominator}`,
@@ -646,6 +658,18 @@ function buildQuestion(kind, payload, lang, difficulty) {
       const right = absInt(payload.seed * 3, 1, 6);
       const sum = left + right;
       const part = (total * left) / sum;
+      if (difficulty === 'Hard') {
+        const newLeft = left + 1;
+        const newRight = right + 2;
+        const multiplier = absInt(payload.seed * 4, 2, 8);
+        const originalLeft = left * multiplier;
+        const originalRight = right * multiplier;
+        const changedTotal = originalLeft + originalRight + multiplier;
+        return {
+          question: t(lang, `A、B 两部分的比是 ${left}:${right}。如果 A 增加 ${multiplier} 个、B 增加 ${2 * multiplier} 个后，A:B 变成 ${newLeft}:${newRight}，求原来 A、B 各是多少。`, `Two parts A and B are in the ratio ${left}:${right}. If A increases by ${multiplier} and B increases by ${2 * multiplier}, the ratio becomes ${newLeft}:${newRight}. Find the original A and B.`),
+          answer: `${originalLeft} 和 ${originalRight}`,
+        };
+      }
       return {
         question: t(lang, `把 ${total} 按 ${left}:${right} 分配，第一份是多少？`, `Share ${total} in the ratio ${left}:${right}. What is the first share?`),
         answer: decimalText(part),
@@ -656,9 +680,11 @@ function buildQuestion(kind, payload, lang, difficulty) {
       const k = absInt(payload.seed * 2, 2, 8);
       const y = x * k;
       if (difficulty === 'Hard') {
+        const x2 = x + absInt(payload.seed * 3, 2, 6);
+        const y2 = x2 * k;
         return {
-          question: t(lang, `若 x 与 y 成正比例，且 x = ${x} 时 y = ${y}。当 x = ${x + 3} 时 y 是多少？`, `If x and y are directly proportional, and y = ${y} when x = ${x}. What is y when x = ${x + 3}?`),
-          answer: String((x + 3) * k),
+          question: t(lang, `若 x 与 y 成正比例，且 x = ${x} 时 y = ${y}。当 x 增加 ${x2 - x} 后，y 变为多少？再问：k 的值是多少？`, `If x and y are directly proportional, and y = ${y} when x = ${x}. When x increases by ${x2 - x}, what is the new y? Also, what is k?`),
+          answer: `${y2}，k=${k}`,
         };
       }
       return {
@@ -670,6 +696,14 @@ function buildQuestion(kind, payload, lang, difficulty) {
       const quantity = absInt(payload.seed, 3, 12);
       const cost = absInt(payload.seed * 2, 6, 40);
       const unit = cost / quantity;
+      if (difficulty === 'Hard') {
+        const quantity2 = quantity + absInt(payload.seed * 3, 1, 5);
+        const cost2 = cost + absInt(payload.seed * 4, 5, 25);
+        return {
+          question: t(lang, `A 方案 ${quantity} 个物品花 ${cost} 元，B 方案 ${quantity2} 个物品花 ${cost2} 元。哪个方案的单价更低？`, `Plan A costs ${cost} yuan for ${quantity} items, and Plan B costs ${cost2} yuan for ${quantity2} items. Which plan has the lower unit price?`),
+          answer: cost / quantity < cost2 / quantity2 ? 'A' : cost2 / quantity2 < cost / quantity ? 'B' : 'same',
+        };
+      }
       return {
         question: t(lang, `${quantity} 个物品花费 ${cost} 元，单价是多少？`, `If ${quantity} items cost ${cost} yuan, what is the unit price?`),
         answer: decimalText(unit),
@@ -679,6 +713,14 @@ function buildQuestion(kind, payload, lang, difficulty) {
       const scale = [1000, 2000, 5000, 10000][payload.seed % 4];
       const mapDistance = absInt(payload.seed, 2, 12);
       const real = mapDistance * scale;
+      if (difficulty === 'Hard') {
+        const mapDistance2 = mapDistance + absInt(payload.seed * 3, 2, 7);
+        const real2 = mapDistance2 * scale;
+        return {
+          question: t(lang, `比例尺 1:${scale} 的地图上，甲乙两地相距 ${mapDistance} cm，丙丁两地相距 ${mapDistance2} cm。两段实际距离相差多少米？`, `On a map with scale 1:${scale}, A and B are ${mapDistance} cm apart, and C and D are ${mapDistance2} cm apart. How many meters apart are the two real distances?`),
+          answer: String((real2 - real) / 100),
+        };
+      }
       return {
         question: t(lang, `比例尺 1:${scale} 的地图上，两地相距 ${mapDistance} cm。实际距离是多少 cm？`, `On a map with scale 1:${scale}, the distance between two places is ${mapDistance} cm. What is the real distance in cm?`),
         answer: String(real),
@@ -689,6 +731,14 @@ function buildQuestion(kind, payload, lang, difficulty) {
       const target = servings + absInt(payload.seed * 2, 1, 5);
       const sugar = absInt(payload.seed * 3, 2, 12);
       const scaled = (sugar * target) / servings;
+      if (difficulty === 'Hard') {
+        const target2 = target + absInt(payload.seed * 4, 2, 6);
+        const sugar2 = (sugar * target2) / servings;
+        return {
+          question: t(lang, `做 ${servings} 人份需要 ${sugar} 克糖。若改做 ${target2} 人份并额外再加 ${sugar2 - scaled} 克糖，最终一共需要多少克糖？`, `A recipe for ${servings} servings uses ${sugar} g of sugar. If you scale it to ${target2} servings and then add ${sugar2 - scaled} more grams, how much sugar is needed in total?`),
+          answer: decimalText(sugar2 + (sugar2 - scaled)),
+        };
+      }
       return {
         question: t(lang, `做 ${servings} 人份需要 ${sugar} 克糖。做 ${target} 人份需要多少克糖？`, `A recipe for ${servings} servings uses ${sugar} g of sugar. How much sugar is needed for ${target} servings?`),
         answer: decimalText(scaled),
@@ -700,6 +750,14 @@ function buildQuestion(kind, payload, lang, difficulty) {
       const work = workers * days;
       const newWorkers = workers + 2;
       const newDays = work / newWorkers;
+      if (difficulty === 'Hard') {
+        const extraWorkers = workers + 4;
+        const extraDays = work / extraWorkers;
+        return {
+          question: t(lang, `${workers} 个人完成一项工作要 ${days} 天。如果改成 ${newWorkers} 个人做需要多少天？再改成 ${extraWorkers} 个人做又需要多少天？`, `If ${workers} people take ${days} days to finish a job, how many days would ${newWorkers} people need? How about ${extraWorkers} people?`),
+          answer: `${decimalText(newDays)} 和 ${decimalText(extraDays)}`,
+        };
+      }
       return {
         question: t(lang, `${workers} 个人完成一项工作要 ${days} 天。如果改成 ${newWorkers} 个人做，预计要多少天？`, `${workers} people take ${days} days to finish a job. If ${newWorkers} people do it, about how many days will it take?`),
         answer: decimalText(newDays),
@@ -712,7 +770,7 @@ function buildQuestion(kind, payload, lang, difficulty) {
       const x = (b * c) / a;
       if (difficulty === 'Hard') {
         return {
-          question: t(lang, `若 ${a}:${b} = ${c}:x，求 x。`, `If ${a}:${b} = ${c}:x, find x.`),
+          question: t(lang, `若 ${a}:${b} = ${c}:x，且 ${a}、${b}、${c}、x 的和是 ${a + b + c + x}，求 x。`, `If ${a}:${b} = ${c}:x, and ${a}, ${b}, ${c}, and x add up to ${a + b + c + x}, find x.`),
           answer: decimalText(x),
         };
       }
@@ -728,6 +786,14 @@ function buildQuestion(kind, payload, lang, difficulty) {
       const b2 = absInt(payload.seed * 4, 10, 60);
       const rate1 = b1 / a1;
       const rate2 = b2 / a2;
+      if (difficulty === 'Hard') {
+        const b1Per10 = (b1 / a1) * 10;
+        const b2Per10 = (b2 / a2) * 10;
+        return {
+          question: t(lang, `比较两种方案的“每 10 个”的平均价格：A 方案 ${a1} 个花 ${b1} 元，B 方案 ${a2} 个花 ${b2} 元。哪一种更便宜？`, `Compare the average price per 10 items: Plan A costs ${b1} yuan for ${a1} items, and Plan B costs ${b2} yuan for ${a2} items. Which is cheaper?`),
+          answer: b1Per10 < b2Per10 ? 'A' : b2Per10 < b1Per10 ? 'B' : 'same',
+        };
+      }
       return {
         question: t(lang, `比较两种方案的单价：A 方案 ${a1} 个花 ${b1} 元，B 方案 ${a2} 个花 ${b2} 元。哪个更便宜？`, `Compare two unit prices: Plan A costs ${b1} yuan for ${a1} items, and Plan B costs ${b2} yuan for ${a2} items. Which is cheaper?`),
         answer: rate1 < rate2 ? 'A' : rate2 < rate1 ? 'B' : 'same',
@@ -739,14 +805,85 @@ function buildQuestion(kind, payload, lang, difficulty) {
       const total = base * factor;
       const extra = absInt(payload.seed * 3, 1, 5);
       if (difficulty === 'Hard') {
+        const k = absInt(payload.seed * 4, 3, 10);
+        const red = base * k;
+        const blue = factor * k;
         return {
-          question: t(lang, `一盒彩球里红球和蓝球的比是 ${base}:${factor}。如果再放入 ${extra} 个红球，使红球数变为 ${total + extra} 个，原来蓝球有多少个？`, `The ratio of red to blue balls in a box is ${base}:${factor}. If ${extra} red balls are added, making the red balls ${total + extra}, how many blue balls were there originally?`),
-          answer: String(factor * factor),
+          question: t(lang, `一盒彩球里红球和蓝球的比是 ${base}:${factor}。如果红球增加 ${k} 个、蓝球增加 ${2 * k} 个后，比变成 ${(base + 1)}:${(factor + 2)}，求原来红球和蓝球各有多少个。`, `The ratio of red to blue balls in a box is ${base}:${factor}. If red increases by ${k} and blue increases by ${2 * k}, the ratio becomes ${base + 1}:${factor + 2}. Find the original red and blue counts.`),
+          answer: `${red} 和 ${blue}`,
         };
       }
       return {
         question: t(lang, `一盒彩球里红球和蓝球的比是 ${base}:${factor}。如果红球有 ${total} 个，蓝球有多少个？`, `The ratio of red to blue balls is ${base}:${factor}. If there are ${total} red balls, how many blue balls are there?`),
         answer: String(factor * factor),
+      };
+    }
+    case '': {
+      const p = 2 + (payload.seed % 3);
+      const q = 3 + (payload.seed % 4);
+      const r = 4 + (payload.seed % 3);
+      const s = 5 + (payload.seed % 4);
+      const l = (q * r) / gcd(q, r);
+      const aScale = l / q;
+      const cScale = l / r;
+      const unit = absInt(payload.seed * 7, 3, 12);
+      const A = p * aScale * unit;
+      const B = l * unit;
+      const C = s * cScale * unit;
+      return {
+        question: t(
+          lang,
+          `?? A:B = ${p}:${q},B:C = ${r}:${s},? A?B?C ???? ${A + B + C}?? A?B?C?`,
+          `Given A:B = ${p}:${q}, B:C = ${r}:${s}, and A+B+C = ${A + B + C}, find A, B, and C.`
+        ),
+        answer: `${A}?${B}?${C}`,
+      };
+    }
+    case '': {
+      const unit = absInt(payload.seed * 5, 4, 12);
+      const originalA = 3 * unit;
+      const originalB = 5 * unit;
+      const addA = unit;
+      const subtractB = 2 * unit;
+      return {
+        question: t(
+          lang,
+          `?????? 3:5????????? ${addA},?????? ${subtractB} ?,??? 4:3?????????`,
+          `Two numbers are in the ratio 3:5. If the first increases by ${addA} and the second decreases by ${subtractB}, the ratio becomes 4:3. Find the original numbers.`
+        ),
+        answer: `${originalA} ? ${originalB}`,
+      };
+    }
+    case '': {
+      const baseFeeA = absInt(payload.seed, 5, 20);
+      const perA = absInt(payload.seed * 2, 2, 8);
+      const baseFeeB = absInt(payload.seed * 3, 4, 18);
+      const perB = absInt(payload.seed * 4, 1, 6);
+      const usage = absInt(payload.seed * 5, 5, 20);
+      const costA = baseFeeA + perA * usage;
+      const costB = baseFeeB + perB * usage;
+      return {
+        question: t(
+          lang,
+          `??A:??? ${baseFeeA} ?,?? ${perA} ?;??B:??? ${baseFeeB} ?,?? ${perB} ???? ${usage} ?,????????`,
+          `Plan A has a base fee of ${baseFeeA} yuan and costs ${perA} yuan per item; Plan B has a base fee of ${baseFeeB} yuan and costs ${perB} yuan per item. For ${usage} items, which plan is cheaper?`
+        ),
+        answer: costA < costB ? 'A' : costB < costA ? 'B' : 'same',
+      };
+    }
+    case '': {
+      const scale = absInt(payload.seed, 2, 8);
+      const part1 = scale * absInt(payload.seed * 2, 2, 8);
+      const part2 = scale * absInt(payload.seed * 3, 2, 8);
+      const extra = absInt(payload.seed * 4, 1, 5);
+      const total = part1 + part2 + extra * 2;
+      return {
+        question: t(
+          lang,
+          `???????????? ${part1}:${part2}?????? ${extra} ????? ${extra} ?????? ${total} ?,??????????`,
+          `The quantities of A and B are in the ratio ${part1}:${part2}. If both A and B increase by ${extra}, and the total becomes ${total}, what were the original quantities?`
+        ),
+        answer: `${part1} ? ${part2}`,
       };
     }
     default:
@@ -801,18 +938,44 @@ const ALGEBRA_BANKS = {
     ],
   },
   'ratio-proportion': {
-    families: [
-      'simplify_ratio',
-      'share_in_ratio',
-      'direct_proportion_table',
-      'unit_rate',
-      'scale_map',
-      'recipe_scaling',
-      'inverse_proportion',
-      'missing_value_proportion',
-      'compare_two_rates',
-      'proportional_word_problem',
-    ],
+    familiesByDifficulty: {
+      Easy: [
+        'simplify_ratio',
+        'share_in_ratio',
+        'unit_rate',
+        'direct_proportion_table',
+        'scale_map',
+        'recipe_scaling',
+        'inverse_proportion',
+        'missing_value_proportion',
+        'compare_two_rates',
+        'proportional_word_problem',
+      ],
+      Medium: [
+        'simplify_ratio',
+        'share_in_ratio',
+        'unit_rate',
+        'direct_proportion_table',
+        'scale_map',
+        'recipe_scaling',
+        'inverse_proportion',
+        'missing_value_proportion',
+        'compare_two_rates',
+        'proportional_word_problem',
+      ],
+      Hard: [
+        'inverse_proportion',
+        'missing_value_proportion',
+        'compare_two_rates',
+        'proportional_word_problem',
+        'recipe_scaling',
+        'scale_map',
+        'simplify_ratio',
+        'share_in_ratio',
+        'unit_rate',
+        'direct_proportion_table',
+      ],
+    },
   },
 };
 
@@ -857,13 +1020,19 @@ function buildBankItems(count, { conceptId, lang = 'zh', difficulty = 'Easy', gr
   const safeCount = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
   if (safeCount === 0) return [];
 
+  if (isAdvancedAlgebraQuestionBankConcept(conceptId)) {
+    return buildAdvancedAlgebraExerciseItems(safeCount, { conceptId, lang, difficulty, grade, curriculum });
+  }
+
   const spec = ALGEBRA_BANKS[conceptId];
   if (!spec) return [];
 
   const normalizedDifficulty = normalizeDifficulty(difficulty);
   const historyKey = makeHistoryKey(conceptId, grade, normalizedDifficulty, curriculum);
   const recentFamilies = readRecentFamilies(historyKey);
-  const familyOrder = spec.families;
+  const familyOrder = Array.isArray(spec.familiesByDifficulty?.[normalizedDifficulty])
+    ? spec.familiesByDifficulty[normalizedDifficulty]
+    : spec.families;
   const startIndex = recentFamilies.length > 0
     ? (familyOrder.indexOf(recentFamilies[recentFamilies.length - 1]) + 1) % familyOrder.length
     : 0;
@@ -925,3 +1094,5 @@ export {
   isAlgebraQuestionBankConcept,
   validateBankItems,
 };
+
+
