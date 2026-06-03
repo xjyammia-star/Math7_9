@@ -1089,6 +1089,7 @@ function buildSemicircleRectangleSpec(item) {
     bounds: { xMin: 0, xMax: width, yMin: 0, yMax: item.rectHeight + item.radius },
     layers: [
       { kind: 'poly', pts: outline, fill: 'rgba(245,158,11,0.18)', stroke: '#94a3b8', sw: 2 },
+      { kind: 'seg', a: { x: 0, y: item.rectHeight }, b: { x: width, y: item.rectHeight }, stroke: '#94a3b8', sw: 2 },
       { kind: 'arc', c: center, r: item.radius, startAngle: 0, endAngle: Math.PI, stroke: '#94a3b8', sw: 2.2 },
       { kind: 'seg', a: center, b: { x: width, y: item.rectHeight }, stroke: '#94a3b8', sw: 1.8, dash: '5,4' },
       { kind: 'dot', p: center, label: 'O', offset: { x: 8, y: 12 }, color: '#f8fafc' },
@@ -1188,6 +1189,7 @@ function buildTrapezoidTriangleStackSpec(item) {
     bounds: { xMin: 0, xMax: item.bottomBase, yMin: 0, yMax: item.trapHeight + item.roofRise },
     layers: [
       { kind: 'poly', pts: [leftBottom, rightBottom, rightTop, apex, leftTop], fill: 'rgba(245,158,11,0.18)', stroke: '#94a3b8', sw: 2 },
+      { kind: 'seg', a: leftTop, b: rightTop, stroke: '#94a3b8', sw: 2 },
       { kind: 'segLabel', a: leftBottom, b: rightBottom, label: formatLength(item.bottomBase), color: '#f59e0b' },
       { kind: 'segLabel', a: leftTop, b: rightTop, label: formatLength(item.topBase), color: '#f59e0b' },
       { kind: 'segLabel', a: { x: 0, y: 0 }, b: leftTop, label: formatLength(item.trapHeight), color: '#f59e0b' },
@@ -1217,6 +1219,7 @@ function buildSemicircleCutRectangleSpec(item) {
     bounds: { xMin: 0, xMax: item.width, yMin: 0, yMax: item.rectHeight },
     layers: [
       { kind: 'poly', pts: outline, fill: 'rgba(245,158,11,0.18)', stroke: '#94a3b8', sw: 2 },
+      { kind: 'seg', a: { x: 0, y: item.rectHeight }, b: { x: item.width, y: item.rectHeight }, stroke: '#94a3b8', sw: 2 },
       { kind: 'arc', c: notchCenter, r: item.notchRadius, startAngle: Math.PI, endAngle: 0, stroke: '#94a3b8', sw: 2.2 },
       { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: item.width, y: 0 }, label: formatLength(item.width), color: '#f59e0b' },
       { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: 0, y: item.rectHeight }, label: item.kind === 'semicircle_cut_rectangle_area_reverse' ? '' : formatLength(item.rectHeight), color: '#f59e0b' },
@@ -1245,14 +1248,17 @@ function buildOctagonCornerCutSpec(item) {
     bounds: { xMin: 0, xMax: s, yMin: 0, yMax: s },
     layers: [
       { kind: 'poly', pts, fill: 'rgba(245,158,11,0.18)', stroke: '#94a3b8', sw: 2 },
-      { kind: 'segLabel', a: { x: c, y: 0 }, b: { x: s - c, y: 0 }, label: formatLength(s - 2 * c), color: '#f59e0b' },
-      { kind: 'segLabel', a: { x: s - c, y: 0 }, b: { x: s, y: c }, label: item.kind === 'octagon_corner_cut_area_reverse' ? '' : formatLength(c * Math.SQRT2), color: '#f59e0b' },
-      { kind: 'text', x: s / 2, y: s / 2, text: item.kind === 'octagon_corner_cut_area_reverse' ? formatAreaDisplay(item.area) : '', color: '#f59e0b' },
-      { kind: 'seg', a: { x: 0, y: 0 }, b: { x: c, y: 0 }, stroke: '#94a3b8', sw: 1.5, dash: '5,4' },
-      { kind: 'seg', a: { x: 0, y: 0 }, b: { x: 0, y: c }, stroke: '#94a3b8', sw: 1.5, dash: '5,4' },
-      { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: c, y: 0 }, label: item.kind === 'octagon_corner_cut_area_reverse' ? '' : formatLength(c), color: '#f59e0b' },
-      { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: 0, y: c }, label: '', color: '#f59e0b' },
+      { kind: 'seg', a: { x: 0, y: 0 }, b: { x: s, y: 0 }, stroke: '#94a3b8', sw: 1.5, dash: '5,4' },
+      { kind: 'seg', a: { x: 0, y: 0 }, b: { x: 0, y: s }, stroke: '#94a3b8', sw: 1.5, dash: '5,4' },
+      { kind: 'seg', a: { x: 0, y: s }, b: { x: s, y: s }, stroke: '#94a3b8', sw: 1.5, dash: '5,4' },
+      { kind: 'seg', a: { x: s, y: 0 }, b: { x: s, y: s }, stroke: '#94a3b8', sw: 1.5, dash: '5,4' },
       { kind: 'segLabel', a: { x: 0, y: s }, b: { x: s, y: s }, label: formatLength(s), color: '#f59e0b' },
+      { kind: 'text', x: s / 2, y: s / 2, text: item.kind === 'octagon_corner_cut_area_reverse' ? formatAreaDisplay(item.area) : '', color: '#f59e0b' },
+      { kind: 'seg', a: { x: 0, y: 0 }, b: { x: c, y: 0 }, stroke: '#94a3b8', sw: 1.8, dash: '5,4' },
+      { kind: 'seg', a: { x: 0, y: 0 }, b: { x: 0, y: c }, stroke: '#94a3b8', sw: 1.8, dash: '5,4' },
+      { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: c, y: 0 }, label: item.kind === 'octagon_corner_cut_area_reverse' ? '' : formatLength(c), color: '#f59e0b' },
+      { kind: 'seg', a: { x: s, y: 0 }, b: { x: s - c, y: 0 }, stroke: '#94a3b8', sw: 1.8, dash: '5,4' },
+      { kind: 'seg', a: { x: s, y: 0 }, b: { x: s, y: c }, stroke: '#94a3b8', sw: 1.8, dash: '5,4' },
     ],
   };
 }

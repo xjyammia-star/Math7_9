@@ -432,6 +432,7 @@ const trapezoidStackReverseItem = {
 };
 assert.deepEqual(validateCompositeAreaPerimeterItem(trapezoidStackReverseItem), []);
 const trapezoidStackReverseDiagram = JSON.stringify(buildCompositeAreaPerimeterDiagramSpec(trapezoidStackReverseItem));
+assert.match(trapezoidStackReverseDiagram, /"a":\{"x":6,"y":9\},"b":\{"x":18,"y":9\},"stroke":"#94a3b8"/);
 assert.match(buildCompositeAreaPerimeterQuestionText(trapezoidStackReverseItem, 'zh'), /梯形/);
 assert.match(trapezoidStackReverseDiagram, /"dash":"5,4"/);
 assert.doesNotMatch(trapezoidStackReverseDiagram, /"\?"/);
@@ -448,6 +449,9 @@ const semicircleCutReverseItem = {
 assert.deepEqual(validateCompositeAreaPerimeterItem(semicircleCutReverseItem), []);
 const semicircleCutReverseQuestion = buildCompositeAreaPerimeterQuestionText(semicircleCutReverseItem, 'zh');
 const semicircleCutReverseDiagram = JSON.stringify(buildCompositeAreaPerimeterDiagramSpec(semicircleCutReverseItem));
+assert.match(semicircleCutReverseQuestion, /160 - 8(?:ฯ€|π) cm(?:ยฒ|²)/);
+assert.match(semicircleCutReverseDiagram, /160 - 8(?:ฯ€|π) cm(?:ยฒ|²)/);
+assert.match(semicircleCutReverseDiagram, /"a":\{"x":0,"y":10\},"b":\{"x":16,"y":10\},"stroke":"#94a3b8"/);
 assert.match(semicircleCutReverseQuestion, /160 - 8π cm²/);
 assert.match(semicircleCutReverseDiagram, /"kind":"arc"/);
 assert.match(semicircleCutReverseDiagram, /160 - 8π cm²/);
@@ -463,9 +467,23 @@ const octagonReverseItem = {
 };
 assert.deepEqual(validateCompositeAreaPerimeterItem(octagonReverseItem), []);
 const octagonReverseDiagram = JSON.stringify(buildCompositeAreaPerimeterDiagramSpec(octagonReverseItem));
+assert.match(octagonReverseDiagram, /"a":\{"x":0,"y":24\},"b":\{"x":24,"y":24\},"label":"24 cm"/);
+assert.doesNotMatch(octagonReverseDiagram, /2\.828427/);
+assert.doesNotMatch(octagonReverseDiagram, /5\.656854/);
 assert.match(buildCompositeAreaPerimeterQuestionText(octagonReverseItem, 'zh'), /八边形/);
 assert.match(octagonReverseDiagram, /"text":"544 cm(?:²|ยฒ)"/);
 assert.doesNotMatch(octagonReverseDiagram, /"\?"/);
+
+const semicirclePerimeterItem = {
+  kind: 'semicircle_rectangle_perimeter',
+  radius: 4,
+  rectHeight: 6,
+  answer: 20 + 4 * Math.PI,
+  scene: { zh: 'ๅๅ้•ฟๆ–นๅฝข็ปๅ', en: 'semicircle rectangle composite' },
+};
+assert.deepEqual(validateCompositeAreaPerimeterItem(semicirclePerimeterItem), []);
+const semicirclePerimeterDiagram = JSON.stringify(buildCompositeAreaPerimeterDiagramSpec(semicirclePerimeterItem));
+assert.match(semicirclePerimeterDiagram, /"a":\{"x":0,"y":6\},"b":\{"x":8,"y":6\},"stroke":"#94a3b8"/);
 
 const hardSingles = Array.from({ length: 10 }, () => buildAreaPerimeterExerciseItems(1, { lang: 'zh', difficulty: 'Hard', grade: '8' }));
 const hardSingleKeys = hardSingles.map((batch) => batch[0].key);
