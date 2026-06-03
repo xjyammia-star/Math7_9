@@ -229,6 +229,8 @@ class Renderer:
       self.render_diameter_points()
     elif tmpl == "circle_intersecting_chords":
       self.render_intersecting_chords()
+    elif tmpl == "circle_diameter_chords":
+      self.render_diameter_chords()
     else:
       self.render_basic_circle()
     return (
@@ -595,11 +597,58 @@ class Renderer:
     if self.data.get("label_difference") is not None:
       self.text((c[0] + d[0]) / 2, (c[1] + d[1]) / 2 - 18, self.data.get("label_difference"), fill=GOLD, dx=12, dy=0)
 
+  def render_diameter_chords(self) -> None:
+    r = num(self.data.get("radius"), 5.0)
+    c_deg = num(self.data.get("c_angle"), 58.0)
+    d_deg = num(self.data.get("d_angle"), 302.0)
+    show_right_angle = bool(self.data.get("show_right_angle") or self.data.get("show_perpendicular"))
+
+    a = (-r, 0)
+    b = (r, 0)
+    c = point_on_circle(r, c_deg)
+    d = point_on_circle(r, d_deg)
+    e = line_intersection(a, c, b, d) or (0.0, 0.0)
+    self.circle(r, stroke=GREY, fill="none", sw=2.0, opacity=0.65)
+    self.line(a, b, stroke=GOLD, sw=2.5)
+    self.line(a, c, stroke=GOLD, sw=2.2)
+    self.line(b, d, stroke=GOLD, sw=2.2)
+    self.dot(*e, self.data.get("label_E"), fill=WHITE, dx=8, dy=-10)
+    self.dot(*a, self.data.get("label_A"), fill=GOLD, dx=-16, dy=0)
+    self.dot(*b, self.data.get("label_B"), fill=GOLD, dx=10, dy=0)
+    self.dot(*c, self.data.get("label_C"), fill=GOLD, dx=10, dy=-12)
+    self.dot(*d, self.data.get("label_D"), fill=GOLD, dx=10, dy=14)
+    self.dot(0, 0, self.data.get("label_O"), fill=WHITE, dx=8, dy=12)
+    if show_right_angle:
+      self.right_angle_mark(e, a, b, size=9, fill=GREY)
+    if self.data.get("label_ab") is not None:
+      self.seg_label(a, b, self.data.get("label_ab"), fill=GOLD)
+    if self.data.get("label_ac") is not None:
+      self.seg_label(a, c, self.data.get("label_ac"), fill=GOLD)
+    if self.data.get("label_bd") is not None:
+      self.seg_label(b, d, self.data.get("label_bd"), fill=GOLD)
+    if self.data.get("label_ae") is not None:
+      self.seg_label(a, e, self.data.get("label_ae"), fill=GREY)
+    if self.data.get("label_be") is not None:
+      self.seg_label(b, e, self.data.get("label_be"), fill=GREY)
+
 
 def normalize(v: Tuple[float, float]) -> Tuple[float, float]:
   x, y = v
   length = math.hypot(x, y) or 1.0
   return (x / length, y / length)
+
+
+def line_intersection(a: Tuple[float, float], b: Tuple[float, float], c: Tuple[float, float], d: Tuple[float, float]) -> Optional[Tuple[float, float]]:
+  x1, y1 = a
+  x2, y2 = b
+  x3, y3 = c
+  x4, y4 = d
+  den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+  if abs(den) < 1e-9:
+    return None
+  px = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / den
+  py = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / den
+  return (px, py)
 
 
 def circumcircle(a: Tuple[float, float], b: Tuple[float, float], c: Tuple[float, float]) -> Optional[Tuple[float, float, float]]:

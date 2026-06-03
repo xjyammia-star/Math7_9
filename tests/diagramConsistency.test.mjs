@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   needsCircleDiameterRepair,
+  needsCircleDiameterIntersectingChordsRepair,
   needsCircleIntersectingChordsRepair,
   needsCircleSectorRepair,
 } from '../src/utils/diagramConsistency.js';
@@ -60,6 +61,26 @@ assert.equal(
     conceptTitle: 'intersecting chords',
     conceptDesc: 'Two chords intersect at P. Given AP = PB and CP = PD.',
     generatedText: '```math-diagram\n{"template":"circle_intersecting_chords","radius":5,"labels":["A","B","C","D"],"ap":3,"pb":4,"cp":5,"cd":6}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false,
+);
+
+assert.equal(
+  needsCircleDiameterIntersectingChordsRepair({
+    conceptTitle: 'circle diameter and intersecting chords',
+    conceptDesc: 'AB is a diameter of circle O. Chords AC and BD intersect at E and AC ⟂ BD.',
+    generatedText: '```math-diagram\n{"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"]}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true,
+);
+
+assert.equal(
+  needsCircleDiameterIntersectingChordsRepair({
+    conceptTitle: 'circle diameter and intersecting chords',
+    conceptDesc: 'AB is a diameter of circle O. Chords AC and BD intersect at E and AC ⟂ BD.',
+    generatedText: '```math-diagram\n{"template":"circle_diameter_chords","radius":5,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_ab":"10 cm"}\n```',
     diagramPolicy: 'must_draw',
   }),
   false,

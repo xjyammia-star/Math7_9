@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
@@ -20,11 +20,11 @@ const sectorSvg = render({
   label_A: 'A',
   label_B: 'B',
   label_radius: '5 cm',
-  label_angle: '60°',
+  label_angle: '60ยฐ',
 });
 
 assert.match(sectorSvg, /<svg/);
-assert.match(sectorSvg, /60°/);
+assert.match(sectorSvg, /60ยฐ/);
 assert.doesNotMatch(sectorSvg, /\?/);
 
 const cyclicSvg = render({
@@ -32,14 +32,31 @@ const cyclicSvg = render({
   radius: 5,
   labels: ['A', 'B', 'C', 'D'],
   label_O: 'O',
-  label_A: '110°',
-  label_B: '70°',
-  label_C: '95°',
-  label_D: '85°',
+  label_A: '110ยฐ',
+  label_B: '70ยฐ',
+  label_C: '95ยฐ',
+  label_D: '85ยฐ',
 });
 
 assert.match(cyclicSvg, /<svg/);
-assert.match(cyclicSvg, /110°/);
+assert.match(cyclicSvg, /110ยฐ/);
 assert.doesNotMatch(cyclicSvg, /\?/);
 
+const diameterChordsSvg = render({
+  template: 'circle_diameter_chords',
+  radius: 5,
+  label_A: 'A',
+  label_B: 'B',
+  label_C: 'C',
+  label_D: 'D',
+  label_E: 'E',
+  label_ab: '10 cm',
+  show_right_angle: true,
+});
+
+assert.match(diameterChordsSvg, /<svg/);
+assert.match(diameterChordsSvg, /10 cm/);
+assert.doesNotMatch(diameterChordsSvg, /\?/);
+
 console.log('python circle renderer test passed');
+

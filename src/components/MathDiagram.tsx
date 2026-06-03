@@ -614,6 +614,12 @@ function validateDiagramData(template: string, data: any): string | null {
         ? null
         : 'circle_intersecting_chords requires positive ap, pb and either cp, cd, cp_pd_ratio, or cp_minus_pd';
     }
+    case 'circle_diameter_chords': {
+      const radius = asFiniteNumber(data.radius ?? 5);
+      return radius !== null && radius > 0
+        ? null
+        : 'circle_diameter_chords requires a positive radius';
+    }
     default:
       return null;
   }
@@ -1880,6 +1886,54 @@ function CircleIntersectingChords({ data }: { data: any }) {
 }
 
 /**
+ * circle_diameter_chords - diameter AB with chords AC and BD intersecting at E.
+ * Intended for circle theorem problems that combine a diameter with two crossing chords.
+ */
+function CircleDiameterChords({ data }: { data: any }) {
+  const r: number = data.radius ?? 5;
+  const cDeg: number = data.c_angle ?? 58;
+  const dDeg: number = data.d_angle ?? 302;
+  const showRightAngle: boolean = data.show_right_angle === true || data.show_perpendicular === true;
+
+  const O: Pt = { x: 0, y: 0 };
+  const A: Pt = { x: -r, y: 0 };
+  const B: Pt = { x: r, y: 0 };
+  const C: Pt = { x: r * Math.cos(cDeg * Math.PI / 180), y: r * Math.sin(cDeg * Math.PI / 180) };
+  const D: Pt = { x: r * Math.cos(dDeg * Math.PI / 180), y: r * Math.sin(dDeg * Math.PI / 180) };
+  const E = lineIntersection(A, C, B, D) ?? { x: 0, y: 0 };
+
+  const xs = [A.x, B.x, C.x, D.x, E.x, O.x];
+  const ys = [A.y, B.y, C.y, D.y, E.y, O.y];
+  const pad = r * 0.28;
+  const sc = makeScaler(Math.min(...xs) - pad, Math.max(...xs) + pad,
+    Math.min(...ys) - pad, Math.max(...ys) + pad);
+  const sO = sc(O), sA = sc(A), sB = sc(B), sC = sc(C), sD = sc(D), sE = sc(E);
+  const pixelR = Math.abs(sc({ x: r, y: 0 }).x - sO.x);
+
+  return (
+    <g>
+      <circle cx={sO.x} cy={sO.y} r={pixelR}
+        fill="none" stroke={GREY} strokeWidth={2} strokeOpacity={0.65} />
+      <Seg a={sA} b={sB} stroke={GOLD} sw={2.5} />
+      <Seg a={sA} b={sC} stroke={GOLD} sw={2.2} />
+      <Seg a={sB} b={sD} stroke={GOLD} sw={2.2} />
+      <Dot p={sE} label={explicitLabel(data.label_E)} offset={{ x: 8, y: -10 }} color={WHITE} />
+      <Dot p={sO} label={explicitLabel(data.label_O)} offset={{ x: 8, y: 12 }} color={WHITE} />
+      <Dot p={sA} label={explicitLabel(data.label_A)} offset={{ x: -20, y: 0 }} />
+      <Dot p={sB} label={explicitLabel(data.label_B)} offset={{ x: 10, y: 0 }} />
+      <Dot p={sC} label={explicitLabel(data.label_C)} offset={{ x: 10, y: -12 }} />
+      <Dot p={sD} label={explicitLabel(data.label_D)} offset={{ x: 10, y: 14 }} />
+      {showRightAngle && <RightAngleMark v={sE} a={sA} b={sB} size={10} color={GREY} />}
+      {data.label_ab && <SegLabel a={sA} b={sB} label={String(data.label_ab)} color={GOLD} />}
+      {data.label_ac && <SegLabel a={sA} b={sC} label={String(data.label_ac)} color={GOLD} />}
+      {data.label_bd && <SegLabel a={sB} b={sD} label={String(data.label_bd)} color={GOLD} />}
+      {data.label_ae && <SegLabel a={sA} b={sE} label={String(data.label_ae)} color={GREY} />}
+      {data.label_be && <SegLabel a={sB} b={sE} label={String(data.label_be)} color={GREY} />}
+    </g>
+  );
+}
+
+/**
  * circle_tangent — circle with external point P, two tangents PA and PB.
  * Fields: radius, op_dist (distance OP), label_O, label_P, label_A, label_B,
  *         label_radius, label_pa (tangent length), show_chord (draw AB, default true),
@@ -2499,6 +2553,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'circle_three_points': content = <CircleThreePoints data={parsed} />; break;
       case 'circle_diameter_points': content = <CircleDiameterPoints data={parsed} />; break;
       case 'circle_intersecting_chords': content = <CircleIntersectingChords data={parsed} />; break;
+      case 'circle_diameter_chords': content = <CircleDiameterChords data={parsed} />; break;
       case 'linear_function':     content = <LinearFunction data={parsed} />; break;
       case 'quadratic_function':  content = <QuadraticFunction data={parsed} />; break;
       case 'number_line':

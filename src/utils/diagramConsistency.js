@@ -1,4 +1,4 @@
-function normalizeText(text) {
+﻿function normalizeText(text) {
   return String(text ?? "").replace(/\s+/g, " ").trim();
 }
 
@@ -11,10 +11,10 @@ function hasMathDiagramBlock(text) {
 }
 
 const GENERIC_POINT_PLACEHOLDERS = new Set([
-  "起点",
-  "终点",
-  "开始",
-  "结束",
+  "่ตท็น",
+  "็ป็น",
+  "ๅผ€ๅง",
+  "็ป“ๆ",
   "start",
   "end",
   "point",
@@ -31,42 +31,50 @@ function isGenericPointPlaceholder(value) {
 
 function hasCircleIntersectingChordsCue(text) {
   const source = String(text ?? "");
-  return /(?:相交于圆内一点|两弦相交|intersecting chords|AP\s*[:：\/]\s*PB|CP\s*[:：\/]\s*PD|弦AB与CD相交|圆内一点P)/i.test(source);
+  return /(?:็ธไบคไบๅๅ…ไธ€็น|ไธคๅผฆ็ธไบค|intersecting chords|AP\s*[:๏ผ\/]\s*PB|CP\s*[:๏ผ\/]\s*PD|ๅผฆABไธCD็ธไบค|ๅๅ…ไธ€็นP)/i.test(source);
 }
 
 function hasDiameterCue(text) {
-  return /(?:直径|diameter)/i.test(String(text ?? ""));
+  return /(?:็ดๅพ|diameter)/i.test(String(text ?? ""));
 }
 
+function hasDiameterIntersectingChordsCue(text) {
+  const source = String(text ?? "");
+  return hasDiameterCue(source) && (
+    hasCircleIntersectingChordsCue(source) ||
+    /(?:AC|BD).{0,24}(?:⊥|perpendicular)/i.test(source) ||
+    /(?:intersect|交于|相交).{0,24}(?:AC|BD)/i.test(source)
+  );
+}
 function hasAngleCueNeedingBD(text) {
-  return /(?:∠\s*ABD|angle\s*ABD|∠\s*BCD|angle\s*BCD|ABD|BCD)/i.test(String(text ?? ""));
+  return /(?:โ \s*ABD|angle\s*ABD|โ \s*BCD|angle\s*BCD|ABD|BCD)/i.test(String(text ?? ""));
 }
 
 function hasTangentChordCue(text) {
-  return /(?:切线|tangent|切点|弦|chord)/i.test(String(text ?? ""));
+  return /(?:ๅ็บฟ|tangent|ๅ็น|ๅผฆ|chord)/i.test(String(text ?? ""));
 }
 
 function hasCircleChordCue(text) {
   const source = String(text ?? "");
-  return /(?:弦|chord)/i.test(source) && /(?:圆|circle|⊙|O)/i.test(source);
+  return /(?:ๅผฆ|chord)/i.test(source) && /(?:ๅ|circle|โ|O)/i.test(source);
 }
 
 function hasCenterToChordDistanceCue(text) {
   const source = String(text ?? "");
-  return /(?:圆心.*到弦|弦.*到圆心|center.*to.*chord|distance.*from.*center.*to.*chord|O.*到.*弦|O.*弦.*距离|圆心O.*弦[A-Z]{2}.*距离)/i.test(source);
+  return /(?:ๅๅฟ.*ๅฐๅผฆ|ๅผฆ.*ๅฐๅๅฟ|center.*to.*chord|distance.*from.*center.*to.*chord|O.*ๅฐ.*ๅผฆ|O.*ๅผฆ.*่ท็ฆป|ๅๅฟO.*ๅผฆ[A-Z]{2}.*่ท็ฆป)/i.test(source);
 }
 
 function hasChordMidpointCue(text) {
   const source = String(text ?? "");
-  return /(?:中点|midpoint|mid point)/i.test(source);
+  return /(?:ไธญ็น|midpoint|mid point)/i.test(source);
 }
 
 function extractTangentPointCue(text) {
   const source = String(text ?? "");
   const patterns = [
-    /过顶点\s*([A-Z])\s*的切线/i,
-    /过点\s*([A-Z])\s*的切线/i,
-    /点\s*([A-Z])\s*处的切线/i,
+    /่ฟ้กถ็น\s*([A-Z])\s*็ๅ็บฟ/i,
+    /่ฟ็น\s*([A-Z])\s*็ๅ็บฟ/i,
+    /็น\s*([A-Z])\s*ๅค็ๅ็บฟ/i,
     /tangent at\s*([A-Z])/i,
     /tangent through point\s*([A-Z])/i,
     /at point\s*([A-Z])/i,
@@ -79,7 +87,7 @@ function extractTangentPointCue(text) {
 }
 
 function hasAngleBACCue(text) {
-  return /(?:∠\s*BAC|angle\s*BAC|BAC)/i.test(String(text ?? ""));
+  return /(?:โ \s*BAC|angle\s*BAC|BAC)/i.test(String(text ?? ""));
 }
 
 function hasExpectedTangentChordLabelMap(text) {
@@ -90,22 +98,22 @@ function hasExpectedTangentChordLabelMap(text) {
 }
 
 function hasTangentChordAngleCue(text) {
-  return /(?:∠\s*(?:BAC|PAB|ADB|ABD)|angle\s*(?:BAC|PAB|ADB|ABD)|(?:BAC|PAB|ADB|ABD))/i.test(String(text ?? ""));
+  return /(?:โ \s*(?:BAC|PAB|ADB|ABD)|angle\s*(?:BAC|PAB|ADB|ABD)|(?:BAC|PAB|ADB|ABD))/i.test(String(text ?? ""));
 }
 
 function hasTangentChordArcPointDCue(text) {
   const source = String(text ?? "");
-  return /(?:点\s*D|D\s*在|point\s*D|D\s+on\s+the\s+(?:minor|major)?\s*arc|D\s*lies\s*on\s+the\s+(?:minor|major)?\s*arc|∠\s*ADB|angle\s*ADB)/i.test(source);
+  return /(?:็น\s*D|D\s*ๅจ|point\s*D|D\s+on\s+the\s+(?:minor|major)?\s*arc|D\s*lies\s*on\s+the\s+(?:minor|major)?\s*arc|โ \s*ADB|angle\s*ADB)/i.test(source);
 }
 
 function hasDualTangentChordArcPointsCue(text) {
   const source = String(text ?? "");
-  return /(?:C\s*在[^。\n]{0,18}(?:劣弧|minor arc)[^。\n]{0,18}AB|D\s*在[^。\n]{0,18}(?:优弧|major arc)[^。\n]{0,18}AB|C\s*在[^。\n]{0,18}(?:优弧|major arc)[^。\n]{0,18}AB|D\s*在[^。\n]{0,18}(?:劣弧|minor arc)[^。\n]{0,18}AB)/i.test(source);
+  return /(?:C\s*ๅจ[^ใ€\n]{0,18}(?:ๅฃๅผง|minor arc)[^ใ€\n]{0,18}AB|D\s*ๅจ[^ใ€\n]{0,18}(?:ไผๅผง|major arc)[^ใ€\n]{0,18}AB|C\s*ๅจ[^ใ€\n]{0,18}(?:ไผๅผง|major arc)[^ใ€\n]{0,18}AB|D\s*ๅจ[^ใ€\n]{0,18}(?:ๅฃๅผง|minor arc)[^ใ€\n]{0,18}AB)/i.test(source);
 }
 
 function hasArcTypeCue(text) {
   const source = String(text ?? "");
-  return /(?:优弧|劣弧|minor arc|major arc|on the minor arc|on the major arc)/i.test(source);
+  return /(?:ไผๅผง|ๅฃๅผง|minor arc|major arc|on the minor arc|on the major arc)/i.test(source);
 }
 
 function hasCyclicQuadrilateralExtensionCue(text) {
@@ -119,16 +127,16 @@ function inferNamedArcType(text, point) {
   if (!p) return null;
 
   const minorPatterns = [
-    new RegExp(`${p}[^\n。]{0,24}(?:劣弧|minor arc)[^\n。]{0,24}(?:AB|AC)`, 'i'),
-    new RegExp(`(?:劣弧|minor arc)[^\n。]{0,24}(?:AB|AC)[^\n。]{0,24}${p}`, 'i'),
-    new RegExp(`${p}[^\n。]{0,24}on the minor arc[^\n。]{0,24}(?:AB|AC)`, 'i'),
-    new RegExp(`on the minor arc[^\n。]{0,24}(?:AB|AC)[^\n。]{0,24}${p}`, 'i'),
+    new RegExp(`${p}[^\nใ€]{0,24}(?:ๅฃๅผง|minor arc)[^\nใ€]{0,24}(?:AB|AC)`, 'i'),
+    new RegExp(`(?:ๅฃๅผง|minor arc)[^\nใ€]{0,24}(?:AB|AC)[^\nใ€]{0,24}${p}`, 'i'),
+    new RegExp(`${p}[^\nใ€]{0,24}on the minor arc[^\nใ€]{0,24}(?:AB|AC)`, 'i'),
+    new RegExp(`on the minor arc[^\nใ€]{0,24}(?:AB|AC)[^\nใ€]{0,24}${p}`, 'i'),
   ];
   const majorPatterns = [
-    new RegExp(`${p}[^\n。]{0,24}(?:优弧|major arc)[^\n。]{0,24}(?:AB|AC)`, 'i'),
-    new RegExp(`(?:优弧|major arc)[^\n。]{0,24}(?:AB|AC)[^\n。]{0,24}${p}`, 'i'),
-    new RegExp(`${p}[^\n。]{0,24}on the major arc[^\n。]{0,24}(?:AB|AC)`, 'i'),
-    new RegExp(`on the major arc[^\n。]{0,24}(?:AB|AC)[^\n。]{0,24}${p}`, 'i'),
+    new RegExp(`${p}[^\nใ€]{0,24}(?:ไผๅผง|major arc)[^\nใ€]{0,24}(?:AB|AC)`, 'i'),
+    new RegExp(`(?:ไผๅผง|major arc)[^\nใ€]{0,24}(?:AB|AC)[^\nใ€]{0,24}${p}`, 'i'),
+    new RegExp(`${p}[^\nใ€]{0,24}on the major arc[^\nใ€]{0,24}(?:AB|AC)`, 'i'),
+    new RegExp(`on the major arc[^\nใ€]{0,24}(?:AB|AC)[^\nใ€]{0,24}${p}`, 'i'),
   ];
 
   if (minorPatterns.some((pattern) => pattern.test(source))) return 'minor';
@@ -166,17 +174,17 @@ function inferArcTypeCueForPoint(text, point) {
   if (!p) return null;
 
   const fragments = source
-    .split(/[。.!?；;，,]/)
+    .split(/[ใ€.!?๏ผ;๏ผ,]/)
     .map((fragment) => fragment.trim())
     .filter(Boolean);
 
   for (const fragment of fragments) {
     if (!new RegExp(`(?:^|[^A-Z])${p}(?:$|[^A-Z])`, 'i').test(fragment)) continue;
 
-    if (/(?:劣弧|minor arc)[\s\S]{0,20}(?:AB|AC)|(?:AB|AC)[\s\S]{0,20}(?:劣弧|minor arc)/i.test(fragment)) {
+    if (/(?:ๅฃๅผง|minor arc)[\s\S]{0,20}(?:AB|AC)|(?:AB|AC)[\s\S]{0,20}(?:ๅฃๅผง|minor arc)/i.test(fragment)) {
       return 'minor';
     }
-    if (/(?:优弧|major arc)[\s\S]{0,20}(?:AB|AC)|(?:AB|AC)[\s\S]{0,20}(?:优弧|major arc)/i.test(fragment)) {
+    if (/(?:ไผๅผง|major arc)[\s\S]{0,20}(?:AB|AC)|(?:AB|AC)[\s\S]{0,20}(?:ไผๅผง|major arc)/i.test(fragment)) {
       return 'major';
     }
     if (/on the minor arc[\s\S]{0,20}(?:AB|AC)|(?:AB|AC)[\s\S]{0,20}on the minor arc/i.test(fragment)) {
@@ -200,12 +208,12 @@ function hasExpectedArcTypeField(text, data, point, field = 'arc_type') {
 
 function hasCircleThreePointsCue(text) {
   const source = String(text ?? "");
-  return /(?:A\s*[、,]\s*B\s*[、,]\s*C.*(?:\bO\b|⊙O|圆)|A、B、C.*O上|A,B,C.*O上|三点.*O上|AOB|ACB|AOC|∠\s*AOB|∠\s*ACB|∠\s*AOC)/i.test(source);
+  return /(?:A\s*[ใ€,]\s*B\s*[ใ€,]\s*C.*(?:\bO\b|โO|ๅ)|Aใ€Bใ€C.*Oไธ|A,B,C.*Oไธ|ไธ็น.*Oไธ|AOB|ACB|AOC|โ \s*AOB|โ \s*ACB|โ \s*AOC)/i.test(source);
 }
 
 function hasCircleSectorCue(text) {
   const source = String(text ?? "");
-  return /(?:扇形|sector|圆心角|分钟|sector_count|扫过|摆动|弧长|面积)/i.test(source);
+  return /(?:ๆๅฝข|sector|ๅๅฟ่ง’|ๅ้’|sector_count|ๆซ่ฟ|ๆ‘ๅจ|ๅผง้•ฟ|้ข็งฏ)/i.test(source);
 }
 
 function extractDiagramBlockJson(text) {
@@ -228,25 +236,25 @@ function extractAskedTargets(text) {
   const labels = new Set();
   const quantityKeys = new Set();
 
-  for (const match of source.matchAll(/(?:求出|求得|求)\s*([^。！？?!；;\n]+)/g)) {
+  for (const match of source.matchAll(/(?:ๆฑๅบ|ๆฑๅพ—|ๆฑ)\s*([^ใ€๏ผ๏ผ?!๏ผ;\n]+)/g)) {
     const phrase = normalizeText(match[1]);
 
-    for (const angleMatch of phrase.matchAll(/∠\s*([A-Z]{3})/g)) {
+    for (const angleMatch of phrase.matchAll(/โ \s*([A-Z]{3})/g)) {
       angles.add(angleMatch[1].toUpperCase());
     }
 
-    for (const segmentMatch of phrase.matchAll(/^([A-Z]{2,4})(?:的)?(?:长|长度|边长|周长|半径|直径|弧长|面积|高|宽)?/g)) {
+    for (const segmentMatch of phrase.matchAll(/^([A-Z]{2,4})(?:็)?(?:้•ฟ|้•ฟๅบฆ|่พน้•ฟ|ๅ‘จ้•ฟ|ๅๅพ|็ดๅพ|ๅผง้•ฟ|้ข็งฏ|้ซ|ๅฎฝ)?/g)) {
       labels.add(segmentMatch[1].toUpperCase());
     }
 
-    if (/(?:面积|扇形面积)/.test(phrase)) quantityKeys.add('area');
-    if (/(?:半径)/.test(phrase)) quantityKeys.add('radius');
-    if (/(?:直径)/.test(phrase)) quantityKeys.add('diameter');
-    if (/(?:弧长)/.test(phrase)) quantityKeys.add('arc');
-    if (/(?:周长)/.test(phrase)) quantityKeys.add('perimeter');
-    if (/(?:高)/.test(phrase)) quantityKeys.add('height');
-    if (/(?:宽)/.test(phrase)) quantityKeys.add('width');
-    if (/(?:长|边长)/.test(phrase)) quantityKeys.add('length');
+    if (/(?:้ข็งฏ|ๆๅฝข้ข็งฏ)/.test(phrase)) quantityKeys.add('area');
+    if (/(?:ๅๅพ)/.test(phrase)) quantityKeys.add('radius');
+    if (/(?:็ดๅพ)/.test(phrase)) quantityKeys.add('diameter');
+    if (/(?:ๅผง้•ฟ)/.test(phrase)) quantityKeys.add('arc');
+    if (/(?:ๅ‘จ้•ฟ)/.test(phrase)) quantityKeys.add('perimeter');
+    if (/(?:้ซ)/.test(phrase)) quantityKeys.add('height');
+    if (/(?:ๅฎฝ)/.test(phrase)) quantityKeys.add('width');
+    if (/(?:้•ฟ|่พน้•ฟ)/.test(phrase)) quantityKeys.add('length');
   }
 
   return {
@@ -261,8 +269,8 @@ function extractExplicitAngleNumbers(text) {
   const values = new Set();
 
   const anglePatterns = [
-    /(?:∠|angle)\s*[A-Z]{1,4}\s*(?:=|:|is|为|是)\s*(-?\d+(?:\.\d+)?)\s*(?:°|º|度)?/gi,
-    /(?:∠|angle)[^\n。！？；;，,]{0,24}?(-?\d+(?:\.\d+)?)\s*(?:°|º|度)/gi,
+    /(?:โ |angle)\s*[A-Z]{1,4}\s*(?:=|:|is|ไธบ|ๆฏ)\s*(-?\d+(?:\.\d+)?)\s*(?:ยฐ|ยบ|ๅบฆ)?/gi,
+    /(?:โ |angle)[^\nใ€๏ผ๏ผ๏ผ;๏ผ,]{0,24}?(-?\d+(?:\.\d+)?)\s*(?:ยฐ|ยบ|ๅบฆ)/gi,
   ];
 
   for (const pattern of anglePatterns) {
@@ -281,8 +289,8 @@ function extractExplicitAngleStatements(text) {
   const source = String(text ?? "");
   const statements = [];
   const patterns = [
-    /(?:∠|angle)\s*([A-Z]{1,4})\s*(?:=|:|is|为|是)\s*(-?\d+(?:\.\d+)?)\s*(?:°|º|度)?/gi,
-    /(?:∠|angle)\s*([A-Z]{1,4})[^\n。！？；;，,]{0,24}?(-?\d+(?:\.\d+)?)\s*(?:°|º|度)/gi,
+    /(?:โ |angle)\s*([A-Z]{1,4})\s*(?:=|:|is|ไธบ|ๆฏ)\s*(-?\d+(?:\.\d+)?)\s*(?:ยฐ|ยบ|ๅบฆ)?/gi,
+    /(?:โ |angle)\s*([A-Z]{1,4})[^\nใ€๏ผ๏ผ๏ผ;๏ผ,]{0,24}?(-?\d+(?:\.\d+)?)\s*(?:ยฐ|ยบ|ๅบฆ)/gi,
   ];
 
   for (const pattern of patterns) {
@@ -409,18 +417,18 @@ function extractExpectedPointNames(source) {
     addPoint(match[1]);
   }
 
-  for (const match of text.matchAll(/\b([A-Z]('?|))\s*[\(（]\s*-?\d+(?:\.\d+)?\s*[,，]\s*-?\d+(?:\.\d+)?\s*[\)）]/g)) {
+  for (const match of text.matchAll(/\b([A-Z]('?|))\s*[\(๏ผ]\s*-?\d+(?:\.\d+)?\s*[,๏ผ]\s*-?\d+(?:\.\d+)?\s*[\)๏ผ]/g)) {
     addPoint(match[1]);
   }
 
   if (/\bO\b/.test(text) ||
-      /(?:⊙\s*O|circle\s*O|center\s*O|centre\s*O|圆\s*O|圓\s*O|以O为圆心|以O為圓心)/i.test(text) ||
+      /(?:โ\s*O|circle\s*O|center\s*O|centre\s*O|ๅ\s*O|ๅ“\s*O|ไปฅOไธบๅๅฟ|ไปฅO็บๅ“ๅฟ)/i.test(text) ||
       /O\s*(?:is the center|is the centre|is the center of|is the centre of)/i.test(text)) {
     addPoint('O');
   }
 
-  if (/(?:延长|extend(?:ed)?|extended)\s*(?:side\s*)?CD.*(?:\bpoint\s*E\b|\bE\b|点E|到点E)|(?:CD).*(?:延长|extend(?:ed)?).*(?:\bpoint\s*E\b|\bE\b|点E)/i.test(text) ||
-      /(?:\bpoint\s*E\b|\bE\b)\s*(?:lies on|is on|on)\s*(?:the\s*)?(?:extension|延长线).*(?:CD|side\s*CD|line\s*CD)/i.test(text) ||
+  if (/(?:ๅปถ้•ฟ|extend(?:ed)?|extended)\s*(?:side\s*)?CD.*(?:\bpoint\s*E\b|\bE\b|็นE|ๅฐ็นE)|(?:CD).*(?:ๅปถ้•ฟ|extend(?:ed)?).*(?:\bpoint\s*E\b|\bE\b|็นE)/i.test(text) ||
+      /(?:\bpoint\s*E\b|\bE\b)\s*(?:lies on|is on|on)\s*(?:the\s*)?(?:extension|ๅปถ้•ฟ็บฟ).*(?:CD|side\s*CD|line\s*CD)/i.test(text) ||
       /(?:\bE\b)\s*(?:on|lies on|is on)\s*(?:the\s*)?(?:extension of\s*)?(?:CD|side\s*CD|line\s*CD)/i.test(text)) {
     addPoint('E');
   }
@@ -559,7 +567,7 @@ function replaceNumericFieldWithQuestion(text, key) {
   const source = String(text ?? "");
   const escapedKey = escapeRegExp(key);
   const quotedPattern = new RegExp(`("${escapedKey}"\\s*:\\s*")([^"]*\\d[^"]*?)(")`, "ig");
-  const unquotedPattern = new RegExp(`("${escapedKey}"\\s*:\\s*)(-?\\d+(?:\\.\\d+)?(?:°|º|cm|mm|m|km|%)?)`, "ig");
+  const unquotedPattern = new RegExp(`("${escapedKey}"\\s*:\\s*)(-?\\d+(?:\\.\\d+)?(?:ยฐ|ยบ|cm|mm|m|km|%)?)`, "ig");
 
   return source
     .replace(quotedPattern, (_match, prefix, _value, suffix) => `${prefix}?${suffix}`)
@@ -569,7 +577,7 @@ function replaceNumericFieldWithQuestion(text, key) {
 function replaceNumericFieldWithQuestionStrict(text, key) {
   const source = String(text ?? "");
   const escapedKey = escapeRegExp(key);
-  const pattern = new RegExp(`("${escapedKey}"\\s*:\\s*)(?:"[^"]*\\d[^"]*"|-?\\d+(?:\\.\\d+)?(?:°|º|cm|mm|m|km|%)?)`, "ig");
+  const pattern = new RegExp(`("${escapedKey}"\\s*:\\s*)(?:"[^"]*\\d[^"]*"|-?\\d+(?:\\.\\d+)?(?:ยฐ|ยบ|cm|mm|m|km|%)?)`, "ig");
   return source.replace(pattern, (_match, prefix) => `${prefix}"?"`);
 }
 
@@ -577,7 +585,7 @@ function replaceFieldValueWithQuestion(text, key) {
   const source = String(text ?? "");
   const escapedKey = escapeRegExp(key);
   const quotedPattern = new RegExp(`("${escapedKey}"\\s*:\\s*)"(.*?)"`, "ig");
-  const numericPattern = new RegExp(`("${escapedKey}"\\s*:\\s*)(-?\\d+(?:\\.\\d+)?(?:°|º|cm|mm|m|km|%)?)`, "ig");
+  const numericPattern = new RegExp(`("${escapedKey}"\\s*:\\s*)(-?\\d+(?:\\.\\d+)?(?:ยฐ|ยบ|cm|mm|m|km|%)?)`, "ig");
 
   return source
     .replace(quotedPattern, (_match, prefix, value) => {
@@ -589,7 +597,7 @@ function replaceFieldValueWithQuestion(text, key) {
 function extractCentralAngles(text) {
   const source = String(text ?? "");
   const angles = new Set();
-  for (const match of source.matchAll(/∠\s*([A-Z])O([A-Z])/g)) {
+  for (const match of source.matchAll(/โ \s*([A-Z])O([A-Z])/g)) {
     angles.add(`${match[1].toUpperCase()}O${match[2].toUpperCase()}`);
   }
   return [...angles];
@@ -634,7 +642,7 @@ export function needsCircleChordRepair({ conceptTitle = "", conceptDesc = "", ge
 
   const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
   if (!hasCircleChordCue(source) && !hasCenterToChordDistanceCue(source)) return false;
-  if (hasDiameterCue(source) || hasCircleSectorCue(source) || hasCircleIntersectingChordsCue(source) || hasCircleThreePointsCue(source) || /cyclic quadrilateral|inscribed in a circle|内接四边形/i.test(source) || (hasTangentChordCue(source) && hasTangentChordAngleCue(source))) return false;
+  if (hasDiameterCue(source) || hasCircleSectorCue(source) || hasCircleIntersectingChordsCue(source) || hasCircleThreePointsCue(source) || /cyclic quadrilateral|inscribed in a circle|ๅ…ๆฅๅ่พนๅฝข/i.test(source) || (hasTangentChordCue(source) && hasTangentChordAngleCue(source))) return false;
   if (!hasMathDiagramBlock(generatedText)) return false;
 
   const data = extractDiagramBlockJson(generatedText);
@@ -664,6 +672,31 @@ export function needsCircleChordRepair({ conceptTitle = "", conceptDesc = "", ge
   return false;
 }
 
+export function needsCircleDiameterIntersectingChordsRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
+  if (diagramPolicy === "must_not_draw") return false;
+
+  const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
+  if (!hasDiameterIntersectingChordsCue(source)) return false;
+  if (!hasMathDiagramBlock(generatedText)) return true;
+
+  const data = extractDiagramBlockJson(generatedText);
+  if (!data || typeof data !== "object") return true;
+
+  const template = String(data.template ?? data.type ?? "").trim();
+  if (!["circle_diameter_chords", "circle_intersecting_chords", "circle_diameter_points"].includes(template)) return true;
+
+  const hasRadius = hasAnyDiagramField(data, ["radius"]);
+  const actualPoints = collectDiagramPointLabels(data);
+  const expectedPoints = ["A", "B", "C", "D"];
+  if (!hasRadius) return true;
+  if (expectedPoints.some((point) => !actualPoints.has(point))) return true;
+
+  if (template === "circle_diameter_chords" && !hasAnyDiagramField(data, ["label_ab", "label_diameter"])) return true;
+  if (template === "circle_intersecting_chords" && !hasAnyDiagramField(data, ["ap", "pb", "cp", "cd"])) return true;
+  if (template === "circle_diameter_points" && !hasAnyDiagramField(data, ["label_ab", "label_diameter", "diameter"])) return true;
+
+  return false;
+}
 export function needsCircleSectorRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
   if (diagramPolicy === "must_not_draw") return false;
 
@@ -727,7 +760,7 @@ export function needsLinearIntersectionRepair({ conceptTitle = "", conceptDesc =
   if (diagramPolicy === "must_not_draw") return false;
 
   const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
-  const hasTwoLineCue = /(?:两条直线|两条线|两直线|two lines|line intersection|intersection of two lines|直线.*交点|交点.*直线|相交直线|一次函数.*交点|正比例函数.*交点|过点[A-Z].*过点[A-Z])/i.test(source);
+  const hasTwoLineCue = /(?:ไธคๆก็ด็บฟ|ไธคๆก็บฟ|ไธค็ด็บฟ|two lines|line intersection|intersection of two lines|็ด็บฟ.*ไบค็น|ไบค็น.*็ด็บฟ|็ธไบค็ด็บฟ|ไธ€ๆฌกๅฝๆ•ฐ.*ไบค็น|ๆญฃๆฏ”ไพๅฝๆ•ฐ.*ไบค็น|่ฟ็น[A-Z].*่ฟ็น[A-Z])/i.test(source);
   if (!hasTwoLineCue) return false;
   if (!hasMathDiagramBlock(generatedText)) return false;
 
@@ -741,7 +774,7 @@ export function needsLinearIntersectionRepair({ conceptTitle = "", conceptDesc =
     Number.isFinite(Number(data.secondary_intercept ?? data.b2 ?? data.c2 ?? data.intercept_2 ?? data.intercept2));
   const hasA = !!(data.label_A || data.label_x_intercept);
   const hasB = !!(data.label_B || data.label_y_intercept);
-  const asksIntersection = /(?:交点|intersection|相交|求.*交点)/i.test(source);
+  const asksIntersection = /(?:ไบค็น|intersection|็ธไบค|ๆฑ.*ไบค็น)/i.test(source);
   const hasIntersection = !!(data.show_intersection || data.label_intersection || data.label_P);
 
   return !(hasPrimary && hasSecondary && hasA && hasB && (!asksIntersection || hasIntersection));
@@ -1010,9 +1043,10 @@ export function needsCircleThreePointsRepair({ conceptTitle = "", conceptDesc = 
 
   const labels = Array.isArray(data.labels) ? data.labels : [];
   const hasABC = labels.length >= 3 || (data.label_A && data.label_B && data.label_C);
-  const sourceMentionsO = /\bO\b|circle\s*O|center\s*O|centre\s*O|圆心O/i.test(source);
+  const sourceMentionsO = /\bO\b|circle\s*O|center\s*O|centre\s*O|ๅๅฟO/i.test(source);
   const hasO = sourceMentionsO ? hasAnyDiagramField(data, ["label_O"]) : true;
 
   return !(hasABC && hasO);
 }
+
 
