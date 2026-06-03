@@ -2,6 +2,7 @@ import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../ty
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 import { classifyDiagramNeed, shouldRequireDiagramBlock, stripDiagramArtifacts } from "../utils/diagramPolicy";
 import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleChordRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsLinearIntersectionRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
+import { buildAlgebraExerciseBatch, isAlgebraQuestionBankConcept } from "../utils/algebraExerciseTemplates.js";
 import { buildAreaPerimeterExerciseBatch, isAreaPerimeterConcept } from "../utils/areaPerimeterExerciseTemplates.js";
 import { buildPythagorasExerciseBatch, isPythagorasConcept } from "../utils/pythagorasExerciseTemplates.js";
 import { buildDifficultyGuidance, genericProblemTypesByDifficulty, normalizeDifficulty, minTierPoolSize } from "../utils/exerciseTierPolicy.js";
@@ -1259,6 +1260,16 @@ export async function generateExercises(
   curriculum: Curriculum | null = null,
   conceptId: string = ""
 ) {
+  if (isAlgebraQuestionBankConcept(conceptId, conceptTitle, conceptDesc)) {
+    try {
+      return buildAlgebraExerciseBatch({ count, lang, grade, difficulty, curriculum, conceptId });
+    } catch (error) {
+      console.error('Algebra question-bank generation failed:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`ALGEBRA_QBANK_ERROR: ${message}`);
+    }
+  }
+
   if (isAreaPerimeterConcept(conceptId, conceptTitle, conceptDesc)) {
     return buildAreaPerimeterExerciseBatch({ count, lang, grade, difficulty, curriculum } as any);
   }
