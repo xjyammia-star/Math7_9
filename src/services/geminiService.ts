@@ -118,8 +118,19 @@ function hasUnfencedDiagramJson(text: string): boolean {
   return source.includes('"template"') && !source.includes('```math-diagram');
 }
 
-function needsDiagramRepair(text: string, conceptTitle: string, conceptDesc: string, diagramPolicy: string): boolean {
+function needsDiagramRepair(
+  text: string,
+  conceptTitle: string,
+  conceptDesc: string,
+  diagramPolicy: string,
+  conceptId: string = ""
+): boolean {
+  if (String(conceptId ?? '').trim() === 'circles') {
+    return !hasMathDiagramBlock(text);
+  }
+
   const shouldRequireDiagram = shouldRequireDiagramBlock({
+    conceptId,
     conceptTitle,
     conceptDesc,
     prompt: text,
@@ -133,12 +144,13 @@ export function detectOutputIssues(
   text: string,
   conceptTitle: string,
   conceptDesc: string,
-  diagramPolicy: string
+  diagramPolicy: string,
+  conceptId: string = ""
 ): string[] {
   const issues: string[] = [];
 
   if (hasRawMathLeak(text)) issues.push("raw_math_leaks");
-  if (needsDiagramRepair(text, conceptTitle, conceptDesc, diagramPolicy)) issues.push("missing_diagram_block");
+  if (needsDiagramRepair(text, conceptTitle, conceptDesc, diagramPolicy, conceptId)) issues.push("missing_diagram_block");
   if (needsCircleDiameterRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("circle_diameter_line_mismatch");
   }
@@ -1381,7 +1393,7 @@ export async function generateExercises(
     generatedText: cleaned,
     diagramPolicy,
   });
-  const issues = detectOutputIssues(raw, conceptTitle, conceptDesc, diagramPolicy);
+  const issues = detectOutputIssues(raw, conceptTitle, conceptDesc, diagramPolicy, conceptId);
 
   if (issues.length > 0) {
     const repairDiagramPolicy = issues.includes("missing_diagram_block")

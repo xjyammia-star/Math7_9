@@ -83,6 +83,13 @@ function isWhitelistedDiagramConcept(conceptId = '', conceptTitle = '') {
   ].some((needle) => title === needle.toLowerCase() || title.includes(needle.toLowerCase()));
 }
 
+export function isForcedDiagramConcept(conceptId = '', conceptTitle = '') {
+  const normalizedId = String(conceptId ?? '').trim();
+  if (normalizedId === 'circles') return true;
+  if (!normalizedId && normalizeText(conceptTitle).toLowerCase().includes('circle')) return true;
+  return false;
+}
+
 function buildPolicySignals(text) {
   return {
     diagramTriggers: matchesAny(EXPLICIT_DRAW_CUES, text) || matchesAny(GEOMETRIC_OBJECTS, text) || matchesAny(RELATION_CUES, text),
@@ -106,6 +113,7 @@ function scoreDiagramConfidence(text) {
 export function classifyDiagramNeed({ conceptId = '', conceptTitle = '', conceptDesc = '', prompt = '', requirement = '' } = {}) {
   const text = normalizeText([conceptTitle, conceptDesc, prompt, requirement].filter(Boolean).join(' '));
   if (!text) return 'must_not_draw';
+  if (isForcedDiagramConcept(conceptId, conceptTitle)) return 'must_draw';
   if (isWhitelistedDiagramConcept(conceptId, conceptTitle)) return 'must_not_draw';
 
   const signals = buildPolicySignals(text);

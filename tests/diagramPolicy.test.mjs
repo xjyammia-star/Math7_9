@@ -2,6 +2,7 @@
 import {
   classifyDiagramNeed,
   explainDiagramPolicy,
+  isForcedDiagramConcept,
   promoteStandaloneDiagramJsonBlocks,
   shouldRequireDiagramBlock,
   stripDiagramArtifacts,
@@ -29,20 +30,20 @@ assert.equal(
 
 assert.equal(
   classifyDiagramNeed({
-    conceptId: 'coordinate-geometry',
-    conceptTitle: 'Coordinate Geometry',
-    conceptDesc: 'Distance, midpoint, equations of lines.',
-    prompt: '点A(2, 3)和点B(-1, 4)在坐标系中，求线段AB的长度。',
+    conceptId: 'circles',
+    conceptTitle: 'Circles',
+    conceptDesc: 'Circle theorems and tangents.',
+    prompt: '求圆中的一个角。',
   }),
   'must_draw'
 );
 
 assert.equal(
   classifyDiagramNeed({
-    conceptId: 'geometry',
-    conceptTitle: 'Geometry',
-    conceptDesc: 'Circle, angle and line relationships.',
-    prompt: '已知优弧AB上有点C，求角。',
+    conceptId: 'coordinate-geometry',
+    conceptTitle: 'Coordinate Geometry',
+    conceptDesc: 'Distance, midpoint, equations of lines.',
+    prompt: '点A(2, 3)和点B(-1, 4)在坐标系中，求线段AB的长度。',
   }),
   'must_draw'
 );
@@ -86,5 +87,8 @@ assert.equal(
   }),
   true
 );
+
+assert.equal(isForcedDiagramConcept('circles', 'Circles'), true);
+assert.equal(isForcedDiagramConcept('', 'Circle theorems and tangents'), true);
 
 console.log('diagram policy test passed');
