@@ -1,4 +1,7 @@
 import { buildAdvancedAlgebraExerciseItems, isAdvancedAlgebraQuestionBankConcept } from "./algebraAdvancedExerciseTemplates.js";
+import { buildItems as buildAlgebraExpressionsItems, isAlgebraExpressionsQuestionBankConcept } from "./algebraExpressionsQuestionBank.js";
+import { buildItems as buildFactorisationItems, isFactorisationQuestionBankConcept } from "./factorisationQuestionBank.js";
+import { buildItems as buildLinearEquationsItems, isLinearEquationsQuestionBankConcept } from "./linearEquationsQuestionBank.js";
 
 const ALGEBRA_QBANK_CONCEPT_IDS = new Set([
   'arithmetic',
@@ -8,6 +11,9 @@ const ALGEBRA_QBANK_CONCEPT_IDS = new Set([
   'powers-roots',
   'indices-laws',
   'surds',
+  'algebra-expressions',
+  'factorisation',
+  'linear-equations-1',
 ]);
 
 const ALGEBRA_HISTORY_KEY = 'math7-9:algebra-qbank-history:v1';
@@ -733,14 +739,15 @@ function buildQuestion(kind, payload, lang, difficulty) {
       const scaled = (sugar * target) / servings;
       if (difficulty === 'Hard') {
         const target2 = target + absInt(payload.seed * 4, 2, 6);
-        const sugar2 = (sugar * target2) / servings;
+        const scaled2 = (sugar * target2) / servings;
+        const extraSugar = scaled2 - scaled;
         return {
-          question: t(lang, `做 ${servings} 人份需要 ${sugar} 克糖。若改做 ${target2} 人份并额外再加 ${sugar2 - scaled} 克糖，最终一共需要多少克糖？`, `A recipe for ${servings} servings uses ${sugar} g of sugar. If you scale it to ${target2} servings and then add ${sugar2 - scaled} more grams, how much sugar is needed in total?`),
-          answer: decimalText(sugar2 + (sugar2 - scaled)),
+          question: t(lang, `? ${servings} ???? ${sugar} ?????? ${target2} ??????? ${decimalText(extraSugar)} ??,???????????`, `A recipe for ${servings} servings uses ${sugar} g of sugar. If you scale it to ${target2} servings and then add ${decimalText(extraSugar)} more grams, how much sugar is needed in total?`),
+          answer: decimalText(scaled2 + extraSugar),
         };
       }
       return {
-        question: t(lang, `做 ${servings} 人份需要 ${sugar} 克糖。做 ${target} 人份需要多少克糖？`, `A recipe for ${servings} servings uses ${sugar} g of sugar. How much sugar is needed for ${target} servings?`),
+        question: t(lang, `? ${servings} ???? ${sugar} ???? ${target} ?????????`, `A recipe for ${servings} servings uses ${sugar} g of sugar. How much sugar is needed for ${target} servings?`),
         answer: decimalText(scaled),
       };
     }
@@ -770,7 +777,7 @@ function buildQuestion(kind, payload, lang, difficulty) {
       const x = (b * c) / a;
       if (difficulty === 'Hard') {
         return {
-          question: t(lang, `若 ${a}:${b} = ${c}:x，且 ${a}、${b}、${c}、x 的和是 ${a + b + c + x}，求 x。`, `If ${a}:${b} = ${c}:x, and ${a}, ${b}, ${c}, and x add up to ${a + b + c + x}, find x.`),
+          question: t(lang, `若 ${a}:${b} = ${c}:x，且 ${a}、${b}、${c}、x 的和是 ${decimalText(a + b + c + x)}，求 x。`, `If ${a}:${b} = ${c}:x, and ${a}, ${b}, ${c}, and x add up to ${decimalText(a + b + c + x)}, find x.`),
           answer: decimalText(x),
         };
       }
@@ -818,7 +825,110 @@ function buildQuestion(kind, payload, lang, difficulty) {
         answer: String(factor * factor),
       };
     }
-    case '': {
+    case 'triple_ratio_total': {
+      const a = 2 + (payload.seed % 3);
+      const b = a + 1 + ((payload.seed + 1) % 3);
+      const c = b + 1 + ((payload.seed + 2) % 4);
+      const k = absInt(payload.seed * 2, 2, 8);
+      const A = a * k;
+      const B = b * k;
+      const C = c * k;
+      if (difficulty === 'Hard') {
+        const sumAB = A + B;
+        const sumBC = B + C;
+        return {
+          question: t(lang, `?? A:B:C = ${a}:${b}:${c},? A+B = ${sumAB}?B+C = ${sumBC},? A?B?C?`, `Given A:B:C = ${a}:${b}:${c}, and A+B = ${sumAB} and B+C = ${sumBC}, find A, B, and C.`),
+          answer: `${A}?${B}?${C}`,
+        };
+      }
+      if (difficulty === 'Medium') {
+        return {
+          question: t(lang, `?? A:B:C = ${a}:${b}:${c},???? ${A + B + C},? A?B?C?`, `Given A:B:C = ${a}:${b}:${c}, and their total is ${A + B + C}, find A, B, and C.`),
+          answer: `${A}?${B}?${C}`,
+        };
+      }
+      return {
+        question: t(lang, `?? A:B:C = ${a}:${b}:${c},? B = ${B},? A?C ?????`, `Given A:B:C = ${a}:${b}:${c} and B = ${B}, find A, C, and the total.`),
+        answer: `${A}?${C}?${A + B + C}`,
+      };
+    }
+    case 'ratio_chain_total': {
+      const p = 2 + (payload.seed % 3);
+      const q = 3 + ((payload.seed + 1) % 4);
+      const r = 2 + ((payload.seed + 2) % 3);
+      const s = 3 + ((payload.seed + 3) % 4);
+      const l = (q * r) / gcd(q, r);
+      const aScale = l / q;
+      const cScale = l / r;
+      const unit = absInt(payload.seed * 7, 3, 12);
+      const A = p * aScale * unit;
+      const B = l * unit;
+      const C = s * cScale * unit;
+      if (difficulty === 'Hard') {
+        return {
+          question: t(lang, `?? A:B = ${p}:${q},B:C = ${r}:${s},? A+B+C = ${A + B + C}?? A?B?C?`, `Given A:B = ${p}:${q}, B:C = ${r}:${s}, and A+B+C = ${A + B + C}, find A, B, and C.`),
+          answer: `${A}?${B}?${C}`,
+        };
+      }
+      if (difficulty === 'Medium') {
+        return {
+          question: t(lang, `?? A:B = ${p}:${q},B:C = ${r}:${s},? B = ${B}?? A ? C?`, `Given A:B = ${p}:${q}, B:C = ${r}:${s}, and B = ${B}, find A and C.`),
+          answer: `${A}?${C}`,
+        };
+      }
+      return {
+        question: t(lang, `?? A:B = ${p}:${q},B:C = ${r}:${s}?? B = ${B},? A?`, `Given A:B = ${p}:${q} and B:C = ${r}:${s}. If B = ${B}, find A.`),
+        answer: String(A),
+      };
+    }
+    case 'ratio_rebalance': {
+      const a = 2 + (payload.seed % 3);
+      const b = a + 2 + ((payload.seed + 1) % 3);
+      const k = absInt(payload.seed * 3, 2, 8);
+      const A = a * k;
+      const B = b * k;
+      const x = k;
+      const newA = A + x;
+      const newB = B - 2 * x;
+      if (difficulty === 'Hard') {
+        return {
+          question: t(lang, `?? A:B = ${a}:${b}?? A ?? x?B ?? 2x ?,A:B ?? ${a + 1}:${b - 2},????? ${newA + newB},???? A?B?x?`, `Given A:B = ${a}:${b}. If A increases by x and B decreases by 2x, the ratio becomes ${a + 1}:${b - 2}, and the new total is ${newA + newB}. Find A, B, and x.`),
+          answer: `${A}?${B}?${x}`,
+        };
+      }
+      return {
+        question: t(lang, `?? A:B = ${a}:${b}?? A ?? x?B ?? 2x ?,A:B ?? ${a + 1}:${b - 2},???? A?B?`, `Given A:B = ${a}:${b}. If A increases by x and B decreases by 2x, the ratio becomes ${a + 1}:${b - 2}. Find A and B.`),
+        answer: `${A}?${B}`,
+      };
+    }
+    case 'adjusted_rate_compare': {
+      const baseFeeA = absInt(payload.seed, 8, 24);
+      const perA = absInt(payload.seed * 2, 2, 8);
+      const baseFeeB = absInt(payload.seed * 3, 6, 22);
+      const perB = absInt(payload.seed * 4, 1, 6);
+      const adjustmentA = absInt(payload.seed * 5, 3, 12);
+      const adjustmentB = absInt(payload.seed * 6, 2, 10);
+      const usage = absInt(payload.seed * 7, 6, 20);
+      const costA = baseFeeA + perA * usage + adjustmentA;
+      const costB = baseFeeB + perB * usage + adjustmentB;
+      const diff = Math.abs(costA - costB);
+      if (difficulty === 'Hard') {
+        return {
+          question: t(lang, `A ??:??? ${baseFeeA} ?,?? ${perA} ?,???? ${adjustmentA} ????;B ??:??? ${baseFeeB} ?,?? ${perB} ?,???? ${adjustmentB} ??????? ${usage} ?,???????,??????`, `Plan A has a base fee of ${baseFeeA} yuan, costs ${perA} yuan per item, and has an extra fee of ${adjustmentA} yuan. Plan B has a base fee of ${baseFeeB} yuan, costs ${perB} yuan per item, and has an extra fee of ${adjustmentB} yuan. For ${usage} items, which plan is cheaper and by how much?`),
+          answer: costA < costB ? `A,${diff}` : costB < costA ? `B,${diff}` : 'same',
+        };
+      }
+      if (difficulty === 'Medium') {
+        return {
+          question: t(lang, `A ??:??? ${baseFeeA} ?,?? ${perA} ?;B ??:??? ${baseFeeB} ?,?? ${perB} ???? ${usage} ?,????????`, `Plan A has a base fee of ${baseFeeA} yuan and costs ${perA} yuan per item; Plan B has a base fee of ${baseFeeB} yuan and costs ${perB} yuan per item. For ${usage} items, which plan is cheaper?`),
+          answer: costA < costB ? 'A' : costB < costA ? 'B' : 'same',
+        };
+      }
+      return {
+        question: t(lang, `A ?? ${usage} ?? ${costA} ?,B ?? ${usage} ?? ${costB} ????????`, `Plan A costs ${costA} yuan for ${usage} items, and Plan B costs ${costB} yuan for ${usage} items. Which is cheaper?`),
+        answer: costA < costB ? 'A' : costB < costA ? 'B' : 'same',
+      };
+    }    case '': {
       const p = 2 + (payload.seed % 3);
       const q = 3 + (payload.seed % 4);
       const r = 4 + (payload.seed % 3);
@@ -938,44 +1048,22 @@ const ALGEBRA_BANKS = {
     ],
   },
   'ratio-proportion': {
-    familiesByDifficulty: {
-      Easy: [
-        'simplify_ratio',
-        'share_in_ratio',
-        'unit_rate',
-        'direct_proportion_table',
-        'scale_map',
-        'recipe_scaling',
-        'inverse_proportion',
-        'missing_value_proportion',
-        'compare_two_rates',
-        'proportional_word_problem',
-      ],
-      Medium: [
-        'simplify_ratio',
-        'share_in_ratio',
-        'unit_rate',
-        'direct_proportion_table',
-        'scale_map',
-        'recipe_scaling',
-        'inverse_proportion',
-        'missing_value_proportion',
-        'compare_two_rates',
-        'proportional_word_problem',
-      ],
-      Hard: [
-        'inverse_proportion',
-        'missing_value_proportion',
-        'compare_two_rates',
-        'proportional_word_problem',
-        'recipe_scaling',
-        'scale_map',
-        'simplify_ratio',
-        'share_in_ratio',
-        'unit_rate',
-        'direct_proportion_table',
-      ],
-    },
+    families: [
+      'simplify_ratio',
+      'share_in_ratio',
+      'unit_rate',
+      'direct_proportion_table',
+      'scale_map',
+      'recipe_scaling',
+      'inverse_proportion',
+      'missing_value_proportion',
+      'compare_two_rates',
+      'proportional_word_problem',
+      'triple_ratio_total',
+      'ratio_rebalance',
+      'adjusted_rate_compare',
+      'ratio_chain_total',
+    ],
   },
 };
 
@@ -1020,6 +1108,15 @@ function buildBankItems(count, { conceptId, lang = 'zh', difficulty = 'Easy', gr
   const safeCount = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
   if (safeCount === 0) return [];
 
+  if (isAlgebraExpressionsQuestionBankConcept(conceptId)) {
+    return buildAlgebraExpressionsItems(safeCount, { conceptId, lang, difficulty, grade, curriculum });
+  }
+  if (isFactorisationQuestionBankConcept(conceptId)) {
+    return buildFactorisationItems(safeCount, { conceptId, lang, difficulty, grade, curriculum });
+  }
+  if (isLinearEquationsQuestionBankConcept(conceptId)) {
+    return buildLinearEquationsItems(safeCount, { conceptId, lang, difficulty, grade, curriculum });
+  }
   if (isAdvancedAlgebraQuestionBankConcept(conceptId)) {
     return buildAdvancedAlgebraExerciseItems(safeCount, { conceptId, lang, difficulty, grade, curriculum });
   }
@@ -1079,20 +1176,45 @@ function buildAlgebraExerciseBatch(options = {}) {
   return rendered.join('\n\n');
 }
 
+function buildLinearEquationsExerciseBatch(options = {}) {
+  const items = buildLinearEquationsItems(options.count ?? 0, options);
+  if (!Array.isArray(items) || items.length === 0) return '';
+
+  const issues = validateBankItems(items);
+  if (issues.length > 0) {
+    throw new Error(`Invalid linear equations qbank batch: ${issues.join('; ')}`);
+  }
+
+  const rendered = items.map((item, index) => renderBankItem(item, index));
+  const duplicateQuestion = new Set();
+  for (const line of rendered) {
+    if (duplicateQuestion.has(line)) {
+      throw new Error('Linear equations qbank render validation failed: duplicate question text in batch');
+    }
+    duplicateQuestion.add(line);
+  }
+
+  return rendered.join('\n\n');
+}
+
 function isAlgebraQuestionBankConcept(conceptId = '', conceptTitle = '', conceptDesc = '') {
   const id = String(conceptId ?? '').trim().toLowerCase();
   const title = `${String(conceptTitle ?? '').toLowerCase()} ${String(conceptDesc ?? '').toLowerCase()}`;
   if (ALGEBRA_QBANK_CONCEPT_IDS.has(id)) return true;
-  if (/(integer|rational number|fraction|decimal|percent|ratio|proportion)/.test(title)) return true;
+  if (/(integer|rational number|fraction|decimal|percent|ratio|proportion|expression|algebraic expression|expand|factorise|factorization|factorisation)/.test(title)) return true;
   return false;
 }
 
 export {
   ALGEBRA_QBANK_CONCEPT_IDS,
   buildAlgebraExerciseBatch,
+  buildLinearEquationsExerciseBatch,
   buildBankItems,
   isAlgebraQuestionBankConcept,
   validateBankItems,
 };
+
+
+
 
 
