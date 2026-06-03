@@ -665,6 +665,8 @@ class Renderer:
       self.seg_label(a, b, self.data.get("label_ab"), fill=GOLD)
     if self.data.get("label_ac") is not None:
       self.seg_label(a, c, self.data.get("label_ac"), fill=GOLD)
+    if self.data.get("label_bc") is not None:
+      self.seg_label(b, c, self.data.get("label_bc"), fill=GOLD)
     if self.data.get("label_ad") is not None:
       self.seg_label(a, d, self.data.get("label_ad"), fill=GOLD)
     if self.data.get("label_cp") is not None:

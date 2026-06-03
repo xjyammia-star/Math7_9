@@ -51,6 +51,11 @@ function hasDiameterTangentChordCue(text) {
   const source = String(text ?? "");
   return hasDiameterCue(source) && /(?:tangent|切线|CP|点P|point\s*P|AB的延长线|AB\s*的\s*延长线|连接AC|连接AD|∠AED|AED)/i.test(source);
 }
+
+function hasDiameterTangentBCCue(text) {
+  const source = String(text ?? "");
+  return hasDiameterCue(source) && /(?:连接AC和BC|AC\s*和\s*BC|AC.*BC|BC.*AC|connect.*AC.*BC|connect.*BC.*AC)/i.test(source);
+}
 function hasAngleCueNeedingBD(text) {
   return /(?:โ \s*ABD|angle\s*ABD|โ \s*BCD|angle\s*BCD|ABD|BCD)/i.test(String(text ?? ""));
 }
@@ -719,6 +724,7 @@ export function needsCircleDiameterTangentChordRepair({ conceptTitle = "", conce
   if (expectedPoints.some((point) => !actualPoints.has(point))) return true;
   if (!hasAnyDiagramField(data, ["radius"])) return true;
   if (!hasAnyDiagramField(data, ["label_ab", "label_ac", "label_ad", "label_cp"])) return true;
+  if (hasDiameterTangentBCCue(source) && !hasAnyDiagramField(data, ["label_bc"])) return true;
 
   return false;
 }

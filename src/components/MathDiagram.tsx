@@ -1992,6 +1992,7 @@ function CircleDiameterTangentChord({ data }: { data: any }) {
 
       {data.label_ab && <SegLabel a={sA} b={sB} label={String(data.label_ab)} color={GOLD} />}
       {data.label_ac && <SegLabel a={sA} b={sC} label={String(data.label_ac)} color={GOLD} />}
+      {data.label_bc && <SegLabel a={sB} b={sC} label={String(data.label_bc)} color={GOLD} />}
       {data.label_ad && <SegLabel a={sA} b={sD} label={String(data.label_ad)} color={GOLD} />}
       {data.label_cp && <SegLabel a={sC} b={sP} label={String(data.label_cp)} color={GOLD} />}
       {data.label_ae && <SegLabel a={sA} b={sE} label={String(data.label_ae)} color={GREY} />}

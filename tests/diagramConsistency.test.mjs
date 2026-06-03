@@ -107,4 +107,14 @@ assert.equal(
   false,
 );
 
+assert.equal(
+  needsCircleDiameterTangentChordRepair({
+    conceptTitle: 'circle diameter tangent chord',
+    conceptDesc: 'In circle O, AB is a diameter. C is the point of tangency and P lies on the extension of AB. Connect AC and BC.',
+    generatedText: '```math-diagram\n{"template":"circle_diameter_tangent_chord","radius":5,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_P":"P","label_O":"O","label_ab":"10 cm","label_ac":"4 cm","label_cp":"8 cm"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true,
+);
+
 console.log('diagram consistency test passed');

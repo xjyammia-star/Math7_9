@@ -70,12 +70,14 @@ const diameterTangentChordSvg = render({
   label_O: 'O',
   label_ab: '10 cm',
   label_ac: '4 cm',
+  label_bc: '6 cm',
   label_cp: '8 cm',
 });
 
 assert.match(diameterTangentChordSvg, /<svg/);
 assert.match(diameterTangentChordSvg, /A/);
 assert.match(diameterTangentChordSvg, /P/);
+assert.match(diameterTangentChordSvg, /6 cm/);
 assert.doesNotMatch(diameterTangentChordSvg, /\?/);
 
 console.log('python circle renderer test passed');
