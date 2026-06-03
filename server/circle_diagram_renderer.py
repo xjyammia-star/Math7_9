@@ -20,13 +20,16 @@ FILL = "rgba(245,158,11,0.08)"
 
 
 def esc(value: Any) -> str:
-  return html.escape(str(value), quote=True)
+  text = str(value)
+  text = "".join(ch for ch in text if not 0xD800 <= ord(ch) <= 0xDFFF)
+  return html.escape(text, quote=True)
 
 
 def clean_text(value: Any) -> str:
   if value is None:
     return ""
-  text = str(value).strip()
+  text = str(value)
+  text = "".join(ch for ch in text if not 0xD800 <= ord(ch) <= 0xDFFF).strip()
   if not text:
     return ""
   if "?" in text:
@@ -233,6 +236,8 @@ class Renderer:
       self.render_diameter_chords()
     elif tmpl == "circle_diameter_tangent_chord":
       self.render_diameter_tangent_chord()
+    elif tmpl == "circle_scene":
+      self.render_circle_scene()
     else:
       self.render_basic_circle()
     return (
@@ -676,6 +681,159 @@ class Renderer:
     if self.data.get("label_ed") is not None:
       self.seg_label(e, d, self.data.get("label_ed"), fill=GREY)
 
+  def render_circle_scene(self) -> None:
+    scene = self.data.get("scene") if isinstance(self.data.get("scene"), dict) else self.data
+    if not isinstance(scene, dict):
+      scene = {}
+
+    points = scene.get("points") if isinstance(scene.get("points"), list) else []
+    relations = scene.get("relations") if isinstance(scene.get("relations"), list) else []
+    givens = scene.get("givens") if isinstance(scene.get("givens"), list) else []
+    display = scene.get("display") if isinstance(scene.get("display"), dict) else {}
+
+    r = num(scene.get("radius"), num(self.data.get("radius"), 5.0))
+    angle_apb = None
+    for given in givens:
+      if not isinstance(given, dict):
+        continue
+      given_name = str(given.get("name") or given.get("label") or given.get("key") or "").strip().lower()
+      if given_name in {"angle_apb", "anglepab", "angle_apb_deg"}:
+        angle_apb = as_number = num(given.get("value"), None)
+        if as_number is not None:
+          angle_apb = as_number
+        break
+    if angle_apb is not None and 0 < angle_apb < 179:
+      p_dist = r / max(math.cos(math.radians(angle_apb / 2)), 0.18)
+    else:
+      p_dist = max(r * 1.8, r + 1.5)
+
+    o = (0.0, 0.0)
+    p = (p_dist, 0.0)
+    tangent_x = num(scene.get("tangentX"), r)
+
+    # Canonical placements for the trial: external point P to the right,
+    # tangent points A/B from P, and arc point C on the chosen arc side.
+    chord_x = (r * r) / max(p_dist, 1e-6)
+    chord_y = math.sqrt(max(r * r - chord_x * chord_x, 0.0))
+    a = (chord_x, chord_y)
+    b = (chord_x, -chord_y)
+
+    arc_point_counts = {"minor": 0, "major": 0}
+    named_points: dict[str, tuple[float, float]] = {"O": o, "P": p, "A": a, "B": b}
+
+    def arc_point_angle(arc_side: str, index: int) -> float:
+      if arc_side == "major":
+        choices = [180.0, 165.0, 195.0, 150.0, 210.0]
+      else:
+        choices = [0.0, 15.0, -15.0, 30.0, -30.0]
+      return choices[min(index, len(choices) - 1)]
+
+    for point in points:
+      if not isinstance(point, dict):
+        continue
+      name = str(point.get("name") or point.get("label") or point.get("point") or "").strip().upper()
+      role = str(point.get("role") or point.get("kind") or "").strip().lower()
+      arc_side = str(point.get("arcSide") or point.get("arc_side") or "minor").strip().lower()
+
+      if not name:
+        continue
+      if name in named_points:
+        continue
+
+      if role == "external_point":
+        named_points[name] = (p_dist * 1.15, 0.0)
+      elif role == "tangent_point":
+        named_points[name] = a if name == "A" else b if name == "B" else (chord_x, 0.0)
+      elif role == "arc_point":
+        idx = arc_point_counts[arc_side] if arc_side in arc_point_counts else 0
+        arc_point_counts[arc_side] = idx + 1
+        deg = arc_point_angle(arc_side, idx)
+        named_points[name] = point_on_circle(r, deg)
+      elif role == "foot_point":
+        named_points[name] = (chord_x, 0.0)
+      else:
+        named_points[name] = (0.0, 0.0)
+
+    c = named_points.get("C", point_on_circle(r, 0.0))
+    named_points["C"] = c
+    c_tangent_dir = normalize((-c[1], c[0]))
+    tangent_span = max(r * 1.9, 6.0)
+    t1 = (c[0] - c_tangent_dir[0] * tangent_span, c[1] - c_tangent_dir[1] * tangent_span)
+    t2 = (c[0] + c_tangent_dir[0] * tangent_span, c[1] + c_tangent_dir[1] * tangent_span)
+
+    ab = line_intersection(a, b, o, c)
+    d = line_intersection(a, p, t1, t2) or (c[0] + 0.8, c[1] + 0.8)
+    e = line_intersection(b, p, t1, t2) or (c[0] + 0.8, c[1] - 0.8)
+    f = line_intersection(o, c, a, b) or (0.0, 0.0)
+
+    named_points.setdefault("D", d)
+    named_points.setdefault("E", e)
+    named_points.setdefault("F", f)
+
+    self.circle(r, stroke=GREY, fill="none", sw=2.0, opacity=0.65)
+
+    if display.get("showABChord") or any(
+      isinstance(rel, dict)
+      and str(rel.get("type") or "").strip() == "intersection"
+      and set(map(str.upper, map(str, rel.get("of") or []))) == {"OC", "AB"}
+      for rel in relations
+    ):
+      self.line(a, b, stroke=GREY, sw=1.8, dash="4,3")
+
+    self.line(a, p, stroke=GOLD, sw=2.5)
+    self.line(b, p, stroke=GOLD, sw=2.5)
+
+    if display.get("showOC", True):
+      self.line(o, c, stroke=GREY, sw=1.8, dash="4,3")
+
+    if display.get("showTangentAtC", True):
+      self.line(t1, t2, stroke=GOLD, sw=2.2)
+
+    self.dot(*o, scene.get("center", "O"), fill=WHITE, dx=8, dy=12)
+    self.dot(*p, "P", fill=WHITE, dx=10, dy=0)
+
+    for name in [point.get("name") for point in points if isinstance(point, dict)]:
+      if not isinstance(name, str):
+        continue
+      pt = named_points.get(name.upper())
+      if not pt:
+        continue
+      role = next((str(point.get("role") or "").strip().lower() for point in points if isinstance(point, dict) and str(point.get("name") or "").strip().upper() == name.upper()), "")
+      if name.upper() == "O":
+        continue
+      if role == "arc_point":
+        self.dot(*pt, name.upper(), fill=GOLD, dx=10, dy=-12)
+      elif role == "intersection_point":
+        offset = {"D": (10, -12), "E": (10, 12), "F": (-12, 14)}.get(name.upper(), (10, -10))
+        self.dot(*pt, name.upper(), fill=GOLD, dx=offset[0], dy=offset[1])
+      elif role == "foot_point":
+        self.dot(*pt, name.upper(), fill=WHITE, dx=-12, dy=14)
+      elif role == "tangent_point":
+        offset = {"A": (-16, 0), "B": (10, 0)}.get(name.upper(), (10, -10))
+        self.dot(*pt, name.upper(), fill=GOLD, dx=offset[0], dy=offset[1])
+      elif role == "external_point":
+        self.dot(*pt, name.upper(), fill=WHITE, dx=10, dy=0)
+
+    for given in givens:
+      if not isinstance(given, dict):
+        continue
+      given_name = str(given.get("name") or given.get("label") or given.get("key") or "").strip().upper()
+      given_value = given.get("value")
+      label_text = fmt_number(given_value)
+      if not label_text:
+        continue
+      if given_name == "PA":
+        self.seg_label(p, a, label_text, fill=GOLD)
+      elif given_name == "PB":
+        self.seg_label(p, b, label_text, fill=GOLD)
+      elif given_name == "OC":
+        self.seg_label(o, c, label_text, fill=GREY)
+      elif given_name == "AB":
+        self.seg_label(a, b, label_text, fill=GREY)
+
+    if angle_apb is not None:
+      self.angle_mark(p, a, b, r=18, label=f"{fmt_number(angle_apb)}°", fill=GOLD)
+
 
 def normalize(v: Tuple[float, float]) -> Tuple[float, float]:
   x, y = v
@@ -718,7 +876,7 @@ def main() -> int:
     return 1
   renderer = Renderer(payload if isinstance(payload, dict) else {})
   svg = renderer.render()
-  sys.stdout.write(svg)
+  sys.stdout.buffer.write(svg.encode("utf-8"))
   return 0
 
 

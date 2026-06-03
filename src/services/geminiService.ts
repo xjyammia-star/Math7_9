@@ -1,8 +1,9 @@
 import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 import { classifyDiagramNeed, shouldRequireDiagramBlock, stripDiagramArtifacts } from "../utils/diagramPolicy";
-import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleChordRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterIntersectingChordsRepair, needsCircleDiameterRepair, needsCircleDiameterTangentChordRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsLinearIntersectionRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
+import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleChordRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterIntersectingChordsRepair, needsCircleDiameterRepair, needsCircleDiameterTangentChordRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleTangentRepair, needsCircleThreePointsRepair, needsLinearIntersectionRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
 import { buildAlgebraExerciseBatch, isAlgebraQuestionBankConcept } from "../utils/algebraExerciseTemplates.js";
+import { detectCircleSceneIssues } from "../utils/circleSceneSchema.js";
 import { buildAreaPerimeterExerciseBatch, isAreaPerimeterConcept } from "../utils/areaPerimeterExerciseTemplates.js";
 import { buildPythagorasExerciseBatch, isPythagorasConcept } from "../utils/pythagorasExerciseTemplates.js";
 import { buildDifficultyGuidance, genericProblemTypesByDifficulty, normalizeDifficulty, minTierPoolSize } from "../utils/exerciseTierPolicy.js";
@@ -151,6 +152,18 @@ export function detectOutputIssues(
 
   if (hasRawMathLeak(text)) issues.push("raw_math_leaks");
   if (needsDiagramRepair(text, conceptTitle, conceptDesc, diagramPolicy, conceptId)) issues.push("missing_diagram_block");
+
+  if (String(conceptId ?? '').trim() === 'circles') {
+    issues.push(...detectCircleSceneIssues(text));
+    if (hasUnfencedDiagramJson(text)) {
+      issues.push("diagram_json_unfenced");
+    }
+    if (needsQuestionAnswerLeakRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
+      issues.push("question_answer_leak");
+    }
+    return [...new Set(issues)];
+  }
+
   if (needsCircleDiameterRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("circle_diameter_line_mismatch");
   }
@@ -171,6 +184,9 @@ export function detectOutputIssues(
   }
   if (needsCircleDiameterTangentChordRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("circle_diameter_tangent_chord_template_mismatch");
+  }
+  if (needsCircleTangentRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
+    issues.push("circle_tangent_arc_mismatch");
   }
   if (needsLinearIntersectionRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("linear_intersection_template_mismatch");
@@ -457,8 +473,14 @@ async function repairExerciseOutput(
   const impossibleGeometryNote = issueList.includes("circle_diameter_intersecting_chords_template_mismatch")
     ? `- The original circle statement appears geometrically inconsistent or under-specified. Rewrite it into a nearby valid circle theorem problem of the same difficulty, and include a matching diagram.\n`
     : "";
+  const circleSceneNote = issueList.includes("circle_scene_invalid")
+    ? `- For circles, output exactly one math-diagram block whose JSON uses {"template":"circle_scene","scene":{...}}. The scene must pass the circle scene schema: conceptId circles, figureType circle, named points, explicit relations, known givens, targets, and display flags. Do not fall back to legacy circle templates in this repair.\n`
+    : "";
   const diameterTangentChordNote = issueList.includes("circle_diameter_tangent_chord_template_mismatch")
     ? `- The original circle statement combines a diameter, a tangent at a circle point, and chord segments from the circle point. Use the dedicated circle_diameter_tangent_chord template, keep every named point visible, and include every explicitly stated chord such as AC and BC when they are named in the text.\n`
+    : "";
+  const circleTangentArcNote = issueList.includes("circle_tangent_arc_mismatch")
+    ? `- The original circle statement uses minor arc / major arc language (优弧 / 劣弧). Set c_arc_type exactly to "minor" or "major" as stated, keep point C on the correct arc, and do not leave the arc side to guesswork.\n`
     : "";
   const system = `You are repairing AI-generated middle-school math exercises.
 
@@ -468,10 +490,11 @@ Rules:
 - Only fix formatting and representation issues.
 - Replace leaked math commands in prose with proper math formatting or Unicode symbols.
 - Diagram policy for this task: ${enforcedDiagramPolicy}.
-- If diagram policy is must_not_draw, do not include any diagram, figure, math-diagram block, template JSON, or visual payload.
-- If diagram policy is must_draw, include exactly one matching fenced block with the math-diagram template and valid JSON when the problem genuinely depends on a figure, and do not return a text-only fallback.
-- Only include a diagram when the critical geometric roles are explicit in the statement. If any required point, line, relation, or arc side would need to be guessed, prefer no diagram over a guessed diagram.
-- Hard rule: if the question asks for an unknown quantity, that quantity must not appear as a numeric label anywhere in the final diagram JSON. Use "?" or omit it, even if the model previously wrote a number.
+  - If diagram policy is must_not_draw, do not include any diagram, figure, math-diagram block, template JSON, or visual payload.
+  - If diagram policy is must_draw, include exactly one matching fenced block with the math-diagram template and valid JSON when the problem genuinely depends on a figure, and do not return a text-only fallback.
+  - Only include a diagram when the critical geometric roles are explicit in the statement. If any required point, line, relation, or arc side would need to be guessed, prefer no diagram over a guessed diagram.
+  - For circles in this trial, do not choose a legacy circle template. Instead output exactly one math-diagram block whose JSON uses {"template":"circle_scene","scene":{...}} and keep every point/line/arc relation explicit in the scene.
+  - Hard rule: if the question asks for an unknown quantity, that quantity must not appear as a numeric label anywhere in the final diagram JSON. Use "?" or omit it, even if the model previously wrote a number.
 - Hard rule: every numeric angle shown in the diagram, in any template, must come from an explicit angle value stated in the problem text. If the problem says ∠QAB = 62°, do not output 42° or any other number for that angle.
 - Never leave diagram JSON outside a fenced math-diagram block. Raw objects like {"template":"..."} in prose are invalid and must be wrapped or removed.
 - For intersecting chords inside a circle, use template "circle_intersecting_chords" with ap, pb and exactly the given CD/CP/PD relation.
@@ -495,7 +518,9 @@ Rules:
 - In any geometry diagram, if you label an angle such as ∠ABD, make sure the two rays/segments that define that angle are actually drawn in the figure.
 - Do not add new topics or remove required information.
 - ${impossibleGeometryNote.trim().startsWith('-') ? impossibleGeometryNote.trim().slice(2) : impossibleGeometryNote}
+- ${circleSceneNote.trim().startsWith('-') ? circleSceneNote.trim().slice(2) : circleSceneNote}
 - ${diameterTangentChordNote.trim().startsWith('-') ? diameterTangentChordNote.trim().slice(2) : diameterTangentChordNote}
+- ${circleTangentArcNote.trim().startsWith('-') ? circleTangentArcNote.trim().slice(2) : circleTangentArcNote}
 - Output only the corrected exercises.`;
 
   const user = [
@@ -558,6 +583,7 @@ Rules:
     issue.includes("template_mismatch") ||
     issue.includes("semantic_mismatch") ||
     issue.includes("missing_central_angle_ray") ||
+    issue.includes("circle_scene_invalid") ||
     issue.includes("circle_diameter_line_mismatch") ||
     issue.includes("circle_chord_semantic_mismatch")
   );
@@ -1347,9 +1373,10 @@ export async function generateExercises(
   const circleStrictInstr = conceptId === "circles"
     ? `\nCIRCLE-SPECIFIC HARD RULES:\n` +
       `- Every circle exercise must include exactly one math-diagram block.\n` +
+      `- For this trial, the diagram block must use template "circle_scene" with a nested "scene" object.\n` +
       `- Do not generate proof/explanation-only or solution-commentary-only circle questions.\n` +
-      `- Prefer one of these templates: circle_diameter_points, circle_intersecting_chords, circle_chord_tangent, circle_tangent_chord_dual_points, circle_cyclic_quadrilateral, circle_three_points, circle_sector.\n` +
-      `- If the statement contains a diameter together with two intersecting chords, use the dedicated diameter+chords template and keep the figure geometrically valid.\n`
+      `- Do not use legacy circle templates as the primary path in this trial.\n` +
+      `- The scene must spell out points, relations, givens, targets, and display flags explicitly so Python can render without guessing.\n`
     : "";
 
   const userMsg =
@@ -1369,6 +1396,9 @@ export async function generateExercises(
     `Formatting rule: if any exercise needs a figure, include a matching fenced math-diagram block and keep all math commands properly wrapped in $...$.\n` +
     `Formatting rule: never use Markdown tables or pipe-separated rows in the question text. If a problem lists coordinates, vertices, or known values, rewrite them as clear sentences or bullet points so they remain readable in this renderer.\n` +
     `Hard constraint: for pure verbal algebra, pricing, fee, comparison, or cost questions, do not include a coordinate graph or diagram unless the problem explicitly asks for one or clearly mentions a graph/coordinate system.\n` +
+    (conceptId === "circles"
+      ? `Hard constraint for circles: the only allowed diagram payload is {"template":"circle_scene","scene":{...}}. The scene must be complete and self-contained.\n`
+      : "") +
     varietyInstr + forcedVarietyInstr + `\n` +
     circleStrictInstr +
     `CRITICAL: DO NOT include solutions. ONLY output the numbered questions.\n` +

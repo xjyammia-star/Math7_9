@@ -26,6 +26,7 @@
  */
 
 import React from 'react';
+import { normalizeCircleScene, validateCircleScene } from '../utils/circleSceneSchema.js';
 import { explicitLabel } from '../utils/diagramLabelPolicy';
 import { getLinearFunctionAnnotations, getQuadraticFunctionAnnotations } from '../utils/functionDiagramPolicy';
 import PythonCircleDiagram from './PythonCircleDiagram';
@@ -626,6 +627,10 @@ function validateDiagramData(template: string, data: any): string | null {
         ? null
         : 'circle_diameter_tangent_chord requires a positive radius';
     }
+    case 'circle_scene': {
+      const validation = validateCircleScene(data.scene ?? data);
+      return validation.ok ? null : validation.errors[0] || 'circle_scene is invalid';
+    }
     default:
       return null;
   }
@@ -658,6 +663,11 @@ function normalizeDiagramData(template: string, data: any): any {
     });
 
     return { ...data, segments };
+  }
+
+  if (template === 'circle_scene') {
+    const scene = normalizeCircleScene(data.scene ?? data);
+    return { ...data, template: 'circle_scene', scene };
   }
 
   return data;
