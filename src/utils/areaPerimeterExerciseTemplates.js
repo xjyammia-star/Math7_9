@@ -1,4 +1,5 @@
 import { validateRenderContract } from './exerciseRenderContracts.js';
+import { stripUnknownDiagramLabels } from './diagramLabelPolicy.js';
 import {
   COMPOSITE_AREA_PERIMETER_KINDS,
   buildCompositeAreaPerimeterDiagramSpec,
@@ -78,19 +79,19 @@ const AREA_PERIMETER_BLUEPRINT = {
 const AREA_PERIMETER_RENDER_CONTRACTS = {
   rectangle_area: {
     questionIncludes: ['长方形', '面积'],
-    diagramIncludes: ['"template":"rectangle"', '"label_width":"8 cm"', '"label_height":"5 cm"', '"label_area":"?"'],
+    diagramIncludes: ['"template":"rectangle"', '"label_width":"8 cm"', '"label_height":"5 cm"'],
   },
   rectangle_perimeter: {
     questionIncludes: ['长方形', '周长'],
-    diagramIncludes: ['"template":"rectangle"', '"label_width":"9 cm"', '"label_height":"4 cm"', '"label_perimeter":"?"'],
+    diagramIncludes: ['"template":"rectangle"', '"label_width":"9 cm"', '"label_height":"4 cm"'],
   },
   square_area: {
     questionIncludes: ['正方形', '面积'],
-    diagramIncludes: ['"template":"rectangle"', '"label_width":"6 cm"', '"label_height":"6 cm"', '"label_area":"?"'],
+    diagramIncludes: ['"template":"rectangle"', '"label_width":"6 cm"', '"label_height":"6 cm"'],
   },
   square_perimeter: {
     questionIncludes: ['正方形', '周长'],
-    diagramIncludes: ['"template":"rectangle"', '"label_width":"7 cm"', '"label_height":"7 cm"', '"label_perimeter":"?"'],
+    diagramIncludes: ['"template":"rectangle"', '"label_width":"7 cm"', '"label_height":"7 cm"'],
   },
   rectangle_area_reverse: {
     questionIncludes: ['面积是', '求 BC'],
@@ -1886,17 +1887,18 @@ function buildParallelogramSpec(item) {
     angle: item.angle,
     labels: ['A', 'B', 'C', 'D'],
     label_base: formatLength(base),
-    label_side: formatLength(side),
-    label_height: formatLength(height),
+    label_side: '',
+    label_height: '',
+    label_angle: '',
   };
 
   if (item.kind === 'parallelogram_area') {
-    return { ...spec, label_area: '?' };
+    return { ...spec, label_height: formatLength(height), label_area: '?' };
   }
   if (item.kind === 'parallelogram_area_reverse') {
     return { ...spec, label_height: '?', label_area: formatArea(item.area) };
   }
-  return { ...spec, label_perimeter: '?' };
+  return { ...spec, label_side: formatLength(side), label_perimeter: '?' };
 }
 
 function buildTriangleSpec(item) {
@@ -1910,13 +1912,13 @@ function buildTriangleSpec(item) {
       C: 'C',
       AB: formatLength(item.legA),
       BC: formatLength(item.legB),
-      CA: formatLength(item.hypotenuse),
+      CA: '',
     },
   };
 
   return item.kind === 'triangle_area'
     ? { ...baseSpec, label_area: '?' }
-    : { ...baseSpec, label_perimeter: '?' };
+    : { ...baseSpec, labels: { ...baseSpec.labels, CA: formatLength(item.hypotenuse) }, label_perimeter: '?' };
 }
 
 function buildCircleSpec(item) {
@@ -1973,9 +1975,10 @@ function buildSectorSpec(item) {
 }
 
 function buildDiagramSpec(item) {
+  let spec = {};
   if (COMPOSITE_AREA_PERIMETER_KINDS.includes(item.kind)) {
     const compositeSpec = buildCompositeAreaPerimeterDiagramSpec(item);
-    if (compositeSpec && Object.keys(compositeSpec).length > 0) return compositeSpec;
+    if (compositeSpec && Object.keys(compositeSpec).length > 0) return stripUnknownDiagramLabels(compositeSpec);
   }
   switch (item.kind) {
     case 'rectangle_area':
@@ -1986,16 +1989,18 @@ function buildDiagramSpec(item) {
     case 'rectangle_perimeter_reverse':
     case 'square_area_reverse':
     case 'square_perimeter_reverse':
-      return buildRectangleSpec(item);
+      spec = buildRectangleSpec(item);
+      break;
     case 'l_shape_area':
     case 'l_shape_perimeter':
     case 't_shape_area':
     case 't_shape_perimeter':
     case 't_shape_area_reverse':
     case 't_shape_perimeter_reverse':
-      return buildCoordinateSpec(item);
+      spec = buildCoordinateSpec(item);
+      break;
     case 'adjacent_squares_diagonal_area':
-      return {
+      spec = {
         template: 'adjacent_squares_diagonal',
         small_side: item.small_side,
         large_side: item.large_side,
@@ -2003,8 +2008,9 @@ function buildDiagramSpec(item) {
         label_large_side: formatLength(item.large_side),
         label_area: '?',
       };
+      break;
     case 'adjacent_squares_diagonal_area_reverse':
-      return {
+      spec = {
         template: 'adjacent_squares_diagonal',
         small_side: item.small_side,
         large_side: item.large_side,
@@ -2012,8 +2018,9 @@ function buildDiagramSpec(item) {
         label_large_side: '?',
         label_area: formatArea(item.area),
       };
+      break;
     case 'adjacent_squares_diagonal_tall_area':
-      return {
+      spec = {
         template: 'adjacent_squares_diagonal',
         small_side: item.small_side,
         large_side: item.large_side,
@@ -2021,8 +2028,9 @@ function buildDiagramSpec(item) {
         label_large_side: formatLength(item.large_side),
         label_area: '?',
       };
+      break;
     case 'adjacent_squares_diagonal_tall_area_reverse':
-      return {
+      spec = {
         template: 'adjacent_squares_diagonal',
         small_side: item.small_side,
         large_side: item.large_side,
@@ -2030,30 +2038,39 @@ function buildDiagramSpec(item) {
         label_large_side: '?',
         label_area: formatArea(item.area),
       };
+      break;
     case 'trapezoid_area':
     case 'trapezoid_area_reverse':
-      return buildCoordinateSpec(item);
+      spec = buildCoordinateSpec(item);
+      break;
     case 'parallelogram_area':
     case 'parallelogram_perimeter':
     case 'parallelogram_area_reverse':
-      return buildParallelogramSpec(item);
+      spec = buildParallelogramSpec(item);
+      break;
     case 'triangle_area':
     case 'triangle_perimeter':
-      return buildTriangleSpec(item);
+      spec = buildTriangleSpec(item);
+      break;
     case 'circle_area':
     case 'circle_circumference':
     case 'circle_area_reverse':
     case 'circle_circumference_reverse':
-      return buildCircleSpec(item);
+      spec = buildCircleSpec(item);
+      break;
     case 'circle_annulus_area':
     case 'circle_annulus_area_reverse':
-      return buildCircleAnnulusSpec(item);
+      spec = buildCircleAnnulusSpec(item);
+      break;
     case 'sector_area':
     case 'sector_area_reverse':
-      return buildSectorSpec(item);
+      spec = buildSectorSpec(item);
+      break;
     default:
-      return {};
+      spec = {};
   }
+
+  return stripUnknownDiagramLabels(spec);
 }
 
 function validateAreaPerimeterExerciseItem(item) {
@@ -2201,7 +2218,12 @@ function validateAreaPerimeterExerciseItem(item) {
 
 function validateRenderedAreaPerimeterExerciseItem(item, rendered) {
   const issues = validateAreaPerimeterExerciseItem(item);
-  const renderedContract = buildAreaPerimeterRenderContract(item);
+  const renderedContract = {
+    ...buildAreaPerimeterRenderContract(item),
+    diagramIncludes: (buildAreaPerimeterRenderContract(item).diagramIncludes ?? [])
+      .map((token) => String(token).replaceAll('cmยฒ', 'cm²').replaceAll('ฯ€', 'π').replaceAll('ยฐ', '°'))
+      .filter((token) => !token.includes(':"?"') && !token.includes('"text":"?"')),
+  };
   issues.push(...validateRenderContract(rendered, renderedContract, item.kind));
 
   const expectedSpec = JSON.stringify(buildDiagramSpec(item));

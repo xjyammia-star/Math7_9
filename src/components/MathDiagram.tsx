@@ -872,6 +872,7 @@ function CompositeOverlay({ data }: { data: any }) {
       case 'dot':
         return <Dot key={index} p={sc(layer.p)} label={explicitLabel(layer.label ?? labels[layer.name])} color={layer.color} offset={layer.offset ?? { x: 8, y: -10 }} />;
       case 'segLabel':
+        if (!cleanDiagramLabelText(layer.label)) return null;
         return <SegLabel key={index} a={sc(layer.a)} b={sc(layer.b)} label={String(layer.label ?? '')} color={layer.color} />;
       case 'text': {
         const p = sc({ x: Number(layer.x), y: Number(layer.y) });
@@ -1644,6 +1645,7 @@ function Parallelogram({ data }: { data: any }) {
   const lBase = data.label_base ?? String(base);
   const lSide = data.label_side ?? String(side);
   const lH    = data.label_height ?? '';
+  const lAngle = cleanDiagramLabelText(data.label_angle ?? '');
   const lArea = cleanDiagramLabelText(data.label_area ?? '');
   const lPerimeter = cleanDiagramLabelText(data.label_perimeter ?? '');
   const height = side * Math.sin(theta);
@@ -1664,9 +1666,9 @@ function Parallelogram({ data }: { data: any }) {
       <Dot p={sc(B)} label={explicitLabel(data.labels?.[1])} offset={{ x: -18, y: 10 }} />
       <Dot p={sc(C)} label={explicitLabel(data.labels?.[2])} offset={{ x: 8, y: 10 }} />
       <Dot p={sc(D)} label={explicitLabel(data.labels?.[3])} offset={{ x: 8, y: -4 }} />
-      <SegLabel a={sc(B)} b={sc(C)} label={lBase} />
-      <SegLabel a={sc(A)} b={sc(B)} label={lSide} />
-      <AngleMark v={sc(B)} a={sc(A)} b={sc(C)} label={`${angleDeg}°`} r={22} />
+      {lBase && <SegLabel a={sc(B)} b={sc(C)} label={lBase} />}
+      {lSide && <SegLabel a={sc(A)} b={sc(B)} label={lSide} />}
+      {lAngle && <AngleMark v={sc(B)} a={sc(A)} b={sc(C)} label={lAngle} r={22} />}
       {lArea && (
         <text x={center.x} y={center.y - 10} fontSize={12} fontWeight="700"
           textAnchor="middle" fill={GOLD}>{lArea}</text>

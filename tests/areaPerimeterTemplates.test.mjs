@@ -114,6 +114,7 @@ const easyCircleItem = easyBatch.find((item) => item.kind === 'circle_area' || i
 assert.ok(easyCircleItem);
 assert.doesNotMatch(renderAreaPerimeterExerciseItem(easyCircleItem, 0, 'zh'), /\n\{\}\n/);
 assert.match(renderAreaPerimeterExerciseItem(easyCircleItem, 0, 'zh'), /"template":"circle"/);
+assert.doesNotMatch(renderAreaPerimeterExerciseItem(easyCircleItem, 0, 'zh'), /"\?"/);
 
 const hardTItem = hardBatch.find((item) => item.kind.startsWith('t_shape_'));
 assert.ok(hardTItem);
@@ -153,6 +154,66 @@ const hardCircleRectItem = hardBatch.find((item) => item.kind === 'circle_rectan
 assert.ok(hardCircleRectItem);
 assert.match(renderAreaPerimeterExerciseItem(hardCircleRectItem, 0, 'zh'), /"template":"composite_overlay"/);
 assert.match(renderAreaPerimeterExerciseItem(hardCircleRectItem, 0, 'zh'), /"kind":"circle"/);
+
+const mediumParallelogramReverse = {
+  kind: 'parallelogram_area_reverse',
+  template: 'parallelogram',
+  base: 8,
+  side: 5,
+  angle: 30,
+  height: 2.5,
+  area: 20,
+  answer: 2.5,
+};
+const mediumParallelogramReverseRendered = renderAreaPerimeterExerciseItem(mediumParallelogramReverse, 0, 'zh');
+assert.match(mediumParallelogramReverseRendered, /"label_base":"\d+ cm"/);
+assert.doesNotMatch(mediumParallelogramReverseRendered, /"label_height":"\?"/);
+assert.doesNotMatch(mediumParallelogramReverseRendered, /"label_side":"\d+ cm"/);
+assert.doesNotMatch(mediumParallelogramReverseRendered, /"label_angle":"\d+°"/);
+
+const easyTriangleAreaItem = {
+  kind: 'triangle_area',
+  template: 'triangle',
+  points: [
+    { x: 0, y: 6, label: 'A' },
+    { x: 0, y: 0, label: 'B' },
+    { x: 8, y: 0, label: 'C' },
+  ],
+  legA: 6,
+  legB: 8,
+  hypotenuse: 10,
+  answer: 24,
+};
+const easyTriangleAreaRendered = renderAreaPerimeterExerciseItem(easyTriangleAreaItem, 0, 'zh');
+assert.match(easyTriangleAreaRendered, /"AB":"\d+ cm"/);
+assert.match(easyTriangleAreaRendered, /"BC":"\d+ cm"/);
+assert.doesNotMatch(easyTriangleAreaRendered, /"CA":"\d+ cm"/);
+
+const mediumAnnulusReverseItem = {
+  kind: 'circle_annulus_area_reverse',
+  template: 'circle_annulus',
+  outerRadius: 6,
+  innerRadius: 3,
+  area: 27 * Math.PI,
+  answer: 3,
+};
+const mediumAnnulusReverseRendered = renderAreaPerimeterExerciseItem(mediumAnnulusReverseItem, 0, 'zh');
+assert.match(mediumAnnulusReverseRendered, /"label_outer_radius":"6 cm"/);
+assert.doesNotMatch(mediumAnnulusReverseRendered, /"label_inner_radius":"\?"/);
+assert.match(mediumAnnulusReverseRendered, /"label_area":"27π cm²"/);
+
+const mediumSectorReverseItem = {
+  kind: 'sector_area_reverse',
+  template: 'circle_sector',
+  radius: 6,
+  angle: 120,
+  area: 12 * Math.PI,
+  answer: 6,
+};
+const mediumSectorReverseRendered = renderAreaPerimeterExerciseItem(mediumSectorReverseItem, 0, 'zh');
+assert.doesNotMatch(mediumSectorReverseRendered, /"label_radius":"\?"/);
+assert.match(mediumSectorReverseRendered, /"label_angle":"120°"/);
+assert.match(mediumSectorReverseRendered, /"label_area":"12π cm²"/);
 
 const hardWideBatch = buildAreaPerimeterExerciseItems(24, { lang: 'zh', difficulty: 'Hard', grade: '8' });
 const hardWideKinds = new Set(hardWideBatch.map((item) => item.kind));
@@ -208,7 +269,7 @@ const overlapRectanglesQuestion = buildCompositeAreaPerimeterQuestionText(overla
 const overlapRectanglesDiagram = JSON.stringify(buildCompositeAreaPerimeterDiagramSpec(overlapRectanglesItem));
 assert.match(overlapRectanglesQuestion, /重叠/);
 assert.match(overlapRectanglesDiagram, /"kind":"poly"/);
-assert.match(overlapRectanglesDiagram, /"text":"\?"/);
+assert.doesNotMatch(overlapRectanglesDiagram, /"text":"\?"/);
 
 const overlapRectanglesPerimeterItem = {
   kind: 'overlap_rectangles_union_perimeter',
@@ -239,7 +300,7 @@ const frameReverseQuestion = buildCompositeAreaPerimeterQuestionText(frameRevers
 const frameReverseDiagram = JSON.stringify(buildCompositeAreaPerimeterDiagramSpec(frameReverseItem));
 assert.match(frameReverseQuestion, /相框/);
 assert.match(frameReverseDiagram, /"text":"928 cm²"/);
-assert.match(frameReverseDiagram, /"label":"\?"/);
+assert.doesNotMatch(frameReverseDiagram, /"label":"\?"/);
 
 const framePerimeterReverseItem = {
   kind: 'rectangle_frame_perimeter_reverse',
@@ -268,6 +329,9 @@ const houseReverseQuestion = buildCompositeAreaPerimeterQuestionText(houseRevers
 const houseReverseDiagram = JSON.stringify(buildCompositeAreaPerimeterDiagramSpec(houseReverseItem));
 assert.match(houseReverseQuestion, /小房子/);
 assert.match(houseReverseDiagram, /"text":"168 cm²"/);
+assert.match(houseReverseDiagram, /"kind":"seg"/);
+assert.match(houseReverseDiagram, /"dash":"5,4"/);
+assert.doesNotMatch(houseReverseDiagram, /"a":\{"x":0,"y":10\},"b":\{"x":6,"y":18\},"label":"10 cm"/);
 
 const hardSingles = Array.from({ length: 10 }, () => buildAreaPerimeterExerciseItems(1, { lang: 'zh', difficulty: 'Hard', grade: '8' }));
 const hardSingleKeys = hardSingles.map((batch) => batch[0].key);
@@ -308,6 +372,7 @@ function spotCheckAreaPerimeter(difficulty, rounds, count) {
       seenKinds.add(item.kind);
       const renderedItem = renderAreaPerimeterExerciseItem(item, index, 'zh');
       assert.doesNotMatch(renderedItem, /undefined/);
+      assert.doesNotMatch(renderedItem, /"\?"/);
     });
   }
 
@@ -316,7 +381,7 @@ function spotCheckAreaPerimeter(difficulty, rounds, count) {
 
 const easySpotKinds = spotCheckAreaPerimeter('Easy', 3, 6);
 const mediumSpotKinds = spotCheckAreaPerimeter('Medium', 3, 6);
-const hardSpotKinds = spotCheckAreaPerimeter('Hard', 4, 6);
+const hardSpotKinds = spotCheckAreaPerimeter('Hard', 6, 8);
 
 assert.ok(easySpotKinds.size >= 4);
 assert.ok(mediumSpotKinds.size >= 5);

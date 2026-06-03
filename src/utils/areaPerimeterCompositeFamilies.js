@@ -1,4 +1,5 @@
 import { validateRenderContract } from './exerciseRenderContracts.js';
+import { stripUnknownDiagramLabels } from './diagramLabelPolicy.js';
 
 function formatLength(value) {
   return Number.isFinite(value) ? `${value} cm` : '?';
@@ -14,6 +15,14 @@ function formatCircleCutAreaExpression(radius, rectW, rectH) {
 
 function isFinitePositiveNumber(value) {
   return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+function formatAreaDisplay(value) {
+  return Number.isFinite(value) ? `${value} cm²` : '?';
+}
+
+function formatCircleCutAreaExpressionDisplay(radius, rectW, rectH) {
+  return `${radius * radius}π - ${rectW * rectH} cm²`;
 }
 
 function approxEqual(a, b, epsilon = 1e-9) {
@@ -390,24 +399,24 @@ export function buildCompositeAreaPerimeterQuestionText(item, lang) {
         : `As shown, the left square has side ${item.small_side} cm and the right square has side ${item.large_side} cm. A diagonal joins the bottom-left corner to the top-right corner. Find the shaded area.`;
     case 'adjacent_squares_diagonal_area_reverse':
       return zh
-        ? `如图，两个正方形并排放置，右边正方形边长是左边的 2 倍。阴影部分面积是 ${formatArea(item.area)}。求左边正方形的边长。`
-        : `As shown, two squares sit side by side and the right square has side length twice the left. The shaded area is ${formatArea(item.area)}. Find the left square's side length.`;
+        ? `如图，两个正方形并排放置，右边正方形边长是左边的 2 倍。阴影部分面积是 ${formatAreaDisplay(item.area)}。求左边正方形的边长。`
+        : `As shown, two squares sit side by side and the right square has side length twice the left. The shaded area is ${formatAreaDisplay(item.area)}. Find the left square's side length.`;
     case 'adjacent_squares_diagonal_tall_area':
       return zh
         ? `如图，左边正方形边长 ${item.small_side} cm，右边正方形边长 ${item.large_side} cm，右边边长是左边的 3 倍，连接左下角与右上角。求阴影部分的面积。`
         : `As shown, the left square has side ${item.small_side} cm and the right square has side ${item.large_side} cm, which is three times the left. A diagonal joins the bottom-left corner to the top-right corner. Find the shaded area.`;
     case 'adjacent_squares_diagonal_tall_area_reverse':
       return zh
-        ? `如图，两个正方形并排放置，右边正方形边长是左边的 3 倍。阴影部分面积是 ${formatArea(item.area)}。求左边正方形的边长。`
-        : `As shown, two squares sit side by side and the right square has side length three times the left. The shaded area is ${formatArea(item.area)}. Find the left square's side length.`;
+        ? `如图，两个正方形并排放置，右边正方形边长是左边的 3 倍。阴影部分面积是 ${formatAreaDisplay(item.area)}。求左边正方形的边长。`
+        : `As shown, two squares sit side by side and the right square has side length three times the left. The shaded area is ${formatAreaDisplay(item.area)}. Find the left square's side length.`;
     case 'overlap_rectangles_union_area':
       return zh
         ? `如图，两个长方形部分重叠组成阴影图形。横放长方形长 ${item.baseWidth} cm、宽 ${item.baseHeight} cm，竖放长方形宽 ${item.towerWidth} cm、高 ${item.towerHeight} cm，重叠部分的宽是 ${item.overlapWidth} cm。求阴影部分的面积。`
         : `As shown, two rectangles overlap to form the shaded figure. The horizontal rectangle is ${item.baseWidth} cm by ${item.baseHeight} cm, the vertical rectangle is ${item.towerWidth} cm by ${item.towerHeight} cm, and the overlap width is ${item.overlapWidth} cm. Find the shaded area.`;
     case 'overlap_rectangles_union_area_reverse':
       return zh
-        ? `如图，两个长方形部分重叠组成阴影图形。横放长方形长 ${item.baseWidth} cm、宽 ${item.baseHeight} cm，竖放长方形宽 ${item.towerWidth} cm、高 ${item.towerHeight} cm，阴影部分面积是 ${formatArea(item.area)}。求重叠部分的宽。`
-        : `As shown, two rectangles overlap to form the shaded figure. The horizontal rectangle is ${item.baseWidth} cm by ${item.baseHeight} cm, the vertical rectangle is ${item.towerWidth} cm by ${item.towerHeight} cm, and the shaded area is ${formatArea(item.area)}. Find the overlap width.`;
+        ? `如图，两个长方形部分重叠组成阴影图形。横放长方形长 ${item.baseWidth} cm、宽 ${item.baseHeight} cm，竖放长方形宽 ${item.towerWidth} cm、高 ${item.towerHeight} cm，阴影部分面积是 ${formatAreaDisplay(item.area)}。求重叠部分的宽。`
+        : `As shown, two rectangles overlap to form the shaded figure. The horizontal rectangle is ${item.baseWidth} cm by ${item.baseHeight} cm, the vertical rectangle is ${item.towerWidth} cm by ${item.towerHeight} cm, and the shaded area is ${formatAreaDisplay(item.area)}. Find the overlap width.`;
     case 'overlap_rectangles_union_perimeter':
       return zh
         ? `如图，两个长方形部分重叠组成阴影图形。横放长方形长 ${item.baseWidth} cm、宽 ${item.baseHeight} cm，竖放长方形宽 ${item.towerWidth} cm、高 ${item.towerHeight} cm，重叠部分的宽是 ${item.overlapWidth} cm。求阴影图形的周长。`
@@ -422,8 +431,8 @@ export function buildCompositeAreaPerimeterQuestionText(item, lang) {
         : `As shown, a right triangle is cut from the upper-right corner of a rectangle. Find the perimeter of the remaining shape.`;
     case 'rectangle_triangle_cut_area_reverse':
       return zh
-        ? `如图，一个长方形右上角切去一个直角三角形，阴影部分面积是 ${formatArea(item.area)}。求被切去三角形的较短直角边。`
-        : `As shown, a right triangle is cut from the upper-right corner of a rectangle. The shaded area is ${formatArea(item.area)}. Find the shorter leg of the cut triangle.`;
+        ? `如图，一个长方形右上角切去一个直角三角形，阴影部分面积是 ${formatAreaDisplay(item.area)}。求被切去三角形的较短直角边。`
+        : `As shown, a right triangle is cut from the upper-right corner of a rectangle. The shaded area is ${formatAreaDisplay(item.area)}. Find the shorter leg of the cut triangle.`;
     case 'rectangle_frame_area':
       return zh
         ? `如图，一个长方形相框由大长方形中挖去一个小长方形得到。外框长 ${item.outerWidth} cm、宽 ${item.outerHeight} cm，内孔长 ${item.innerWidth} cm、宽 ${item.innerHeight} cm。求阴影部分的面积。`
@@ -434,8 +443,8 @@ export function buildCompositeAreaPerimeterQuestionText(item, lang) {
         : `As shown, a rectangular frame is formed by cutting a smaller rectangle from a larger one. The outer rectangle is ${item.outerWidth} cm by ${item.outerHeight} cm, and the inner hole is ${item.innerWidth} cm by ${item.innerHeight} cm. Find the perimeter of the shaded frame.`;
     case 'rectangle_frame_area_reverse':
       return zh
-        ? `如图，一个长方形相框由大长方形中挖去一个小长方形得到。外框长 ${item.outerWidth} cm、宽 ${item.outerHeight} cm，内孔宽 ${item.innerHeight} cm，阴影部分面积是 ${formatArea(item.area)}。求内孔的长。`
-        : `As shown, a rectangular frame is formed by cutting a smaller rectangle from a larger one. The outer rectangle is ${item.outerWidth} cm by ${item.outerHeight} cm, the inner height is ${item.innerHeight} cm, and the shaded area is ${formatArea(item.area)}. Find the inner width.`;
+        ? `如图，一个长方形相框由大长方形中挖去一个小长方形得到。外框长 ${item.outerWidth} cm、宽 ${item.outerHeight} cm，内孔宽 ${item.innerHeight} cm，阴影部分面积是 ${formatAreaDisplay(item.area)}。求内孔的长。`
+        : `As shown, a rectangular frame is formed by cutting a smaller rectangle from a larger one. The outer rectangle is ${item.outerWidth} cm by ${item.outerHeight} cm, the inner height is ${item.innerHeight} cm, and the shaded area is ${formatAreaDisplay(item.area)}. Find the inner width.`;
     case 'rectangle_frame_perimeter_reverse':
       return zh
         ? `如图，一个长方形相框由大长方形中挖去一个小长方形得到。外框长 ${item.outerWidth} cm、宽 ${item.outerHeight} cm，内孔宽 ${item.innerHeight} cm，阴影部分周长是 ${formatLength(item.perimeter)}。求内孔的长。`
@@ -450,8 +459,8 @@ export function buildCompositeAreaPerimeterQuestionText(item, lang) {
         : `As shown, a house-shaped figure is made of a rectangle topped by an isosceles triangle. The base is ${item.width} cm, the wall height is ${item.wallHeight} cm, and the roof rise is ${item.roofRise} cm. Find the perimeter.`;
     case 'house_shape_area_reverse':
       return zh
-        ? `如图，一个“小房子”图形由一个长方形和上方一个等腰三角形组成。底边长 ${item.width} cm，墙高 ${item.wallHeight} cm，图形面积是 ${formatArea(item.area)}。求屋顶的高。`
-        : `As shown, a house-shaped figure is made of a rectangle topped by an isosceles triangle. The base is ${item.width} cm, the wall height is ${item.wallHeight} cm, and the area is ${formatArea(item.area)}. Find the roof rise.`;
+        ? `如图，一个“小房子”图形由一个长方形和上方一个等腰三角形组成。底边长 ${item.width} cm，墙高 ${item.wallHeight} cm，图形面积是 ${formatAreaDisplay(item.area)}。求屋顶的高。`
+        : `As shown, a house-shaped figure is made of a rectangle topped by an isosceles triangle. The base is ${item.width} cm, the wall height is ${item.wallHeight} cm, and the area is ${formatAreaDisplay(item.area)}. Find the roof rise.`;
     case 'circle_rectangle_cut_area':
       return zh
         ? `如图，一个圆形中挖去一个长方形空洞。求剩余阴影部分的面积。`
@@ -462,8 +471,8 @@ export function buildCompositeAreaPerimeterQuestionText(item, lang) {
         : `As shown, a rectangle is cut out of a circle. Find the perimeter of the remaining shape.`;
     case 'circle_rectangle_cut_area_reverse':
       return zh
-        ? `如图，一个圆形中挖去一个长方形空洞，阴影部分面积是 ${formatCircleCutAreaExpression(item.radius, item.rectW, item.rectH)}。求长方形的宽。`
-        : `As shown, a rectangle is cut out of a circle. The shaded area is ${formatCircleCutAreaExpression(item.radius, item.rectW, item.rectH)}. Find the rectangle's width.`;
+        ? `如图，一个圆形中挖去一个长方形空洞，阴影部分面积是 ${formatCircleCutAreaExpressionDisplay(item.radius, item.rectW, item.rectH)}。求长方形的宽。`
+        : `As shown, a rectangle is cut out of a circle. The shaded area is ${formatCircleCutAreaExpressionDisplay(item.radius, item.rectW, item.rectH)}. Find the rectangle's width.`;
     default:
       return '';
   }
@@ -503,7 +512,7 @@ function buildAdjacentSquaresCompositeSpec(item) {
       { kind: 'segLabel', a: F, b: G, label: formatLength(item.large_side), color: '#f59e0b' },
       { kind: 'segLabel', a: D, b: A, label: item.kind.endsWith('reverse') ? '?' : formatLength(item.small_side), color: '#f59e0b' },
       { kind: 'segLabel', a: H, b: G, label: formatLength(item.large_side), color: '#f59e0b' },
-      { kind: 'text', x: (A.x + G.x) / 2, y: (A.y + G.y) / 2, text: item.kind.endsWith('reverse') ? formatArea(item.area) : '?', color: '#f59e0b' },
+      { kind: 'text', x: (A.x + G.x) / 2, y: (A.y + G.y) / 2, text: item.kind.endsWith('reverse') ? formatAreaDisplay(item.area) : '', color: '#f59e0b' },
     ],
   };
 }
@@ -523,7 +532,7 @@ function buildOverlapRectanglesUnionSpec(item) {
       { kind: 'segLabel', a: { x: towerLeft, y: item.towerHeight }, b: { x: towerRight, y: item.towerHeight }, label: formatLength(item.towerWidth), color: '#f59e0b' },
       { kind: 'segLabel', a: { x: towerRight, y: 0 }, b: { x: towerRight, y: item.towerHeight }, label: formatLength(item.towerHeight), color: '#f59e0b' },
       { kind: 'segLabel', a: { x: towerLeft, y: item.baseHeight }, b: { x: item.baseWidth, y: item.baseHeight }, label: item.kind === 'overlap_rectangles_union_area_reverse' ? '?' : formatLength(item.overlapWidth), color: '#f59e0b' },
-      { kind: 'text', x: towerRight / 2, y: item.towerHeight / 2, text: item.kind === 'overlap_rectangles_union_area_reverse' ? formatArea(item.area) : item.kind === 'overlap_rectangles_union_perimeter' ? '?' : '?', color: '#f59e0b' },
+      { kind: 'text', x: towerRight / 2, y: item.towerHeight / 2, text: item.kind === 'overlap_rectangles_union_area_reverse' ? formatAreaDisplay(item.area) : '', color: '#f59e0b' },
     ],
   };
 }
@@ -548,7 +557,7 @@ function buildRectangleTriangleCutSpec(item) {
       { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: 0, y: item.height }, label: formatLength(item.height), color: '#f59e0b' },
       { kind: 'segLabel', a: { x: item.width, y: 0 }, b: notchA, label: formatLength(item.cutH), color: '#f59e0b' },
       { kind: 'segLabel', a: notchA, b: notchB, label: item.kind.endsWith('reverse') ? '?' : formatLength(item.cutW), color: '#f59e0b' },
-      { kind: 'text', x: item.width / 2, y: item.height / 2, text: item.kind === 'rectangle_triangle_cut_area_reverse' ? formatArea(item.area) : '?', color: '#f59e0b' },
+      { kind: 'text', x: item.width / 2, y: item.height / 2, text: item.kind === 'rectangle_triangle_cut_area_reverse' ? formatAreaDisplay(item.area) : '', color: '#f59e0b' },
     ],
   };
 }
@@ -567,7 +576,7 @@ function buildRectangleFrameSpec(item) {
       { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: 0, y: item.outerHeight }, label: formatLength(item.outerHeight), color: '#f59e0b' },
       { kind: 'segLabel', a: { x: innerLeft, y: innerBottom }, b: { x: innerLeft + item.innerWidth, y: innerBottom }, label: (item.kind === 'rectangle_frame_area_reverse' || item.kind === 'rectangle_frame_perimeter_reverse') ? '?' : formatLength(item.innerWidth), color: '#f59e0b' },
       { kind: 'segLabel', a: { x: innerLeft + item.innerWidth, y: innerBottom }, b: { x: innerLeft + item.innerWidth, y: innerBottom + item.innerHeight }, label: formatLength(item.innerHeight), color: '#f59e0b' },
-      { kind: 'text', x: item.outerWidth / 2, y: item.outerHeight / 2, text: item.kind === 'rectangle_frame_area_reverse' ? formatArea(item.area) : item.kind === 'rectangle_frame_perimeter_reverse' ? formatLength(item.perimeter) : '?', color: '#f59e0b' },
+      { kind: 'text', x: item.outerWidth / 2, y: item.outerHeight / 2, text: item.kind === 'rectangle_frame_area_reverse' ? formatAreaDisplay(item.area) : item.kind === 'rectangle_frame_perimeter_reverse' ? formatLength(item.perimeter) : '', color: '#f59e0b' },
     ],
   };
 }
@@ -577,6 +586,7 @@ function buildHouseShapeSpec(item) {
   const leftRoof = { x: 0, y: item.wallHeight };
   const apex = { x: half, y: item.wallHeight + item.roofRise };
   const rightRoof = { x: item.width, y: item.wallHeight };
+  const roofMid = { x: half, y: item.wallHeight };
   const outline = [
     { x: 0, y: 0 },
     { x: item.width, y: 0 },
@@ -592,9 +602,9 @@ function buildHouseShapeSpec(item) {
       { kind: 'poly', pts: outline, fill: 'rgba(245,158,11,0.18)', stroke: '#94a3b8', sw: 2 },
       { kind: 'segLabel', a: { x: 0, y: 0 }, b: { x: item.width, y: 0 }, label: formatLength(item.width), color: '#f59e0b' },
       { kind: 'segLabel', a: { x: 0, y: 0 }, b: leftRoof, label: formatLength(item.wallHeight), color: '#f59e0b' },
-      { kind: 'segLabel', a: leftRoof, b: apex, label: item.kind === 'house_shape_area_reverse' ? '?' : formatLength(5 * (item.width / 6)), color: '#f59e0b' },
-      { kind: 'segLabel', a: { x: half, y: item.wallHeight }, b: apex, label: item.kind === 'house_shape_area_reverse' ? '?' : formatLength(item.roofRise), color: '#f59e0b' },
-      { kind: 'text', x: item.width / 2, y: item.wallHeight / 2, text: item.kind === 'house_shape_area_reverse' ? formatArea(item.area) : '?', color: '#f59e0b' },
+      { kind: 'seg', a: roofMid, b: apex, stroke: '#94a3b8', sw: 1.8, dash: '5,4' },
+      { kind: 'segLabel', a: roofMid, b: apex, label: item.kind === 'house_shape_area_reverse' ? '?' : formatLength(item.roofRise), color: '#f59e0b' },
+      { kind: 'text', x: item.width / 2, y: item.wallHeight / 2, text: item.kind === 'house_shape_area_reverse' ? formatAreaDisplay(item.area) : '', color: '#f59e0b' },
     ],
   };
 }
@@ -619,43 +629,52 @@ function buildCircleRectangleCutSpec(item) {
       { kind: 'segLabel', a: { x: -item.rectW / 2, y: -item.rectH / 2 }, b: { x: item.rectW / 2, y: -item.rectH / 2 }, label: item.kind.endsWith('reverse') ? '?' : formatLength(item.rectW), color: '#f59e0b' },
       { kind: 'segLabel', a: { x: item.rectW / 2, y: -item.rectH / 2 }, b: { x: item.rectW / 2, y: item.rectH / 2 }, label: formatLength(item.rectH), color: '#f59e0b' },
       ...(item.kind.endsWith('reverse')
-        ? [{ kind: 'text', x: 0, y: 0, text: formatCircleCutAreaExpression(item.radius, item.rectW, item.rectH), color: '#f59e0b' }]
+        ? [{ kind: 'text', x: 0, y: 0, text: formatCircleCutAreaExpressionDisplay(item.radius, item.rectW, item.rectH), color: '#f59e0b' }]
         : []),
     ],
   };
 }
 
 export function buildCompositeAreaPerimeterDiagramSpec(item) {
+  let spec = {};
   switch (item.kind) {
     case 'adjacent_squares_diagonal_area':
     case 'adjacent_squares_diagonal_area_reverse':
     case 'adjacent_squares_diagonal_tall_area':
     case 'adjacent_squares_diagonal_tall_area_reverse':
-      return buildAdjacentSquaresCompositeSpec(item);
+      spec = buildAdjacentSquaresCompositeSpec(item);
+      break;
     case 'overlap_rectangles_union_area':
     case 'overlap_rectangles_union_area_reverse':
     case 'overlap_rectangles_union_perimeter':
-      return buildOverlapRectanglesUnionSpec(item);
+      spec = buildOverlapRectanglesUnionSpec(item);
+      break;
     case 'rectangle_triangle_cut_area':
     case 'rectangle_triangle_cut_perimeter':
     case 'rectangle_triangle_cut_area_reverse':
-      return buildRectangleTriangleCutSpec(item);
+      spec = buildRectangleTriangleCutSpec(item);
+      break;
     case 'rectangle_frame_area':
     case 'rectangle_frame_perimeter':
     case 'rectangle_frame_area_reverse':
     case 'rectangle_frame_perimeter_reverse':
-      return buildRectangleFrameSpec(item);
+      spec = buildRectangleFrameSpec(item);
+      break;
     case 'house_shape_area':
     case 'house_shape_perimeter':
     case 'house_shape_area_reverse':
-      return buildHouseShapeSpec(item);
+      spec = buildHouseShapeSpec(item);
+      break;
     case 'circle_rectangle_cut_area':
     case 'circle_rectangle_cut_perimeter':
     case 'circle_rectangle_cut_area_reverse':
-      return buildCircleRectangleCutSpec(item);
+      spec = buildCircleRectangleCutSpec(item);
+      break;
     default:
-      return {};
+      spec = {};
   }
+
+  return stripUnknownDiagramLabels(spec);
 }
 
 export function buildCompositeAreaPerimeterRenderContract(item) {
@@ -696,7 +715,7 @@ export function buildCompositeAreaPerimeterRenderContract(item) {
     case 'circle_rectangle_cut_area_reverse':
       return {
         questionIncludes: ['圆形'],
-        diagramIncludes: ['"template":"composite_overlay"', '"kind":"circle"', '"kind":"poly"', '"kind":"segLabel"', `"text":"${formatCircleCutAreaExpression(item.radius, item.rectW, item.rectH)}"`],
+        diagramIncludes: ['"template":"composite_overlay"', '"kind":"circle"', '"kind":"poly"', '"kind":"segLabel"', `"text":"${formatCircleCutAreaExpressionDisplay(item.radius, item.rectW, item.rectH)}"`],
       };
     default:
       return { questionIncludes: [], diagramIncludes: [] };
