@@ -46,6 +46,11 @@ function hasDiameterIntersectingChordsCue(text) {
     /(?:intersect|交于|相交).{0,24}(?:AC|BD)/i.test(source)
   );
 }
+
+function hasDiameterTangentChordCue(text) {
+  const source = String(text ?? "");
+  return hasDiameterCue(source) && /(?:tangent|切线|CP|点P|point\s*P|AB的延长线|AB\s*的\s*延长线|连接AC|连接AD|∠AED|AED)/i.test(source);
+}
 function hasAngleCueNeedingBD(text) {
   return /(?:โ \s*ABD|angle\s*ABD|โ \s*BCD|angle\s*BCD|ABD|BCD)/i.test(String(text ?? ""));
 }
@@ -697,6 +702,27 @@ export function needsCircleDiameterIntersectingChordsRepair({ conceptTitle = "",
 
   return false;
 }
+
+export function needsCircleDiameterTangentChordRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
+  if (diagramPolicy === "must_not_draw") return false;
+
+  const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
+  if (!hasDiameterTangentChordCue(source)) return false;
+  if (!hasMathDiagramBlock(generatedText)) return true;
+
+  const data = extractDiagramBlockJson(generatedText);
+  if (!data || typeof data !== "object") return true;
+  if (String(data.template ?? data.type ?? "").trim() !== "circle_diameter_tangent_chord") return true;
+
+  const expectedPoints = ["A", "B", "C", "D", "E", "P", "O"];
+  const actualPoints = collectDiagramPointLabels(data);
+  if (expectedPoints.some((point) => !actualPoints.has(point))) return true;
+  if (!hasAnyDiagramField(data, ["radius"])) return true;
+  if (!hasAnyDiagramField(data, ["label_ab", "label_ac", "label_ad", "label_cp"])) return true;
+
+  return false;
+}
+
 export function needsCircleSectorRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
   if (diagramPolicy === "must_not_draw") return false;
 

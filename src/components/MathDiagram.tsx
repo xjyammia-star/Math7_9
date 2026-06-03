@@ -620,6 +620,12 @@ function validateDiagramData(template: string, data: any): string | null {
         ? null
         : 'circle_diameter_chords requires a positive radius';
     }
+    case 'circle_diameter_tangent_chord': {
+      const radius = asFiniteNumber(data.radius ?? 5);
+      return radius !== null && radius > 0
+        ? null
+        : 'circle_diameter_tangent_chord requires a positive radius';
+    }
     default:
       return null;
   }
@@ -1934,6 +1940,68 @@ function CircleDiameterChords({ data }: { data: any }) {
 }
 
 /**
+ * circle_diameter_tangent_chord - diameter AB with a chord CD, a tangent at C meeting the extension of AB at P, and intersection E.
+ * Intended for circle theorem problems combining diameter, tangent, and chord configurations.
+ */
+function CircleDiameterTangentChord({ data }: { data: any }) {
+  const r: number = data.radius ?? 5;
+  const cDeg: number = data.c_angle ?? 58;
+  const dDeg: number = data.d_angle ?? 310;
+
+  const O: Pt = { x: 0, y: 0 };
+  const A: Pt = { x: -r, y: 0 };
+  const B: Pt = { x: r, y: 0 };
+  const C: Pt = { x: r * Math.cos(cDeg * Math.PI / 180), y: r * Math.sin(cDeg * Math.PI / 180) };
+  const D: Pt = { x: r * Math.cos(dDeg * Math.PI / 180), y: r * Math.sin(dDeg * Math.PI / 180) };
+  const E = lineIntersection(A, B, C, D) ?? { x: 0, y: 0 };
+  const pX = r / Math.cos(cDeg * Math.PI / 180 || 1e-6);
+  const P: Pt = { x: pX, y: 0 };
+  const tangentLen = Math.hypot(P.x - C.x, P.y - C.y);
+  const tangentDir = norm({ x: P.x - C.x, y: P.y - C.y });
+  const tangentA: Pt = { x: C.x - tangentDir.x * tangentLen * 0.55, y: C.y - tangentDir.y * tangentLen * 0.55 };
+  const tangentB: Pt = { x: P.x, y: 0 };
+
+  const xs = [A.x, B.x, C.x, D.x, E.x, P.x];
+  const ys = [A.y, B.y, C.y, D.y, E.y, P.y];
+  const pad = r * 0.38;
+  const sc = makeScaler(Math.min(...xs) - pad, Math.max(...xs) + pad,
+    Math.min(...ys) - pad, Math.max(...ys) + pad);
+
+  const sO = sc(O), sA = sc(A), sB = sc(B), sC = sc(C), sD = sc(D), sE = sc(E), sP = sc(P);
+  const sTanA = sc(tangentA), sTanB = sP;
+  const pixelR = Math.abs(sc({ x: r, y: 0 }).x - sO.x);
+
+  return (
+    <g>
+      <circle cx={sO.x} cy={sO.y} r={pixelR}
+        fill="none" stroke={GREY} strokeWidth={2} strokeOpacity={0.65} />
+      <Seg a={sA} b={sB} stroke={GOLD} sw={2.5} />
+      <Seg a={sA} b={sC} stroke={GOLD} sw={2.2} />
+      <Seg a={sA} b={sD} stroke={GOLD} sw={2.2} />
+      <Seg a={sC} b={sD} stroke={GOLD} sw={2.2} />
+      <Seg a={sC} b={sP} stroke={GOLD} sw={2.2} />
+      <Seg a={sTanA} b={sTanB} stroke={GREY} sw={1.8} dash="4,3" />
+
+      <Dot p={sA} label={explicitLabel(data.label_A ?? 'A')} offset={{ x: -20, y: 0 }} />
+      <Dot p={sB} label={explicitLabel(data.label_B ?? 'B')} offset={{ x: 10, y: 0 }} />
+      <Dot p={sC} label={explicitLabel(data.label_C ?? 'C')} offset={{ x: 10, y: -12 }} />
+      <Dot p={sD} label={explicitLabel(data.label_D ?? 'D')} offset={{ x: 10, y: 14 }} />
+      <Dot p={sE} label={explicitLabel(data.label_E ?? 'E')} offset={{ x: 8, y: -10 }} color={WHITE} />
+      <Dot p={sP} label={explicitLabel(data.label_P ?? 'P')} offset={{ x: 10, y: 0 }} color={WHITE} />
+      <Dot p={sO} label={explicitLabel(data.label_O ?? 'O')} offset={{ x: 8, y: 12 }} color={WHITE} />
+
+      {data.label_ab && <SegLabel a={sA} b={sB} label={String(data.label_ab)} color={GOLD} />}
+      {data.label_ac && <SegLabel a={sA} b={sC} label={String(data.label_ac)} color={GOLD} />}
+      {data.label_ad && <SegLabel a={sA} b={sD} label={String(data.label_ad)} color={GOLD} />}
+      {data.label_cp && <SegLabel a={sC} b={sP} label={String(data.label_cp)} color={GOLD} />}
+      {data.label_ae && <SegLabel a={sA} b={sE} label={String(data.label_ae)} color={GREY} />}
+      {data.label_ed && <SegLabel a={sE} b={sD} label={String(data.label_ed)} color={GREY} />}
+      <RightAngleMark v={sC} a={sO} b={sP} size={9} color={GREY} />
+    </g>
+  );
+}
+
+/**
  * circle_tangent — circle with external point P, two tangents PA and PB.
  * Fields: radius, op_dist (distance OP), label_O, label_P, label_A, label_B,
  *         label_radius, label_pa (tangent length), show_chord (draw AB, default true),
@@ -2554,6 +2622,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'circle_diameter_points': content = <CircleDiameterPoints data={parsed} />; break;
       case 'circle_intersecting_chords': content = <CircleIntersectingChords data={parsed} />; break;
       case 'circle_diameter_chords': content = <CircleDiameterChords data={parsed} />; break;
+      case 'circle_diameter_tangent_chord': content = <CircleDiameterTangentChord data={parsed} />; break;
       case 'linear_function':     content = <LinearFunction data={parsed} />; break;
       case 'quadratic_function':  content = <QuadraticFunction data={parsed} />; break;
       case 'number_line':

@@ -58,5 +58,25 @@ assert.match(diameterChordsSvg, /<svg/);
 assert.match(diameterChordsSvg, /10 cm/);
 assert.doesNotMatch(diameterChordsSvg, /\?/);
 
+const diameterTangentChordSvg = render({
+  template: 'circle_diameter_tangent_chord',
+  radius: 5,
+  label_A: 'A',
+  label_B: 'B',
+  label_C: 'C',
+  label_D: 'D',
+  label_E: 'E',
+  label_P: 'P',
+  label_O: 'O',
+  label_ab: '10 cm',
+  label_ac: '4 cm',
+  label_cp: '8 cm',
+});
+
+assert.match(diameterTangentChordSvg, /<svg/);
+assert.match(diameterTangentChordSvg, /A/);
+assert.match(diameterTangentChordSvg, /P/);
+assert.doesNotMatch(diameterTangentChordSvg, /\?/);
+
 console.log('python circle renderer test passed');
 

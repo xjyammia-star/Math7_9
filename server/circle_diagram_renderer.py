@@ -231,6 +231,8 @@ class Renderer:
       self.render_intersecting_chords()
     elif tmpl == "circle_diameter_chords":
       self.render_diameter_chords()
+    elif tmpl == "circle_diameter_tangent_chord":
+      self.render_diameter_tangent_chord()
     else:
       self.render_basic_circle()
     return (
@@ -630,6 +632,47 @@ class Renderer:
       self.seg_label(a, e, self.data.get("label_ae"), fill=GREY)
     if self.data.get("label_be") is not None:
       self.seg_label(b, e, self.data.get("label_be"), fill=GREY)
+
+  def render_diameter_tangent_chord(self) -> None:
+    r = num(self.data.get("radius"), 5.0)
+    c_deg = num(self.data.get("c_angle"), 58.0)
+    d_deg = num(self.data.get("d_angle"), 310.0)
+
+    a = (-r, 0)
+    b = (r, 0)
+    c = point_on_circle(r, c_deg)
+    d = point_on_circle(r, d_deg)
+    e = line_intersection(a, b, c, d) or (0.0, 0.0)
+    p = (r / max(math.cos(math.radians(c_deg)), 1e-6), 0.0)
+    tangent_dir = normalize((p[0] - c[0], p[1] - c[1]))
+    tangent_a = (c[0] - tangent_dir[0] * math.hypot(p[0] - c[0], p[1] - c[1]) * 0.55, c[1] - tangent_dir[1] * math.hypot(p[0] - c[0], p[1] - c[1]) * 0.55)
+
+    self.circle(r, stroke=GREY, fill="none", sw=2.0, opacity=0.65)
+    self.line(a, b, stroke=GOLD, sw=2.5)
+    self.line(a, c, stroke=GOLD, sw=2.2)
+    self.line(a, d, stroke=GOLD, sw=2.2)
+    self.line(c, d, stroke=GOLD, sw=2.2)
+    self.line(c, p, stroke=GREY, sw=1.8, dash="4,3")
+    self.dot(*a, self.data.get("label_A", "A"), fill=GOLD, dx=-16, dy=0)
+    self.dot(*b, self.data.get("label_B", "B"), fill=GOLD, dx=10, dy=0)
+    self.dot(*c, self.data.get("label_C", "C"), fill=GOLD, dx=10, dy=-12)
+    self.dot(*d, self.data.get("label_D", "D"), fill=GOLD, dx=10, dy=14)
+    self.dot(*e, self.data.get("label_E", "E"), fill=WHITE, dx=8, dy=-10)
+    self.dot(*p, self.data.get("label_P", "P"), fill=WHITE, dx=10, dy=0)
+    self.dot(0, 0, self.data.get("label_O", "O"), fill=WHITE, dx=8, dy=12)
+    self.right_angle_mark(c, (0, 0), p, size=9, fill=GREY)
+    if self.data.get("label_ab") is not None:
+      self.seg_label(a, b, self.data.get("label_ab"), fill=GOLD)
+    if self.data.get("label_ac") is not None:
+      self.seg_label(a, c, self.data.get("label_ac"), fill=GOLD)
+    if self.data.get("label_ad") is not None:
+      self.seg_label(a, d, self.data.get("label_ad"), fill=GOLD)
+    if self.data.get("label_cp") is not None:
+      self.seg_label(c, p, self.data.get("label_cp"), fill=GOLD)
+    if self.data.get("label_ae") is not None:
+      self.seg_label(a, e, self.data.get("label_ae"), fill=GREY)
+    if self.data.get("label_ed") is not None:
+      self.seg_label(e, d, self.data.get("label_ed"), fill=GREY)
 
 
 def normalize(v: Tuple[float, float]) -> Tuple[float, float]:

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   needsCircleDiameterRepair,
   needsCircleDiameterIntersectingChordsRepair,
+  needsCircleDiameterTangentChordRepair,
   needsCircleIntersectingChordsRepair,
   needsCircleSectorRepair,
 } from '../src/utils/diagramConsistency.js';
@@ -81,6 +82,26 @@ assert.equal(
     conceptTitle: 'circle diameter and intersecting chords',
     conceptDesc: 'AB is a diameter of circle O. Chords AC and BD intersect at E and AC ⟂ BD.',
     generatedText: '```math-diagram\n{"template":"circle_diameter_chords","radius":5,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_ab":"10 cm"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  false,
+);
+
+assert.equal(
+  needsCircleDiameterTangentChordRepair({
+    conceptTitle: 'circle diameter tangent chord',
+    conceptDesc: 'In circle O, AB is a diameter. C is the point of tangency and P lies on the extension of AB. Connect AC and AD. CD meets AB at E.',
+    generatedText: '```math-diagram\n{"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"]}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true,
+);
+
+assert.equal(
+  needsCircleDiameterTangentChordRepair({
+    conceptTitle: 'circle diameter tangent chord',
+    conceptDesc: 'In circle O, AB is a diameter. C is the point of tangency and P lies on the extension of AB. Connect AC and AD. CD meets AB at E.',
+    generatedText: '```math-diagram\n{"template":"circle_diameter_tangent_chord","radius":5,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_P":"P","label_O":"O","label_ab":"10 cm","label_ac":"4 cm","label_ad":"?","label_cp":"8 cm"}\n```',
     diagramPolicy: 'must_draw',
   }),
   false,

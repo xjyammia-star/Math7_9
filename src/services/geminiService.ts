@@ -1,7 +1,7 @@
 import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 import { classifyDiagramNeed, shouldRequireDiagramBlock, stripDiagramArtifacts } from "../utils/diagramPolicy";
-import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleChordRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterIntersectingChordsRepair, needsCircleDiameterRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsLinearIntersectionRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
+import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleChordRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterIntersectingChordsRepair, needsCircleDiameterRepair, needsCircleDiameterTangentChordRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleThreePointsRepair, needsLinearIntersectionRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
 import { buildAlgebraExerciseBatch, isAlgebraQuestionBankConcept } from "../utils/algebraExerciseTemplates.js";
 import { buildAreaPerimeterExerciseBatch, isAreaPerimeterConcept } from "../utils/areaPerimeterExerciseTemplates.js";
 import { buildPythagorasExerciseBatch, isPythagorasConcept } from "../utils/pythagorasExerciseTemplates.js";
@@ -156,6 +156,9 @@ export function detectOutputIssues(
   }
   if (needsCircleDiameterIntersectingChordsRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("circle_diameter_intersecting_chords_template_mismatch");
+  }
+  if (needsCircleDiameterTangentChordRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
+    issues.push("circle_diameter_tangent_chord_template_mismatch");
   }
   if (needsLinearIntersectionRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
     issues.push("linear_intersection_template_mismatch");
@@ -442,6 +445,9 @@ async function repairExerciseOutput(
   const impossibleGeometryNote = issueList.includes("circle_diameter_intersecting_chords_template_mismatch")
     ? `- The original circle statement appears geometrically inconsistent or under-specified. Rewrite it into a nearby valid circle theorem problem of the same difficulty, and include a matching diagram.\n`
     : "";
+  const diameterTangentChordNote = issueList.includes("circle_diameter_tangent_chord_template_mismatch")
+    ? `- The original circle statement combines a diameter, a tangent at a circle point, and a chord/intersection. Use the dedicated circle_diameter_tangent_chord template and keep every named point visible.\n`
+    : "";
   const system = `You are repairing AI-generated middle-school math exercises.
 
 Rules:
@@ -465,6 +471,7 @@ Rules:
 - For cyclic quadrilateral problems that mention C on the minor arc AB and D on the major arc AB, use template "circle_cyclic_quadrilateral" with explicit c_arc_type and d_arc_type fields, keep labels A/B/C/D visible, and use label_angle_aob for the requested central angle AOB when needed. Do not leave D off the circle or swap the arc sides.
 - For diameter problems that ask for angles like ∠ABD, ∠BCD, or ∠CAD, use template "circle_diameter_points" so the diameter endpoints and the relevant chord/angle relationships are drawn explicitly. Do not replace BD with AC or any other diagonal, and place the unknown angle label on the actual vertex it is asked at.
 - For diameter + intersecting chords problems that say AB is a diameter and AC/BD intersect inside the circle (or AC ⟂ BD), use template "circle_diameter_chords" with diameter AB, chords AC and BD, and label E at the intersection point. Do not collapse it into a generic text-only explanation.
+- For diameter + tangent + chord problems that say AB is a diameter, C is a tangency point, P lies on the extension of AB, and AC/AD are connected (or CD intersects AB at E), use template "circle_diameter_tangent_chord" with labels A/B/C/D/E/P/O and all explicitly named segments. Do not omit the tangent line or the point labels.
 - For tangent-chord theorem problems with a tangent at A and a chord from A to B, such as ∠PAB or ∠ADB, use template "circle_chord_tangent" instead of "circle_tangent". If the problem names one named arc point D only, keep that point visible with label_D and the matching arc-point flag. If the problem names both C and D on the circle (for example C on the minor arc AB and D on the major arc AB), use template "circle_tangent_chord_dual_points" so both points are visible.
 - For tangent-chord problems, never guess the arc side. If the statement says C is on the minor arc AB and D is on the major arc AB, set arc_type:"minor" and d_arc_type:"major" exactly. If the statement reverses them, reverse the fields. Do not swap minor and major arc points.
 - For the same tangent-chord pattern, map the tangent point named in the statement to label_A, and map the chord endpoint labels to the actual chord in the statement. If the statement says the tangent is at C, label_A must be "C". Do not force the visible tangent point to literally be A if the problem names a different point.
@@ -476,6 +483,7 @@ Rules:
 - In any geometry diagram, if you label an angle such as ∠ABD, make sure the two rays/segments that define that angle are actually drawn in the figure.
 - Do not add new topics or remove required information.
 - ${impossibleGeometryNote.trim().startsWith('-') ? impossibleGeometryNote.trim().slice(2) : impossibleGeometryNote}
+- ${diameterTangentChordNote.trim().startsWith('-') ? diameterTangentChordNote.trim().slice(2) : diameterTangentChordNote}
 - Output only the corrected exercises.`;
 
   const user = [
