@@ -4,6 +4,8 @@ const ALLOWED_POINT_ROLES = new Set([
   'arc_point',
   'intersection_point',
   'foot_point',
+  'point',
+  'center_point',
 ]);
 
 const ALLOWED_RELATION_TYPES = new Set([
@@ -16,6 +18,10 @@ const ALLOWED_RELATION_TYPES = new Set([
   'chord',
   'line',
   'helper_line',
+  'segment',
+  'circle',
+  'right_angle',
+  'arc',
 ]);
 
 function asText(value) {
@@ -61,8 +67,10 @@ function normalizeCircleScene(input) {
   scene.points = scene.points.map((point) => ({
     ...point,
     name: (asText(point.name || point.label || point.point || point.id) || '').toUpperCase(),
-    role: asText(point.role || point.kind || 'intersection_point'),
+    role: asText(point.role || point.kind || point.type || ((point.id || point.name || point.label) && asText(point.id || point.name || point.label).toUpperCase() === scene.center ? 'center_point' : 'point')),
     arcSide: point.arcSide ? asText(point.arcSide) : undefined,
+    x: point.x,
+    y: point.y,
   })).filter((point) => point.name);
 
   scene.relations = scene.relations.map((relation) => ({
@@ -72,6 +80,12 @@ function normalizeCircleScene(input) {
     touches: relation.touches ? (asText(relation.touches) || '').toUpperCase() : relation.touches,
     line: relation.line ? (asText(relation.line) || '').toUpperCase() : relation.line,
     arc: relation.arc ? (asText(relation.arc) || '').toUpperCase() : relation.arc,
+    center: relation.center ? (asText(relation.center) || '').toUpperCase() : relation.center,
+    start: relation.start ? (asText(relation.start) || '').toUpperCase() : relation.start,
+    end: relation.end ? (asText(relation.end) || '').toUpperCase() : relation.end,
+    radius: relation.radius,
+    label: relation.label,
+    points: Array.isArray(relation.points) ? relation.points.map((item) => (asText(item) || '').toUpperCase()).filter(Boolean) : relation.points,
     of: Array.isArray(relation.of) ? relation.of.map((item) => (asText(item) || '').toUpperCase()).filter(Boolean) : relation.of,
   })).filter((relation) => relation.type);
 
@@ -130,8 +144,9 @@ function detectCircleSceneIssues(text) {
 function validateCircleScene(scene) {
   const normalized = normalizeCircleScene(scene);
   const errors = [];
+  const hasExplicitCoordinates = normalized.points.some((point) => asFiniteNumber(point.x) !== null && asFiniteNumber(point.y) !== null);
 
-  if (normalized.conceptId !== 'circles') {
+  if (normalized.conceptId !== 'circles' && normalized.conceptId !== 'circle') {
     errors.push('conceptId must be circles');
   }
   if (normalized.figureType !== 'circle') {
@@ -161,6 +176,9 @@ function validateCircleScene(scene) {
     pointMap.set(point.name, point);
     if (point.arcSide && !['minor', 'major'].includes(point.arcSide)) {
       errors.push(`invalid arcSide for point ${point.name}`);
+    }
+    if (hasExplicitCoordinates && (asFiniteNumber(point.x) === null || asFiniteNumber(point.y) === null)) {
+      errors.push(`point ${point.name} requires numeric x/y in explicit scene mode`);
     }
   }
 
@@ -210,6 +228,36 @@ function validateCircleScene(scene) {
     if (relation.type === 'collinear') {
       if (!Array.isArray(relation.points) || relation.points.length < 3) {
         errors.push('collinear relation requires at least three points');
+      }
+    }
+    if (relation.type === 'segment') {
+      if (!Array.isArray(relation.points) || relation.points.length !== 2 || relation.points.some((name) => !pointMap.has(name))) {
+        errors.push('segment relation requires two existing points');
+      }
+    }
+    if (relation.type === 'circle') {
+      const center = asText(relation.center);
+      if (!center || !pointMap.has(center)) {
+        errors.push('circle relation requires an existing center point');
+      }
+      if (asFiniteNumber(relation.radius) === null) {
+        errors.push('circle relation requires a numeric radius');
+      }
+    }
+    if (relation.type === 'right_angle') {
+      if (!Array.isArray(relation.points) || relation.points.length !== 3 || relation.points.some((name) => !pointMap.has(name))) {
+        errors.push('right_angle relation requires three existing points');
+      }
+    }
+    if (relation.type === 'arc') {
+      const center = asText(relation.center);
+      const start = asText(relation.start);
+      const end = asText(relation.end);
+      if (!center || !pointMap.has(center) || !start || !pointMap.has(start) || !end || !pointMap.has(end)) {
+        errors.push('arc relation requires existing center/start/end points');
+      }
+      if (asFiniteNumber(relation.radius) === null) {
+        errors.push('arc relation requires a numeric radius');
       }
     }
   }

@@ -77,4 +77,36 @@ assert.deepEqual(
   ['circle_scene_invalid']
 );
 
+const explicitSceneBlock = [
+  '```math-diagram',
+  JSON.stringify({
+    template: 'circle_scene',
+    scene: {
+      conceptId: 'circle',
+      figureType: 'circle',
+      center: 'C',
+      points: [
+        { id: 'C', x: 0, y: 0, label: 'C' },
+        { id: 'A', x: 0, y: 3, label: 'A' },
+        { id: 'B', x: 4, y: 0, label: 'B' },
+        { id: 'D', x: 2.4, y: 1.8, label: 'D' },
+      ],
+      relations: [
+        { type: 'segment', points: ['A', 'B'] },
+        { type: 'segment', points: ['A', 'C'] },
+        { type: 'segment', points: ['B', 'C'] },
+        { type: 'circle', center: 'C', radius: 3 },
+        { type: 'right_angle', points: ['A', 'C', 'B'] },
+        { type: 'arc', center: 'C', radius: 3, start: 'A', end: 'D', label: '劣弧AD' },
+      ],
+      givens: [{ type: 'length', points: ['A', 'C'], value: 3 }],
+      targets: [],
+      display: {},
+    },
+  }),
+  '```',
+].join('\n');
+
+assert.deepEqual(detectCircleSceneIssues(explicitSceneBlock), []);
+
 console.log('circle scene schema test passed');

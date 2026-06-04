@@ -209,6 +209,151 @@ class Renderer:
     r_px = radius * self.scale
     self.add(f'<circle cx="{cx}" cy="{cy}" r="{r_px}" fill="{fill}" stroke="{stroke}" stroke-width="{sw}" stroke-opacity="{opacity}" />')
 
+  def render_explicit_circle_scene(self, scene: dict, explicit_points, relations, givens) -> None:
+    xs = [x for _, x, _, _ in explicit_points]
+    ys = [y for _, _, y, _ in explicit_points]
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+    width = max(max_x - min_x, 1.0)
+    height = max(max_y - min_y, 1.0)
+    margin = 1.2
+    scale = min((W - 80) / (width + margin * 2), (H - 80) / (height + margin * 2))
+
+    def project(pt):
+      x, y = pt
+      px = 40 + (x - min_x + margin) * scale
+      py = H - (40 + (y - min_y + margin) * scale)
+      return (px, py)
+
+    def draw_line_px(a_px, b_px, stroke=GOLD, sw=2.2, dash=""):
+      dash_attr = f' stroke-dasharray="{dash}"' if dash else ""
+      self.add(
+        f'<line x1="{a_px[0]}" y1="{a_px[1]}" x2="{b_px[0]}" y2="{b_px[1]}" stroke="{stroke}" stroke-width="{sw}" stroke-linecap="round"{dash_attr} />'
+      )
+
+    point_map = {}
+    point_meta = {}
+    for name, x, y, raw in explicit_points:
+      point_map[name] = project((x, y))
+      point_meta[name] = raw
+
+    def point_name(value):
+      return str(value or "").strip().upper()
+
+    def dot_px(pt_px, label, *, fill=GOLD, dx=8, dy=-10):
+      self.add(f'<circle cx="{pt_px[0]}" cy="{pt_px[1]}" r="4" fill="{fill}" />')
+      text = clean_text(label)
+      if text:
+        self.add(
+          f'<text x="{pt_px[0] + dx}" y="{pt_px[1] + dy}" font-size="13" font-weight="700" fill="none" stroke="#020617" stroke-width="4" stroke-linejoin="round">{esc(text)}</text>'
+        )
+        self.add(
+          f'<text x="{pt_px[0] + dx}" y="{pt_px[1] + dy}" font-size="13" font-weight="700" fill="{WHITE}">{esc(text)}</text>'
+        )
+
+    def seg_label_px(a_name, b_name, text, *, fill=GOLD):
+      if not text:
+        return
+      a_px = point_map.get(point_name(a_name))
+      b_px = point_map.get(point_name(b_name))
+      if not a_px or not b_px:
+        return
+      ax, ay = a_px
+      bx, by = b_px
+      mx, my = (ax + bx) / 2, (ay + by) / 2
+      dx, dy = bx - ax, by - ay
+      length = math.hypot(dx, dy) or 1.0
+      nx = -dy / length * 14
+      ny = dx / length * 14
+      self.add(
+        f'<text x="{mx + nx}" y="{my + ny}" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="middle" fill="none" stroke="#020617" stroke-width="3.5" stroke-linejoin="round">{esc(clean_text(text))}</text>'
+      )
+      self.add(
+        f'<text x="{mx + nx}" y="{my + ny}" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="middle" fill="{fill}">{esc(clean_text(text))}</text>'
+      )
+
+    for rel in relations:
+      if not isinstance(rel, dict):
+        continue
+      rel_type = str(rel.get("type") or "").strip()
+      if rel_type == "circle":
+        center_name = point_name(rel.get("center"))
+        center_px = point_map.get(center_name)
+        radius = num(rel.get("radius"), None)
+        if center_px and radius is not None:
+          self.add(f'<circle cx="{center_px[0]}" cy="{center_px[1]}" r="{radius * scale}" fill="none" stroke="{GREY}" stroke-width="2.0" stroke-opacity="0.65" />')
+
+    for rel in relations:
+      if not isinstance(rel, dict):
+        continue
+      rel_type = str(rel.get("type") or "").strip()
+      if rel_type == "segment":
+        pts = rel.get("points") if isinstance(rel.get("points"), list) else []
+        if len(pts) == 2:
+          a_px = point_map.get(point_name(pts[0]))
+          b_px = point_map.get(point_name(pts[1]))
+          if a_px and b_px:
+            draw_line_px(a_px, b_px)
+      elif rel_type == "right_angle":
+        pts = rel.get("points") if isinstance(rel.get("points"), list) else []
+        if len(pts) == 3:
+          a = point_meta.get(point_name(pts[0]))
+          v = point_meta.get(point_name(pts[1]))
+          b = point_meta.get(point_name(pts[2]))
+          if a and v and b:
+            vx, vy = float(v.get("x")), float(v.get("y"))
+            ax, ay = float(a.get("x")), float(a.get("y"))
+            bx, by = float(b.get("x")), float(b.get("y"))
+            ua = normalize((ax - vx, ay - vy))
+            ub = normalize((bx - vx, by - vy))
+            size = 0.35
+            p1 = project((vx + ua[0] * size, vy + ua[1] * size))
+            p2 = project((vx + ua[0] * size + ub[0] * size, vy + ua[1] * size + ub[1] * size))
+            p3 = project((vx + ub[0] * size, vy + ub[1] * size))
+            self.add(f'<polyline points="{p1[0]},{p1[1]} {p2[0]},{p2[1]} {p3[0]},{p3[1]}" fill="none" stroke="{GREY}" stroke-width="1.8" />')
+      elif rel_type == "arc":
+        center = point_meta.get(point_name(rel.get("center")))
+        start = point_meta.get(point_name(rel.get("start")))
+        end = point_meta.get(point_name(rel.get("end")))
+        radius = num(rel.get("radius"), None)
+        if center and start and end and radius is not None:
+          cx, cy = float(center.get("x")), float(center.get("y"))
+          sx, sy = float(start.get("x")), float(start.get("y"))
+          ex, ey = float(end.get("x")), float(end.get("y"))
+          start_deg = math.degrees(math.atan2(sy - cy, sx - cx))
+          end_deg = math.degrees(math.atan2(ey - cy, ex - cx))
+          sweep = (end_deg - start_deg) % 360
+          large_arc = 1 if sweep > 180 else 0
+          start_px = project((sx, sy))
+          end_px = project((ex, ey))
+          r_px = radius * scale
+          self.add(f'<path d="M {start_px[0]:.2f} {start_px[1]:.2f} A {r_px:.2f} {r_px:.2f} 0 {large_arc} 0 {end_px[0]:.2f} {end_px[1]:.2f}" fill="none" stroke="{GOLD}" stroke-width="2.2" />')
+          label = clean_text(rel.get("label"))
+          if label:
+            mid_deg = math.radians(start_deg + sweep / 2)
+            label_pt = project((cx + math.cos(mid_deg) * radius * 1.15, cy + math.sin(mid_deg) * radius * 1.15))
+            self.add(
+              f'<text x="{label_pt[0]}" y="{label_pt[1]}" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="middle" fill="none" stroke="#020617" stroke-width="3.5" stroke-linejoin="round">{esc(label)}</text>'
+            )
+            self.add(
+              f'<text x="{label_pt[0]}" y="{label_pt[1]}" font-size="12" font-weight="700" text-anchor="middle" dominant-baseline="middle" fill="{GOLD}">{esc(label)}</text>'
+            )
+
+    for given in givens:
+      if not isinstance(given, dict):
+        continue
+      pts = given.get("points") if isinstance(given.get("points"), list) else []
+      if str(given.get("type") or "").strip().lower() == "length" and len(pts) == 2:
+        seg_label_px(pts[0], pts[1], fmt_number(given.get("value")))
+
+    center_name = str(scene.get("center") or "O").strip().upper()
+    for name, pt_px in point_map.items():
+      label = str(point_meta.get(name, {}).get("label") or name).strip()
+      if name == center_name:
+        dot_px(pt_px, label, fill=WHITE, dx=8, dy=12)
+      else:
+        dot_px(pt_px, label)
+
   def render(self) -> str:
     tmpl = self.template
     self.add(f'<rect x="0" y="0" width="{W}" height="{H}" fill="{BG}" />')
@@ -691,6 +836,21 @@ class Renderer:
     givens = scene.get("givens") if isinstance(scene.get("givens"), list) else []
     display = scene.get("display") if isinstance(scene.get("display"), dict) else {}
 
+    explicit_points = []
+    for point in points:
+      if not isinstance(point, dict):
+        continue
+      x = num(point.get("x"), None)
+      y = num(point.get("y"), None)
+      name = str(point.get("name") or point.get("label") or point.get("id") or "").strip().upper()
+      if x is None or y is None or not name:
+        continue
+      explicit_points.append((name, x, y, point))
+
+    if explicit_points and any(isinstance(rel, dict) and str(rel.get("type") or "").strip() in {"segment", "circle", "right_angle", "arc"} for rel in relations):
+      self.render_explicit_circle_scene(scene, explicit_points, relations, givens)
+      return
+
     r = num(scene.get("radius"), num(self.data.get("radius"), 5.0))
     angle_apb = None
     for given in givens:
@@ -698,9 +858,9 @@ class Renderer:
         continue
       given_name = str(given.get("name") or given.get("label") or given.get("key") or "").strip().lower()
       if given_name in {"angle_apb", "anglepab", "angle_apb_deg"}:
-        angle_apb = as_number = num(given.get("value"), None)
-        if as_number is not None:
-          angle_apb = as_number
+        angle_value = num(given.get("value"), None)
+        if angle_value is not None:
+          angle_apb = angle_value
         break
     if angle_apb is not None and 0 < angle_apb < 179:
       p_dist = r / max(math.cos(math.radians(angle_apb / 2)), 0.18)

@@ -117,5 +117,44 @@ assert.match(sceneSvg, /A/);
 assert.match(sceneSvg, /B/);
 assert.doesNotMatch(sceneSvg, /\?/);
 
+const explicitSceneSvg = render({
+  template: 'circle_scene',
+  scene: {
+    conceptId: 'circle',
+    figureType: 'circle',
+    center: 'C',
+    points: [
+      { id: 'C', x: 0, y: 0, label: 'C' },
+      { id: 'A', x: 0, y: 3, label: 'A' },
+      { id: 'B', x: 4, y: 0, label: 'B' },
+      { id: 'D', x: 2.4, y: 1.8, label: 'D' },
+      { id: 'E', x: 0, y: -3, label: 'E' },
+      { id: 'P', x: 0.9, y: 2.86, label: 'P' },
+    ],
+    relations: [
+      { type: 'segment', points: ['A', 'B'] },
+      { type: 'segment', points: ['B', 'C'] },
+      { type: 'segment', points: ['A', 'C'] },
+      { type: 'segment', points: ['C', 'D'] },
+      { type: 'segment', points: ['B', 'P'] },
+      { type: 'segment', points: ['C', 'P'] },
+      { type: 'circle', center: 'C', radius: 3 },
+      { type: 'right_angle', points: ['A', 'C', 'B'] },
+      { type: 'arc', center: 'C', radius: 3, start: 'A', end: 'D', label: '劣弧AD' },
+    ],
+    givens: [
+      { type: 'length', points: ['A', 'C'], value: 3 },
+      { type: 'length', points: ['B', 'C'], value: 4 },
+    ],
+    targets: [],
+    display: {},
+  },
+});
+
+assert.match(explicitSceneSvg, /<svg/);
+assert.match(explicitSceneSvg, /<path d="M .* A .*"/);
+assert.match(explicitSceneSvg, />A</);
+assert.match(explicitSceneSvg, />B</);
+
 console.log('python circle renderer test passed');
 
