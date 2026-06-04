@@ -66,12 +66,12 @@ function hasTangentChordCue(text) {
 
 function hasCircleChordCue(text) {
   const source = String(text ?? "");
-  return /(?:ๅผฆ|chord)/i.test(source) && /(?:ๅ|circle|โ|O)/i.test(source);
+  return /(?:ๅผฆ|chord|弦\s*[A-Z]{2}|弦)/i.test(source) && /(?:ๅ|circle|โ|圆\s*[A-Z]?|圆心\s*[A-Z]?|O)/i.test(source);
 }
 
 function hasCenterToChordDistanceCue(text) {
   const source = String(text ?? "");
-  return /(?:ๅๅฟ.*ๅฐๅผฆ|ๅผฆ.*ๅฐๅๅฟ|center.*to.*chord|distance.*from.*center.*to.*chord|O.*ๅฐ.*ๅผฆ|O.*ๅผฆ.*่ท็ฆป|ๅๅฟO.*ๅผฆ[A-Z]{2}.*่ท็ฆป)/i.test(source);
+  return /(?:ๅๅฟ.*ๅฐๅผฆ|ๅผฆ.*ๅฐๅๅฟ|center.*to.*chord|distance.*from.*center.*to.*chord|O.*ๅฐ.*ๅผฆ|O.*ๅผฆ.*่ท็ฆป|ๅๅฟO.*ๅผฆ[A-Z]{2}.*่ท็ฆป|圆心\s*(?:O)?\s*到弦\s*[A-Z]{2}\s*的距离|弦\s*[A-Z]{2}\s*到圆心\s*(?:O)?\s*的距离|弦\s*[A-Z]{2}\s*所在(?:的)?(?:直线)?\s*与圆心\s*(?:O)?\s*的距离|圆心\s*(?:O)?\s*与弦\s*[A-Z]{2}\s*所在(?:的)?(?:直线)?\s*的距离|[A-Z]{2}\s*所在(?:的)?(?:直线)?\s*与圆心\s*(?:O)?\s*的距离|圆心\s*(?:O)?\s*与[A-Z]{2}\s*所在(?:的)?(?:直线)?\s*的距离|点\s*[A-Z]\s*到弦\s*[A-Z]{2}\s*的距离)/i.test(source);
 }
 
 function hasChordMidpointCue(text) {
@@ -124,6 +124,16 @@ function hasDualTangentChordArcPointsCue(text) {
 function hasArcTypeCue(text) {
   const source = String(text ?? "");
   return /(?:ไผๅผง|ๅฃๅผง|minor arc|major arc|on the minor arc|on the major arc)/i.test(source);
+}
+
+function hasCircleTangentCue(text) {
+  const source = String(text ?? "");
+  return /(?:circle_tangent|PA\s*[,/]\s*PB|two tangents|tangent at\s*[A-Z]|tangent through point\s*[A-Z]|circle.*tangent|ๅ็บฟ.*ๅ|ๅ.*ๅ็บฟ)/i.test(source);
+}
+
+function hasCircleTangentArcCue(text) {
+  const source = String(text ?? "");
+  return hasCircleTangentCue(source) && /(?:minor arc|major arc|on the minor arc|on the major arc|ๅฃๅผง|ไผๅผง|优弧|劣弧)/i.test(source);
 }
 
 function hasCyclicQuadrilateralExtensionCue(text) {
@@ -214,6 +224,28 @@ function hasExpectedArcTypeField(text, data, point, field = 'arc_type') {
   if (!expected) return true;
   const actual = String(data?.[field] ?? data?.c_arc ?? data?.arc ?? '').toLowerCase();
   return actual.includes(expected);
+}
+
+export function needsCircleTangentRepair({ conceptTitle = "", conceptDesc = "", generatedText = "", diagramPolicy = "maybe_draw" } = {}) {
+  if (diagramPolicy === "must_not_draw") return false;
+
+  const source = normalizeText([conceptTitle, conceptDesc, generatedText].filter(Boolean).join("\n"));
+  if (!hasCircleTangentCue(source)) return false;
+  if (!hasMathDiagramBlock(generatedText)) return false;
+
+  const data = extractDiagramBlockJson(generatedText);
+  if (!data || typeof data !== "object") return true;
+  if (String(data.template ?? data.type ?? "").trim() !== "circle_tangent") return true;
+
+  if (hasCircleTangentArcCue(source)) {
+    const expectedArcType = inferNamedArcType(source, 'C') ?? inferNamedArcType(source, 'D') ?? inferNamedArcType(source, 'A');
+    if (expectedArcType && !String(data.c_arc_type ?? data.cArcType ?? '').toLowerCase().includes(expectedArcType)) {
+      return true;
+    }
+    if (!hasAnyDiagramField(data, ["label_C"])) return true;
+  }
+
+  return false;
 }
 
 function hasCircleThreePointsCue(text) {

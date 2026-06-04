@@ -70,7 +70,11 @@ assert.equal(validateCircleScene(invalidScene).ok, false);
 assert.deepEqual(detectCircleSceneIssues('```math-diagram\n{"template":"circle_scene","scene":{"conceptId":"circles","figureType":"circle","points":[],"relations":[],"givens":[],"targets":[],"display":{}}}\n```'), ['circle_scene_invalid']);
 assert.deepEqual(
   detectCircleSceneIssues('```math-diagram\n{"template":"circle_chord","radius":13,"label_O":"O","label_A":"A","label_B":"B"}\n```'),
-  []
+  ['circle_scene_invalid']
+);
+assert.deepEqual(
+  detectCircleSceneIssues('```math-diagram\n{"template":"circle_tangent","radius":5,"label_O":"O","label_A":"A","label_B":"B","label_P":"P"}\n```'),
+  ['circle_scene_invalid']
 );
 
 console.log('circle scene schema test passed');

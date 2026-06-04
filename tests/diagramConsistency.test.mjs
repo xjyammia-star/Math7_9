@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import {
+  needsCircleChordRepair,
   needsCircleDiameterRepair,
   needsCircleDiameterIntersectingChordsRepair,
   needsCircleDiameterTangentChordRepair,
   needsCircleIntersectingChordsRepair,
   needsCircleSectorRepair,
+  needsCircleTangentRepair,
 } from '../src/utils/diagramConsistency.js';
 
 assert.equal(
@@ -25,6 +27,16 @@ assert.equal(
     diagramPolicy: 'must_draw',
   }),
   false,
+);
+
+assert.equal(
+  needsCircleChordRepair({
+    conceptTitle: 'circle chord',
+    conceptDesc: '如图，圆 O 的半径为 20 cm。弦 AB 在圆内，且 AB 所在的直线与圆心 O 的距离为 5 cm。点 C 是弦 AB 的中点，连接 OC。',
+    generatedText: '```math-diagram\n{"template":"circle_chord","radius":20,"depth":5,"label_depth":"h","show_perpendicular":true,"label_O":"O","label_A":"A","label_B":"B","label_C":"C","label_radius":"20 cm","label_chord":"24 cm"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true,
 );
 
 assert.equal(
@@ -112,6 +124,16 @@ assert.equal(
     conceptTitle: 'circle diameter tangent chord',
     conceptDesc: 'In circle O, AB is a diameter. C is the point of tangency and P lies on the extension of AB. Connect AC and BC.',
     generatedText: '```math-diagram\n{"template":"circle_diameter_tangent_chord","radius":5,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_P":"P","label_O":"O","label_ab":"10 cm","label_ac":"4 cm","label_cp":"8 cm"}\n```',
+    diagramPolicy: 'must_draw',
+  }),
+  true,
+);
+
+assert.equal(
+  needsCircleTangentRepair({
+    conceptTitle: 'circle tangent with arc point',
+    conceptDesc: 'P is an external point. PA and PB are tangents. C is on the minor arc AB and a tangent at C meets PA and PB at D and E.',
+    generatedText: '```math-diagram\n{"template":"circle_tangent","radius":5,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_P":"P","label_O":"O","show_arc_tangent":true,"c_arc_type":"major"}\n```',
     diagramPolicy: 'must_draw',
   }),
   true,

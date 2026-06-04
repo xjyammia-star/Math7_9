@@ -474,7 +474,7 @@ async function repairExerciseOutput(
     ? `- The original circle statement appears geometrically inconsistent or under-specified. Rewrite it into a nearby valid circle theorem problem of the same difficulty, and include a matching diagram.\n`
     : "";
   const circleSceneNote = issueList.includes("circle_scene_invalid")
-    ? `- For circles, output exactly one math-diagram block whose JSON uses {"template":"circle_scene","scene":{...}}. The scene must pass the circle scene schema: conceptId circles, figureType circle, named points, explicit relations, known givens, targets, and display flags. Do not fall back to legacy circle templates in this repair.\n`
+    ? `- For circles, output exactly one math-diagram block whose JSON uses {"template":"circle_scene","scene":{...}}. The scene must pass the circle scene schema: conceptId circles, figureType circle, named points, explicit relations, known givens, targets, and display flags. Legacy circle_* templates are invalid in this repair and must be replaced, not reused.\n`
     : "";
   const diameterTangentChordNote = issueList.includes("circle_diameter_tangent_chord_template_mismatch")
     ? `- The original circle statement combines a diameter, a tangent at a circle point, and chord segments from the circle point. Use the dedicated circle_diameter_tangent_chord template, keep every named point visible, and include every explicitly stated chord such as AC and BC when they are named in the text.\n`
@@ -493,7 +493,7 @@ Rules:
   - If diagram policy is must_not_draw, do not include any diagram, figure, math-diagram block, template JSON, or visual payload.
   - If diagram policy is must_draw, include exactly one matching fenced block with the math-diagram template and valid JSON when the problem genuinely depends on a figure, and do not return a text-only fallback.
   - Only include a diagram when the critical geometric roles are explicit in the statement. If any required point, line, relation, or arc side would need to be guessed, prefer no diagram over a guessed diagram.
-  - For circles in this trial, do not choose a legacy circle template. Instead output exactly one math-diagram block whose JSON uses {"template":"circle_scene","scene":{...}} and keep every point/line/arc relation explicit in the scene.
+  - For circles in this trial, legacy circle_* templates are not allowed in the final answer. Output exactly one math-diagram block whose JSON uses {"template":"circle_scene","scene":{...}} and keep every point/line/arc relation explicit in the scene.
   - Hard rule: if the question asks for an unknown quantity, that quantity must not appear as a numeric label anywhere in the final diagram JSON. Use "?" or omit it, even if the model previously wrote a number.
 - Hard rule: every numeric angle shown in the diagram, in any template, must come from an explicit angle value stated in the problem text. If the problem says ∠QAB = 62°, do not output 42° or any other number for that angle.
 - Never leave diagram JSON outside a fenced math-diagram block. Raw objects like {"template":"..."} in prose are invalid and must be wrapped or removed.
@@ -1375,7 +1375,7 @@ export async function generateExercises(
       `- Every circle exercise must include exactly one math-diagram block.\n` +
       `- For this trial, the diagram block must use template "circle_scene" with a nested "scene" object.\n` +
       `- Do not generate proof/explanation-only or solution-commentary-only circle questions.\n` +
-      `- Do not use legacy circle templates as the primary path in this trial.\n` +
+      `- Legacy circle_* templates are invalid for circles in this trial. Do not output them.\n` +
       `- The scene must spell out points, relations, givens, targets, and display flags explicitly so Python can render without guessing.\n`
     : "";
 
