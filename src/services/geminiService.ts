@@ -3,7 +3,7 @@ import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 import { classifyDiagramNeed, shouldRequireDiagramBlock, stripDiagramArtifacts } from "../utils/diagramPolicy";
 import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleChordRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterIntersectingChordsRepair, needsCircleDiameterRepair, needsCircleDiameterTangentChordRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleTangentRepair, needsCircleThreePointsRepair, needsLinearIntersectionRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
 import { buildAlgebraExerciseBatch, isAlgebraQuestionBankConcept } from "../utils/algebraExerciseTemplates.js";
-import { detectCircleSceneIssues } from "../utils/circleSceneSchema.js";
+import { coerceCircleScenePayload, detectCircleSceneIssues } from "../utils/circleSceneSchema.js";
 import { buildAreaPerimeterExerciseBatch, isAreaPerimeterConcept } from "../utils/areaPerimeterExerciseTemplates.js";
 import { buildPythagorasExerciseBatch, isPythagorasConcept } from "../utils/pythagorasExerciseTemplates.js";
 import { buildDifficultyGuidance, genericProblemTypesByDifficulty, normalizeDifficulty, minTierPoolSize } from "../utils/exerciseTierPolicy.js";
@@ -342,50 +342,47 @@ function normalizeMarkdownTables(text: string): string {
 
 function tryExtractCircleSceneJsonBlock(text: string): { start: number; end: number; json: string } | null {
   const source = String(text ?? '');
-  const templateIndex = source.indexOf('"template"');
-  const circleSceneIndex = source.indexOf('"circle_scene"', templateIndex >= 0 ? templateIndex : 0);
-  if (templateIndex < 0 || circleSceneIndex < 0) return null;
+  for (let start = source.indexOf('{'); start >= 0; start = source.indexOf('{', start + 1)) {
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
 
-  let start = source.lastIndexOf('{', templateIndex);
-  if (start < 0) return null;
-
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-  for (let i = start; i < source.length; i += 1) {
-    const ch = source[i];
-    if (inString) {
-      if (escaped) {
-        escaped = false;
-      } else if (ch === '\\') {
-        escaped = true;
-      } else if (ch === '"') {
-        inString = false;
-      }
-      continue;
-    }
-
-    if (ch === '"') {
-      inString = true;
-      continue;
-    }
-    if (ch === '{') {
-      depth += 1;
-      continue;
-    }
-    if (ch === '}') {
-      depth -= 1;
-      if (depth === 0) {
-        const json = source.slice(start, i + 1).trim();
-        try {
-          const parsed = JSON.parse(json);
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && String((parsed as any).template ?? '').trim() === 'circle_scene') {
-            return { start, end: i + 1, json };
-          }
-        } catch {
-          return null;
+    for (let i = start; i < source.length; i += 1) {
+      const ch = source[i];
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (ch === '\\') {
+          escaped = true;
+        } else if (ch === '"') {
+          inString = false;
         }
-        return null;
+        continue;
+      }
+
+      if (ch === '"') {
+        inString = true;
+        continue;
+      }
+      if (ch === '{') {
+        depth += 1;
+        continue;
+      }
+      if (ch === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          const json = source.slice(start, i + 1).trim();
+          try {
+            const parsed = JSON.parse(json);
+            const coerced = coerceCircleScenePayload(parsed);
+            if (coerced) {
+              return { start, end: i + 1, json: JSON.stringify(coerced) };
+            }
+          } catch {
+            break;
+          }
+          break;
+        }
       }
     }
   }

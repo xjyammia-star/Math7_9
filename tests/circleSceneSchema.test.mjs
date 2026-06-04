@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {
+  coerceCircleScenePayload,
   detectCircleSceneIssues,
   extractCircleScene,
   normalizeCircleScene,
@@ -108,5 +109,28 @@ const explicitSceneBlock = [
 ].join('\n');
 
 assert.deepEqual(detectCircleSceneIssues(explicitSceneBlock), []);
+
+const bareScenePayload = {
+  conceptId: 'circle',
+  figureType: 'circle',
+  center: 'O',
+  points: [
+    { name: 'O', role: 'center_point' },
+    { name: 'A', role: 'tangent_point' },
+    { name: 'B', role: 'tangent_point' },
+    { name: 'C', role: 'arc_point', arcSide: 'minor' },
+  ],
+  relations: [
+    { type: 'tangent', line: 'PA', touches: 'A' },
+    { type: 'tangent', line: 'PB', touches: 'B' },
+    { type: 'arc_membership', point: 'C', arc: 'AB', arcSide: 'minor' },
+  ],
+  givens: [],
+  targets: [],
+  display: {},
+};
+
+assert.equal(coerceCircleScenePayload(bareScenePayload)?.template, 'circle_scene');
+assert.equal(validateCircleScene(coerceCircleScenePayload(bareScenePayload)?.scene).ok, true);
 
 console.log('circle scene schema test passed');

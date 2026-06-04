@@ -33,11 +33,58 @@ function asFiniteNumber(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+function isPlainObject(value) {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function looksLikeCircleScene(value) {
+  if (!isPlainObject(value)) return false;
+
+  const conceptId = asText(value.conceptId || value.concept_id).toLowerCase();
+  const figureType = asText(value.figureType || value.figure_type || value.type).toLowerCase();
+  const hasPoints = Array.isArray(value.points);
+  const hasRelations = Array.isArray(value.relations);
+  const hasCenter = Boolean(asText(value.center || value.centerPoint || value.label_O));
+
+  return conceptId === 'circles' ||
+    conceptId === 'circle' ||
+    figureType === 'circle' ||
+    (hasPoints && hasRelations && hasCenter);
+}
+
 function normalizeNamedValueList(items) {
   if (!Array.isArray(items)) return [];
   return items
     .map((item) => (item && typeof item === 'object' ? { ...item } : null))
     .filter(Boolean);
+}
+
+function coerceCircleScenePayload(input) {
+  if (!isPlainObject(input)) return null;
+
+  if (asText(input.template) === 'circle_scene') {
+    const scene = isPlainObject(input.scene) ? input.scene : input;
+    return {
+      template: 'circle_scene',
+      scene: normalizeCircleScene(scene),
+    };
+  }
+
+  if (isPlainObject(input.scene) && looksLikeCircleScene(input.scene)) {
+    return {
+      template: 'circle_scene',
+      scene: normalizeCircleScene(input.scene),
+    };
+  }
+
+  if (looksLikeCircleScene(input)) {
+    return {
+      template: 'circle_scene',
+      scene: normalizeCircleScene(input),
+    };
+  }
+
+  return null;
 }
 
 function normalizeCircleScene(input) {
@@ -113,22 +160,10 @@ function extractCircleScene(text) {
 
   try {
     const parsed = JSON.parse(jsonText);
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      if (parsed.template === 'circle_scene' && parsed.scene && typeof parsed.scene === 'object') {
-        return { ...parsed, scene: normalizeCircleScene(parsed.scene) };
-      }
-      if (parsed.conceptId === 'circles' || parsed.template === 'circle_scene') {
-        return {
-          template: 'circle_scene',
-          scene: normalizeCircleScene(parsed.scene ? parsed.scene : parsed),
-        };
-      }
-    }
+    return coerceCircleScenePayload(parsed);
   } catch {
     return null;
   }
-
-  return null;
 }
 
 function detectCircleSceneIssues(text) {
@@ -300,6 +335,7 @@ function sceneToRendererPayload(scene) {
 export {
   ALLOWED_POINT_ROLES,
   ALLOWED_RELATION_TYPES,
+  coerceCircleScenePayload,
   detectCircleSceneIssues,
   extractCircleScene,
   normalizeCircleScene,

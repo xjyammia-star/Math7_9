@@ -26,7 +26,7 @@
  */
 
 import React from 'react';
-import { normalizeCircleScene, validateCircleScene } from '../utils/circleSceneSchema.js';
+import { coerceCircleScenePayload, normalizeCircleScene, validateCircleScene } from '../utils/circleSceneSchema.js';
 import { explicitLabel } from '../utils/diagramLabelPolicy';
 import { getLinearFunctionAnnotations, getQuadraticFunctionAnnotations } from '../utils/functionDiagramPolicy';
 import PythonCircleDiagram from './PythonCircleDiagram';
@@ -638,6 +638,11 @@ function validateDiagramData(template: string, data: any): string | null {
 
 function normalizeDiagramData(template: string, data: any): any {
   data = coerceLabeledNumericFields(data);
+  const circleScenePayload = coerceCircleScenePayload(data);
+  if ((template === 'circle_scene' || !template) && circleScenePayload) {
+    return circleScenePayload;
+  }
+
   if (
     template === 'circle_chord' &&
     data?.radius !== undefined &&

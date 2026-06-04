@@ -49,6 +49,33 @@ const rawCircleSceneLeak = [
 
 const wrappedCircleScene = wrapUnfencedCircleSceneBlock(rawCircleSceneLeak);
 assert.match(wrappedCircleScene, /```math-diagram/);
-assert.match(wrappedCircleScene, /"template": "circle_scene"/);
+assert.match(wrappedCircleScene, /"template":"circle_scene"/);
+
+const rawBareCircleSceneLeak = [
+  '1. 如图，完成圆题。',
+  '{',
+  '  "conceptId": "circle",',
+  '  "figureType": "circle",',
+  '  "center": "O",',
+  '  "points": [',
+  '    { "name": "O", "role": "center_point" },',
+  '    { "name": "A", "role": "tangent_point" },',
+  '    { "name": "B", "role": "tangent_point" },',
+  '    { "name": "C", "role": "arc_point", "arcSide": "minor" }',
+  '  ],',
+  '  "relations": [',
+  '    { "type": "tangent", "line": "PA", "touches": "A" },',
+  '    { "type": "tangent", "line": "PB", "touches": "B" },',
+  '    { "type": "arc_membership", "point": "C", "arc": "AB", "arcSide": "minor" }',
+  '  ],',
+  '  "givens": [],',
+  '  "targets": [],',
+  '  "display": {}',
+  '}',
+].join('\n');
+
+const wrappedBareCircleScene = wrapUnfencedCircleSceneBlock(rawBareCircleSceneLeak);
+assert.match(wrappedBareCircleScene, /```math-diagram/);
+assert.match(wrappedBareCircleScene, /"template":"circle_scene"/);
 
 console.log('gemini service request body test passed');
