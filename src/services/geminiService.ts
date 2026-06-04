@@ -119,6 +119,23 @@ function hasUnfencedDiagramJson(text: string): boolean {
   return source.includes('"template"') && !source.includes('```math-diagram');
 }
 
+export function shouldStripDiagramArtifactsAfterRepair(
+  finalIssues: string[],
+  conceptId: string = ""
+): boolean {
+  const hasDiagramIssues = finalIssues.some((issue) =>
+    issue.includes("diagram") ||
+    issue.includes("template_mismatch") ||
+    issue.includes("semantic_mismatch") ||
+    issue.includes("missing_central_angle_ray") ||
+    issue.includes("circle_scene_invalid") ||
+    issue.includes("circle_diameter_line_mismatch") ||
+    issue.includes("circle_chord_semantic_mismatch")
+  );
+
+  return hasDiagramIssues && String(conceptId ?? '').trim() !== 'circles';
+}
+
 function needsDiagramRepair(
   text: string,
   conceptTitle: string,
@@ -467,6 +484,7 @@ async function repairExerciseOutput(
   issueList: string[],
   count: number,
   diagramPolicy: string,
+  conceptId: string = "",
   modelId: AiModelId = EXERCISE_MODEL_ID
 ): Promise<string> {
   const enforcedDiagramPolicy = issueList.includes("missing_diagram_block") ? "must_draw" : diagramPolicy;
@@ -555,7 +573,7 @@ Rules:
     diagramPolicy,
   });
 
-  const remainingIssues = detectOutputIssues(repairedText, conceptTitle, conceptDesc, diagramPolicy);
+  const remainingIssues = detectOutputIssues(repairedText, conceptTitle, conceptDesc, diagramPolicy, conceptId);
   if (remainingIssues.length > 0) {
     const strongerSystem = `${system}\n- The previous repair attempt still violated hard diagram rules. Fix the listed issues exactly and do not repeat the same template or answer leak mistakes.`;
     const secondRepair = await safeGenerate(
@@ -577,17 +595,8 @@ Rules:
     });
   }
 
-  const finalIssues = detectOutputIssues(repairedText, conceptTitle, conceptDesc, diagramPolicy);
-  const hasDiagramIssues = finalIssues.some((issue) =>
-    issue.includes("diagram") ||
-    issue.includes("template_mismatch") ||
-    issue.includes("semantic_mismatch") ||
-    issue.includes("missing_central_angle_ray") ||
-    issue.includes("circle_scene_invalid") ||
-    issue.includes("circle_diameter_line_mismatch") ||
-    issue.includes("circle_chord_semantic_mismatch")
-  );
-  if (hasDiagramIssues) {
+  const finalIssues = detectOutputIssues(repairedText, conceptTitle, conceptDesc, diagramPolicy, conceptId);
+  if (shouldStripDiagramArtifactsAfterRepair(finalIssues, conceptId)) {
     repairedText = limitGeneratedExercises(
       stripDiagramArtifacts(normalizeMarkdownTables(repairedText)),
       count
@@ -1439,6 +1448,7 @@ export async function generateExercises(
       issues,
       count,
       repairDiagramPolicy,
+      conceptId,
       EXERCISE_MODEL_ID
     );
     return diagramPolicy === "must_not_draw"

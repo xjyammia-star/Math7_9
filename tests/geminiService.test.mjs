@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { shouldStripDiagramArtifactsAfterRepair } from '../src/services/geminiService.ts';
 import { buildChatCompletionBody } from '../src/utils/modelRequest.js';
 
 const messages = [{ role: 'user', content: 'Hello' }];
@@ -19,5 +20,15 @@ assert.equal(doubaoBody.thinking, undefined);
 assert.equal(doubaoBody.response_format, undefined);
 assert.equal(doubaoBody.max_tokens, 128);
 assert.equal(doubaoBody.temperature, 0.7);
+
+assert.equal(
+  shouldStripDiagramArtifactsAfterRepair(['circle_scene_invalid'], 'circles'),
+  false,
+);
+
+assert.equal(
+  shouldStripDiagramArtifactsAfterRepair(['template_mismatch'], 'area-perimeter'),
+  true,
+);
 
 console.log('gemini service request body test passed');
