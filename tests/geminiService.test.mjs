@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { shouldStripDiagramArtifactsAfterRepair } from '../src/services/geminiService.ts';
+import { shouldStripDiagramArtifactsAfterRepair, wrapUnfencedCircleSceneBlock } from '../src/services/geminiService.ts';
 import { buildChatCompletionBody } from '../src/utils/modelRequest.js';
 
 const messages = [{ role: 'user', content: 'Hello' }];
@@ -30,5 +30,25 @@ assert.equal(
   shouldStripDiagramArtifactsAfterRepair(['template_mismatch'], 'area-perimeter'),
   true,
 );
+
+const rawCircleSceneLeak = [
+  '1. 如图，求弦长。',
+  '{',
+  '  "template": "circle_scene",',
+  '  "scene": {',
+  '    "conceptId": "circles",',
+  '    "figureType": "circle",',
+  '    "points": [],',
+  '    "relations": [],',
+  '    "givens": [],',
+  '    "targets": [],',
+  '    "display": {}',
+  '  }',
+  '}',
+].join('\n');
+
+const wrappedCircleScene = wrapUnfencedCircleSceneBlock(rawCircleSceneLeak);
+assert.match(wrappedCircleScene, /```math-diagram/);
+assert.match(wrappedCircleScene, /"template": "circle_scene"/);
 
 console.log('gemini service request body test passed');

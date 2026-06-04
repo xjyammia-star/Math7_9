@@ -340,6 +340,73 @@ function normalizeMarkdownTables(text: string): string {
   return output.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
+function tryExtractCircleSceneJsonBlock(text: string): { start: number; end: number; json: string } | null {
+  const source = String(text ?? '');
+  const templateIndex = source.indexOf('"template"');
+  const circleSceneIndex = source.indexOf('"circle_scene"', templateIndex >= 0 ? templateIndex : 0);
+  if (templateIndex < 0 || circleSceneIndex < 0) return null;
+
+  let start = source.lastIndexOf('{', templateIndex);
+  if (start < 0) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < source.length; i += 1) {
+    const ch = source[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+    if (ch === '{') {
+      depth += 1;
+      continue;
+    }
+    if (ch === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        const json = source.slice(start, i + 1).trim();
+        try {
+          const parsed = JSON.parse(json);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && String((parsed as any).template ?? '').trim() === 'circle_scene') {
+            return { start, end: i + 1, json };
+          }
+        } catch {
+          return null;
+        }
+        return null;
+      }
+    }
+  }
+
+  return null;
+}
+
+export function wrapUnfencedCircleSceneBlock(text: string): string {
+  const source = String(text ?? '');
+  if (source.includes('```math-diagram')) return source;
+
+  const extracted = tryExtractCircleSceneJsonBlock(source);
+  if (!extracted) return source;
+
+  const before = source.slice(0, extracted.start).trimEnd();
+  const after = source.slice(extracted.end).trimStart();
+  const block = `\`\`\`math-diagram\n${extracted.json}\n\`\`\``;
+
+  return [before, block, after].filter(Boolean).join('\n\n').trim();
+}
+
 function normalizeDiagramPolicy(value: unknown, fallback: string): string {
   const policy = String(value ?? '').trim();
   if (policy === 'must_not_draw' || policy === 'must_draw' || policy === 'prefer_draw' || policy === 'maybe_draw') {
@@ -572,6 +639,7 @@ Rules:
     generatedText: repairedText,
     diagramPolicy,
   });
+  repairedText = wrapUnfencedCircleSceneBlock(repairedText);
 
   const remainingIssues = detectOutputIssues(repairedText, conceptTitle, conceptDesc, diagramPolicy, conceptId);
   if (remainingIssues.length > 0) {
@@ -593,6 +661,7 @@ Rules:
       generatedText: repairedText,
       diagramPolicy,
     });
+    repairedText = wrapUnfencedCircleSceneBlock(repairedText);
   }
 
   const finalIssues = detectOutputIssues(repairedText, conceptTitle, conceptDesc, diagramPolicy, conceptId);
@@ -1432,7 +1501,8 @@ export async function generateExercises(
     generatedText: cleaned,
     diagramPolicy,
   });
-  const issues = detectOutputIssues(raw, conceptTitle, conceptDesc, diagramPolicy, conceptId);
+  cleaned = wrapUnfencedCircleSceneBlock(cleaned);
+  const issues = detectOutputIssues(cleaned, conceptTitle, conceptDesc, diagramPolicy, conceptId);
 
   if (issues.length > 0) {
     const repairDiagramPolicy = issues.includes("missing_diagram_block")
