@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { shouldStripDiagramArtifactsAfterRepair, wrapUnfencedCircleSceneBlock } from '../src/services/geminiService.ts';
+import { detectOutputIssues, shouldStripDiagramArtifactsAfterRepair, wrapUnfencedCircleSceneBlock } from '../src/services/geminiService.ts';
 import { buildChatCompletionBody } from '../src/utils/modelRequest.js';
 
 const messages = [{ role: 'user', content: 'Hello' }];
@@ -77,5 +77,44 @@ const rawBareCircleSceneLeak = [
 const wrappedBareCircleScene = wrapUnfencedCircleSceneBlock(rawBareCircleSceneLeak);
 assert.match(wrappedBareCircleScene, /```math-diagram/);
 assert.match(wrappedBareCircleScene, /"template":"circle_scene"/);
+
+const mismatchedCircleExercise = [
+  '\u5982\u56fe\uff0cAB\u662f\u2299O\u7684\u76f4\u5f84\uff0c\u5f26CD\u5782\u76f4\u4e8eAB\u4e8e\u70b9E\uff0c\u4ea4\u2299O\u4e8e\u70b9C\uff0cD\u3002\u8fde\u63a5AC\uff0cAD\uff0cBC\u3002\u5df2\u77e5AC=\u221a2\uff0cAD=\u221a6\uff0c\u6c42\u25b3ABD\u7684\u9762\u79ef\u3002',
+  '```math-diagram',
+  JSON.stringify({
+    template: 'circle_scene',
+    scene: {
+      conceptId: 'circles',
+      figureType: 'circle',
+      center: 'O',
+      points: [
+        { name: 'O', role: 'center_point' },
+        { name: 'A', role: 'tangent_point' },
+        { name: 'B', role: 'tangent_point' },
+        { name: 'C', role: 'arc_point', arcSide: 'minor' },
+        { name: 'D', role: 'arc_point', arcSide: 'major' },
+        { name: 'E', role: 'foot_point' },
+      ],
+      relations: [
+        { type: 'chord', points: ['C', 'D'] },
+        { type: 'segment', points: ['A', 'C'] },
+        { type: 'segment', points: ['B', 'C'] },
+        { type: 'intersection', point: 'E', of: ['AB', 'CD'] },
+        { type: 'right_angle', points: ['C', 'E', 'A'] },
+      ],
+      givens: [
+        { name: 'AC', value: 1.414 },
+        { name: 'AD', value: 2.449 },
+      ],
+      targets: [{ name: 'area_triangle_ABD' }],
+      display: {},
+    },
+  }),
+  '```',
+].join('\n');
+
+assert.ok(
+  detectOutputIssues(mismatchedCircleExercise, 'Circles', 'Circle theorems', 'must_draw', 'circles').includes('circle_scene_semantic_mismatch')
+);
 
 console.log('gemini service request body test passed');

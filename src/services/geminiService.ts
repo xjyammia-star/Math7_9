@@ -3,7 +3,8 @@ import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 import { classifyDiagramNeed, shouldRequireDiagramBlock, stripDiagramArtifacts } from "../utils/diagramPolicy";
 import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleChordRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterIntersectingChordsRepair, needsCircleDiameterRepair, needsCircleDiameterTangentChordRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleTangentRepair, needsCircleThreePointsRepair, needsLinearIntersectionRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
 import { buildAlgebraExerciseBatch, isAlgebraQuestionBankConcept } from "../utils/algebraExerciseTemplates.js";
-import { coerceCircleScenePayload, detectCircleSceneIssues } from "../utils/circleSceneSchema.js";
+import { coerceCircleScenePayload, detectCircleSceneIssues, extractCircleScene } from "../utils/circleSceneSchema.js";
+import { validateCircleSceneAgainstPrompt } from "../utils/circleScenePromptValidation.js";
 import { buildAreaPerimeterExerciseBatch, isAreaPerimeterConcept } from "../utils/areaPerimeterExerciseTemplates.js";
 import { buildPythagorasExerciseBatch, isPythagorasConcept } from "../utils/pythagorasExerciseTemplates.js";
 import { buildDifficultyGuidance, genericProblemTypesByDifficulty, normalizeDifficulty, minTierPoolSize } from "../utils/exerciseTierPolicy.js";
@@ -172,6 +173,13 @@ export function detectOutputIssues(
 
   if (String(conceptId ?? '').trim() === 'circles') {
     issues.push(...detectCircleSceneIssues(text));
+    const extracted = extractCircleScene(text);
+    if (extracted?.scene) {
+      const semanticValidation = validateCircleSceneAgainstPrompt(text, extracted.scene);
+      if (!semanticValidation.ok) {
+        issues.push("circle_scene_semantic_mismatch");
+      }
+    }
     if (hasUnfencedDiagramJson(text)) {
       issues.push("diagram_json_unfenced");
     }
