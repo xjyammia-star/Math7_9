@@ -118,6 +118,20 @@ function extractCircleScene(text) {
 }
 
 function detectCircleSceneIssues(text) {
+  const source = String(text ?? '');
+  const legacyMatch = source.match(/```math-diagram\s*([\s\S]*?)```/i);
+  if (legacyMatch) {
+    try {
+      const parsed = JSON.parse(String(legacyMatch[1] ?? '').trim());
+      const template = String(parsed?.template ?? parsed?.type ?? '').trim();
+      if (template.startsWith('circle') && template !== 'circle_scene') {
+        return [];
+      }
+    } catch {
+      // Fall through to scene validation.
+    }
+  }
+
   const extracted = extractCircleScene(text);
   if (!extracted) {
     return ['circle_scene_invalid'];
