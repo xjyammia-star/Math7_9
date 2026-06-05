@@ -305,6 +305,18 @@ export function buildDeterministicCircleIntersectionSceneFromPrompt(text: string
   return JSON.stringify(scene);
 }
 
+function tryDeterministicCircleSceneFallback(
+  exerciseText: string,
+  conceptTitle: string,
+  conceptDesc: string
+): string | null {
+  const deterministic = buildDeterministicCircleIntersectionSceneFromPrompt(exerciseText);
+  if (!deterministic) return null;
+  const wrapped = replaceOrAppendMathDiagramBlock(exerciseText, deterministic);
+  const issues = detectOutputIssues(wrapped, conceptTitle, conceptDesc, 'must_draw', 'circles');
+  return issues.length === 0 ? wrapped : null;
+}
+
 function needsDiagramRepair(
   text: string,
   conceptTitle: string,
@@ -993,17 +1005,16 @@ Rules:
   try {
     const parsed = JSON.parse(raw);
     const coerced = coerceCircleScenePayload(parsed);
-    if (!coerced) return null;
+    if (!coerced) {
+      return tryDeterministicCircleSceneFallback(exerciseText, conceptTitle, conceptDesc);
+    }
     const json = JSON.stringify(coerced);
     const wrapped = replaceOrAppendMathDiagramBlock(exerciseText, json);
     const issues = detectOutputIssues(wrapped, conceptTitle, conceptDesc, 'must_draw', 'circles');
-    return issues.length === 0 ? wrapped : null;
+    if (issues.length === 0) return wrapped;
+    return tryDeterministicCircleSceneFallback(exerciseText, conceptTitle, conceptDesc);
   } catch {
-    const deterministic = buildDeterministicCircleIntersectionSceneFromPrompt(exerciseText);
-    if (!deterministic) return null;
-    const wrapped = replaceOrAppendMathDiagramBlock(exerciseText, deterministic);
-    const issues = detectOutputIssues(wrapped, conceptTitle, conceptDesc, 'must_draw', 'circles');
-    return issues.length === 0 ? wrapped : null;
+    return tryDeterministicCircleSceneFallback(exerciseText, conceptTitle, conceptDesc);
   }
 }
 
