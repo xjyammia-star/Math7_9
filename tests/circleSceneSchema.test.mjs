@@ -133,4 +133,28 @@ const bareScenePayload = {
 assert.equal(coerceCircleScenePayload(bareScenePayload)?.template, 'circle_scene');
 assert.equal(validateCircleScene(coerceCircleScenePayload(bareScenePayload)?.scene).ok, true);
 
+const angleScene = {
+  conceptId: 'circle',
+  figureType: 'circle',
+  center: 'O',
+  points: [
+    { id: 'O', x: 0, y: 0, label: 'O' },
+    { id: 'A', x: -5, y: 0, label: 'A' },
+    { id: 'B', x: 5, y: 0, label: 'B' },
+    { id: 'C', x: 0, y: 4, label: 'C' },
+    { id: 'E', x: 0, y: 0.8, label: 'E' },
+  ],
+  relations: [
+    { type: 'segment', points: ['A', 'B'] },
+    { type: 'segment', points: ['C', 'E'] },
+    { type: 'circle', center: 'O', radius: 5 },
+    { type: 'angle', points: ['A', 'E', 'C'], value: 30 },
+  ],
+  givens: [],
+  targets: [],
+  display: {},
+};
+
+assert.equal(validateCircleScene(angleScene).ok, true);
+
 console.log('circle scene schema test passed');

@@ -311,6 +311,20 @@ class Renderer:
             p2 = project((vx + ua[0] * size + ub[0] * size, vy + ua[1] * size + ub[1] * size))
             p3 = project((vx + ub[0] * size, vy + ub[1] * size))
             self.add(f'<polyline points="{p1[0]},{p1[1]} {p2[0]},{p2[1]} {p3[0]},{p3[1]}" fill="none" stroke="{GREY}" stroke-width="1.8" />')
+      elif rel_type == "angle":
+        pts = rel.get("points") if isinstance(rel.get("points"), list) else []
+        if len(pts) == 3:
+          a = point_meta.get(point_name(pts[0]))
+          v = point_meta.get(point_name(pts[1]))
+          b = point_meta.get(point_name(pts[2]))
+          if a and v and b:
+            vx, vy = float(v.get("x")), float(v.get("y"))
+            ax, ay = float(a.get("x")), float(a.get("y"))
+            bx, by = float(b.get("x")), float(b.get("y"))
+            label = rel.get("label")
+            if label is None and rel.get("value") is not None:
+              label = f'{fmt_number(rel.get("value"))}°'
+            self.angle_mark((vx, vy), (ax, ay), (bx, by), r=0.5, label=label, fill=GREY)
       elif rel_type == "arc":
         center = point_meta.get(point_name(rel.get("center")))
         start = point_meta.get(point_name(rel.get("start")))

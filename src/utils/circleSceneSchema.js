@@ -21,6 +21,7 @@ const ALLOWED_RELATION_TYPES = new Set([
   'segment',
   'circle',
   'right_angle',
+  'angle',
   'arc',
 ]);
 
@@ -282,6 +283,15 @@ function validateCircleScene(scene) {
     if (relation.type === 'right_angle') {
       if (!Array.isArray(relation.points) || relation.points.length !== 3 || relation.points.some((name) => !pointMap.has(name))) {
         errors.push('right_angle relation requires three existing points');
+      }
+    }
+    if (relation.type === 'angle') {
+      if (!Array.isArray(relation.points) || relation.points.length !== 3 || relation.points.some((name) => !pointMap.has(name))) {
+        errors.push('angle relation requires three existing points');
+      }
+      const value = relation.value ?? relation.label;
+      if (value != null && String(value).trim() === '') {
+        errors.push('angle relation value cannot be empty');
       }
     }
     if (relation.type === 'arc') {
