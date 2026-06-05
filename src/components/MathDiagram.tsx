@@ -2612,7 +2612,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
   const svgMaxHeight = largerDiagramTemplates.has(template) ? 560 : 360;
   try {
     if (validationError) {
-      content = <SilentDiagramFallback />;
+      content = <InvalidDiagramFallback message={validationError} />;
     } else switch (template) {
       case 'right_triangle':      content = <RightTriangle data={parsed} />; break;
       case 'triangle':            content = <Triangle data={parsed} />; break;
@@ -2646,10 +2646,10 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'coordinate_points':   content = <CoordinatePoints data={parsed} />; break;
       case 'similar_triangles':   content = <SimilarTriangles data={parsed} />; break;
       default:
-        content = <SilentDiagramFallback />;
+        content = <InvalidDiagramFallback message={`unsupported diagram template: ${template || 'unknown'}`} />;
     }
   } catch (e: any) {
-    content = <SilentDiagramFallback />;
+    content = <InvalidDiagramFallback message="diagram render exception" />;
   }
 
   const fallback = (
@@ -2677,6 +2677,20 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
 
 function SilentDiagramFallback() {
   return <g aria-hidden="true" />;
+}
+
+function InvalidDiagramFallback({ message }: { message: string }) {
+  return (
+    <g aria-label="diagram-invalid">
+      <rect x={24} y={24} width={W - 48} height={H - 48} rx={18} fill="rgba(15,23,42,0.35)" stroke="rgba(245,158,11,0.45)" strokeWidth={1.5} strokeDasharray="6 6" />
+      <text x={W / 2} y={H / 2 - 10} textAnchor="middle" fontSize={16} fontWeight="700" fill={WHITE}>
+        Diagram Invalid
+      </text>
+      <text x={W / 2} y={H / 2 + 18} textAnchor="middle" fontSize={11} fill={GREY}>
+        {cleanDiagramLabelText(message).slice(0, 72)}
+      </text>
+    </g>
+  );
 }
 
 export default MathDiagram;

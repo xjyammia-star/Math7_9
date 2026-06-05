@@ -46,6 +46,11 @@ function hasGiven(scene, name) {
   return (scene.givens ?? []).some((given) => String(given?.name ?? given?.label ?? given?.key ?? '').toUpperCase() === target);
 }
 
+function hasPoint(scene, name) {
+  const target = String(name ?? '').toUpperCase();
+  return (scene.points ?? []).some((point) => String(point?.name ?? point?.label ?? point?.id ?? '').toUpperCase() === target);
+}
+
 function mentionsSegment(promptText, name) {
   return promptText.toUpperCase().includes(String(name ?? '').toUpperCase());
 }
@@ -56,9 +61,16 @@ function mentionsAny(promptText, patterns) {
 
 function mentionsConnectedSegment(promptText, name) {
   const upper = String(name ?? '').toUpperCase();
+  const chineseMatches = [...promptText.matchAll(/\u8fde\u63a5([^。；，,]+)/g)].map((match) => String(match[1] ?? '').toUpperCase());
+  const englishMatches = [...promptText.matchAll(/connect\s+([^.;,]+)/gi)].map((match) => String(match[1] ?? '').toUpperCase());
+  const chineseWindow = new RegExp(`\\u8fde\\u63a5[^\\u3002\\uff1b\\n]{0,24}${upper}`);
+  const englishWindow = new RegExp(`connect[^.;\\n]{0,24}${upper}`, 'i');
   return (
     mentionsAny(promptText, [`\u8fde\u63a5${upper}`, `connect ${upper}`, `connect${upper}`]) ||
-    (mentionsAny(promptText, ['\u8fde\u63a5', 'connect']) && mentionsSegment(promptText, upper))
+    chineseWindow.test(promptText) ||
+    englishWindow.test(promptText) ||
+    chineseMatches.some((fragment) => fragment.includes(upper)) ||
+    englishMatches.some((fragment) => fragment.includes(upper))
   );
 }
 
@@ -89,6 +101,12 @@ export function validateCircleSceneAgainstPrompt(prompt, sceneInput) {
   if (mentionsConnectedSegment(promptText, 'BC') && !segmentPairs.has(pairKey('B', 'C'))) {
     errors.push('missing_segment_bc');
   }
+  if (mentionsConnectedSegment(promptText, 'BD') && !segmentPairs.has(pairKey('B', 'D'))) {
+    errors.push('missing_segment_bd');
+  }
+  if (mentionsConnectedSegment(promptText, 'AE') && !segmentPairs.has(pairKey('A', 'E'))) {
+    errors.push('missing_segment_ae');
+  }
 
   if (mentionsSegment(promptText, 'CD') && mentionsSegment(promptText, 'AB') && mentionsSegment(promptText, 'E') && mentionsAny(promptText, ['\u5782\u76f4', '⊥', 'perpendicular'])) {
     if (!hasIntersectionPoint(relations, 'E', 'AB', 'CD')) {
@@ -104,6 +122,18 @@ export function validateCircleSceneAgainstPrompt(prompt, sceneInput) {
   }
   if (mentionsSegment(promptText, 'AD') && mentionsAny(promptText, ['=', '＝', '\u5df2\u77e5', 'known']) && !hasGiven(scene, 'AD')) {
     errors.push('missing_given_ad');
+  }
+  if (mentionsAny(promptText, ['\u70b9E', 'point E']) && !hasPoint(scene, 'E')) {
+    errors.push('missing_point_e');
+  }
+  if (mentionsSegment(promptText, 'DE') && mentionsAny(promptText, ['=', '＝', 'x', 'X', '\u8bbe', 'let']) && !hasPoint(scene, 'E')) {
+    errors.push('missing_point_e');
+  }
+  if (mentionsSegment(promptText, 'AE') && !hasPoint(scene, 'E')) {
+    errors.push('missing_point_e');
+  }
+  if (mentionsSegment(promptText, 'AD') && mentionsSegment(promptText, 'A') && mentionsAny(promptText, ['\u5782\u76f4AD', 'perpendicular to AD', '⊥AD']) && !hasRightAngleAtPoint(relations, 'A')) {
+    errors.push('missing_right_angle_at_a');
   }
 
   return {
