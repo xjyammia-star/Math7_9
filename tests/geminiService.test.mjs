@@ -117,4 +117,42 @@ assert.ok(
   detectOutputIssues(mismatchedCircleExercise, 'Circles', 'Circle theorems', 'must_draw', 'circles').includes('circle_scene_semantic_mismatch')
 );
 
+const missingArcPointExercise = [
+  '\u8bc1\u660e\u9898\uff1a\u5df2\u77e5AB\u662f\u2299O\u7684\u76f4\u5f84\uff0c\u5f26CD\u5782\u76f4\u4e8eAB\u4e8eE\uff0c\u4e14CE=4\uff0cO\u7684\u534a\u5f845\u3002\u70b9F\u5728\u52a3\u5f27BC\u4e0a(\u4e0d\u4e0eB\u3001C\u91cd\u5408)\uff0c\u8fde\u63a5AF\u4ea4CD\u4e8e\u70b9P\uff0c\u8fde\u63a5CF\u3002',
+  '```math-diagram',
+  JSON.stringify({
+    template: 'circle_scene',
+    scene: {
+      conceptId: 'circles',
+      figureType: 'circle',
+      center: 'O',
+      points: [
+        { name: 'O', role: 'center_point' },
+        { name: 'A', role: 'tangent_point' },
+        { name: 'B', role: 'tangent_point' },
+        { name: 'C', role: 'arc_point', arcSide: 'minor' },
+        { name: 'D', role: 'arc_point', arcSide: 'major' },
+        { name: 'E', role: 'foot_point' },
+        { name: 'P', role: 'intersection_point' },
+      ],
+      relations: [
+        { type: 'diameter', points: ['A', 'B'] },
+        { type: 'chord', points: ['C', 'D'] },
+        { type: 'intersection', point: 'E', of: ['AB', 'CD'] },
+        { type: 'right_angle', points: ['C', 'E', 'A'] },
+      ],
+      givens: [
+        { name: 'CE', value: 4 },
+      ],
+      targets: [],
+      display: {},
+    },
+  }),
+  '```',
+].join('\n');
+
+assert.ok(
+  detectOutputIssues(missingArcPointExercise, 'Circles', 'Circle theorems', 'must_draw', 'circles').includes('circle_scene_semantic_mismatch')
+);
+
 console.log('gemini service request body test passed');

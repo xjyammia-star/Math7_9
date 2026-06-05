@@ -83,3 +83,38 @@ const extensionValidation = validateCircleSceneAgainstPrompt(promptWithExtension
 assert.equal(extensionValidation.ok, false);
 assert.ok(extensionValidation.errors.includes('missing_segment_bd'));
 assert.ok(extensionValidation.errors.includes('missing_point_e'));
+
+const promptWithArcPoint = '\u8bc1\u660e\u9898\uff1a\u5df2\u77e5AB\u662f\u2299O\u7684\u76f4\u5f84\uff0c\u5f26CD\u5782\u76f4\u4e8eAB\u4e8eE\uff0c\u4e14CE=4\uff0cO\u7684\u534a\u5f845\u3002\u70b9F\u5728\u52a3\u5f27BC\u4e0a(\u4e0d\u4e0eB\u3001C\u91cd\u5408)\uff0c\u8fde\u63a5AF\u4ea4CD\u4e8e\u70b9P\uff0c\u8fde\u63a5CF\u3002';
+
+const missingArcPointScene = {
+  conceptId: 'circles',
+  figureType: 'circle',
+  center: 'O',
+  points: [
+    { name: 'O', role: 'center_point' },
+    { name: 'A', role: 'tangent_point' },
+    { name: 'B', role: 'tangent_point' },
+    { name: 'C', role: 'arc_point', arcSide: 'minor' },
+    { name: 'D', role: 'arc_point', arcSide: 'major' },
+    { name: 'E', role: 'foot_point' },
+    { name: 'P', role: 'intersection_point' },
+  ],
+  relations: [
+    { type: 'diameter', points: ['A', 'B'] },
+    { type: 'chord', points: ['C', 'D'] },
+    { type: 'intersection', point: 'E', of: ['AB', 'CD'] },
+    { type: 'right_angle', points: ['C', 'E', 'A'] },
+  ],
+  givens: [
+    { name: 'CE', value: 4 },
+  ],
+  targets: [],
+  display: {},
+};
+
+const arcPointValidation = validateCircleSceneAgainstPrompt(promptWithArcPoint, missingArcPointScene);
+assert.equal(arcPointValidation.ok, false);
+assert.ok(arcPointValidation.errors.includes('missing_point_f'));
+assert.ok(arcPointValidation.errors.includes('missing_segment_af'));
+assert.ok(arcPointValidation.errors.includes('missing_segment_cf'));
+assert.ok(arcPointValidation.errors.includes('missing_intersection_p_af_cd'));
