@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { detectOutputIssues, getExerciseGenerationTemperature, getExerciseRepairTemperature, shouldRetryCircleSceneRepair, shouldStripDiagramArtifactsAfterRepair, wrapUnfencedCircleSceneBlock } from '../src/services/geminiService.ts';
+import { detectOutputIssues, getExerciseGenerationTemperature, getExerciseRepairTemperature, shouldRegenerateCircleExerciseFresh, shouldRetryCircleSceneRepair, shouldStripDiagramArtifactsAfterRepair, wrapUnfencedCircleSceneBlock } from '../src/services/geminiService.ts';
 import { buildChatCompletionBody } from '../src/utils/modelRequest.js';
 
 const messages = [{ role: 'user', content: 'Hello' }];
@@ -34,6 +34,10 @@ assert.equal(getExerciseRepairTemperature('area-perimeter', 1), 0.7);
 assert.equal(shouldRetryCircleSceneRepair(['circle_scene_invalid'], 'circles'), true);
 assert.equal(shouldRetryCircleSceneRepair(['circle_scene_semantic_mismatch'], 'circles'), true);
 assert.equal(shouldRetryCircleSceneRepair(['template_mismatch'], 'area-perimeter'), false);
+assert.equal(shouldRegenerateCircleExerciseFresh(['circle_scene_invalid'], 'circles'), true);
+assert.equal(shouldRegenerateCircleExerciseFresh(['circle_scene_semantic_mismatch'], 'circles'), true);
+assert.equal(shouldRegenerateCircleExerciseFresh(['missing_diagram_block'], 'circles'), true);
+assert.equal(shouldRegenerateCircleExerciseFresh(['template_mismatch'], 'area-perimeter'), false);
 
 assert.equal(
   shouldStripDiagramArtifactsAfterRepair(['template_mismatch'], 'area-perimeter'),

@@ -162,6 +162,19 @@ export function getExerciseRepairTemperature(conceptId: string = "", attempt: nu
   return 0.12;
 }
 
+export function shouldRegenerateCircleExerciseFresh(
+  finalIssues: string[],
+  conceptId: string = ""
+): boolean {
+  if (String(conceptId ?? '').trim() !== 'circles') return false;
+
+  return finalIssues.some((issue) =>
+    issue === 'missing_diagram_block' ||
+    issue === 'circle_scene_invalid' ||
+    issue === 'circle_scene_semantic_mismatch'
+  );
+}
+
 function needsDiagramRepair(
   text: string,
   conceptTitle: string,
@@ -739,6 +752,69 @@ Rules:
   }
 
   return repairedText;
+}
+
+async function regenerateCircleExerciseFresh(
+  conceptTitle: string,
+  conceptDesc: string,
+  grade: Grade,
+  difficulty: Difficulty,
+  lang: Language,
+  count: number,
+  diagramPolicy: string,
+  modelId: AiModelId = EXERCISE_MODEL_ID
+): Promise<string> {
+  const freshSystem = `You are regenerating a middle-school circle exercise from scratch because the previous output produced an invalid circle_scene.
+
+Rules:
+- Output exactly ${count} exercise(s).
+- Every exercise must include exactly one fenced math-diagram block.
+- The only allowed diagram payload is {"template":"circle_scene","scene":{...}}.
+- scene.points must not be empty.
+- scene.relations must not omit any named connection, intersection, arc membership, or right-angle relation stated in the text.
+- Every named point in the question must appear in scene.points.
+- Do not output legacy circle_* templates.
+- Do not output explanations or solutions.
+- Do not leave raw JSON outside the fenced math-diagram block.
+- If the prompt names an arc point, tangent point, intersection point, or foot point, encode it explicitly in the scene.
+- If the prompt mentions a relation like AB ⟂ OP, AF intersects CD at P, or F lies on minor arc BC, encode that relation explicitly in the scene.
+- The diagram must contain only prompt-given information and must not leak the answer.`;
+
+  const freshUser = [
+    `Task: Regenerate ${count} mathematics exercise(s) for "${conceptTitle}".`,
+    `Grade Level: ${grade}`,
+    `Difficulty: ${difficulty}`,
+    `Language: ${lang === "zh" ? "Chinese" : "English"}`,
+    `Description: ${conceptDesc}`,
+    `Diagram policy: ${diagramPolicy}`,
+    `Hard constraint: output exactly one complete circle_scene per exercise.`,
+    `Hard constraint: scene.points must be non-empty and must include all named points in the text.`,
+    `Hard constraint: output only the numbered questions with their matching math-diagram block(s).`,
+    `Timestamp: ${Date.now()}`,
+  ].join('\n');
+
+  let regenerated = await safeGenerate(
+    [
+      { role: "system", content: freshSystem },
+      { role: "user", content: freshUser },
+    ],
+    false,
+    2048,
+    0.18,
+    modelId
+  );
+
+  regenerated = limitGeneratedExercises(sanitizeMath(regenerated), count);
+  regenerated = normalizeMarkdownTables(regenerated);
+  regenerated = wrapUnfencedCircleSceneBlock(regenerated);
+  regenerated = maskQuestionAnswerLeaks({
+    conceptTitle,
+    conceptDesc,
+    generatedText: regenerated,
+    diagramPolicy,
+  });
+
+  return regenerated;
 }
 
 const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string }> = {
@@ -1581,6 +1657,25 @@ export async function generateExercises(
       conceptId,
       EXERCISE_MODEL_ID
     );
+    if (shouldRegenerateCircleExerciseFresh(
+      detectOutputIssues(repaired, conceptTitle, conceptDesc, diagramPolicy, conceptId),
+      conceptId
+    )) {
+      const regenerated = await regenerateCircleExerciseFresh(
+        conceptTitle,
+        conceptDesc,
+        grade,
+        difficulty,
+        lang,
+        count,
+        diagramPolicy,
+        EXERCISE_MODEL_ID
+      );
+      return diagramPolicy === "must_not_draw"
+        ? limitGeneratedExercises(stripDiagramArtifacts(normalizeMarkdownTables(regenerated)), count)
+        : regenerated;
+    }
+
     return diagramPolicy === "must_not_draw"
       ? limitGeneratedExercises(stripDiagramArtifacts(normalizeMarkdownTables(repaired)), count)
       : repaired;
