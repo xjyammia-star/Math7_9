@@ -137,6 +137,31 @@ export function shouldStripDiagramArtifactsAfterRepair(
   return hasDiagramIssues && String(conceptId ?? '').trim() !== 'circles';
 }
 
+export function shouldRetryCircleSceneRepair(
+  finalIssues: string[],
+  conceptId: string = ""
+): boolean {
+  if (String(conceptId ?? '').trim() !== 'circles') return false;
+
+  return finalIssues.some((issue) =>
+    issue === 'missing_diagram_block' ||
+    issue === 'circle_scene_invalid' ||
+    issue === 'circle_scene_semantic_mismatch' ||
+    issue === 'diagram_json_unfenced'
+  );
+}
+
+export function getExerciseGenerationTemperature(conceptId: string = ""): number {
+  return String(conceptId ?? '').trim() === 'circles' ? 0.35 : 0.95;
+}
+
+export function getExerciseRepairTemperature(conceptId: string = "", attempt: number = 1): number {
+  if (String(conceptId ?? '').trim() !== 'circles') return 0.7;
+  if (attempt <= 1) return 0.25;
+  if (attempt === 2) return 0.18;
+  return 0.12;
+}
+
 function needsDiagramRepair(
   text: string,
   conceptTitle: string,
@@ -633,7 +658,7 @@ Rules:
     ],
     false,
     1600,
-    0.7,
+    getExerciseRepairTemperature(conceptId, 1),
     modelId
   );
 
@@ -656,7 +681,7 @@ Rules:
       ],
       false,
       1600,
-      0.7,
+      getExerciseRepairTemperature(conceptId, 2),
       modelId
     );
     repairedText = limitGeneratedExercises(sanitizeMath(secondRepair || repairedText), count);
@@ -670,7 +695,37 @@ Rules:
   }
 
   const finalIssues = detectOutputIssues(repairedText, conceptTitle, conceptDesc, diagramPolicy, conceptId);
-  if (shouldStripDiagramArtifactsAfterRepair(finalIssues, conceptId)) {
+  if (shouldRetryCircleSceneRepair(finalIssues, conceptId)) {
+    const sceneOnlySystem = `${system}
+- The previous attempts still produced an invalid or incomplete circle_scene.
+- Discard the previous diagram payload completely and regenerate a fresh circle_scene from the exercise text.
+- Every named point in the statement must appear in scene.points.
+- Every named connection like AC, BD, AF, CF must appear in scene.relations as a segment when explicitly requested.
+- Every named intersection like "交...于点P" must appear as an intersection relation.
+- Every arc membership like "点F在劣弧BC上" must be explicit via point arcSide or an arc_membership relation.
+- If the diagram cannot satisfy the statement exactly, regenerate the scene instead of omitting points or relations.`;
+    const sceneRetry = await safeGenerate(
+      [
+        { role: "system", content: sceneOnlySystem },
+        { role: "user", content: `${user}\n\nRemaining issues after second repair: ${finalIssues.join(", ")}` },
+      ],
+      false,
+      1600,
+      getExerciseRepairTemperature(conceptId, 3),
+      modelId
+    );
+    repairedText = limitGeneratedExercises(sanitizeMath(sceneRetry || repairedText), count);
+    repairedText = maskQuestionAnswerLeaks({
+      conceptTitle,
+      conceptDesc,
+      generatedText: repairedText,
+      diagramPolicy,
+    });
+    repairedText = wrapUnfencedCircleSceneBlock(repairedText);
+  }
+
+  const settledIssues = detectOutputIssues(repairedText, conceptTitle, conceptDesc, diagramPolicy, conceptId);
+  if (shouldStripDiagramArtifactsAfterRepair(settledIssues, conceptId)) {
     repairedText = limitGeneratedExercises(
       stripDiagramArtifacts(normalizeMarkdownTables(repairedText)),
       count
@@ -1490,7 +1545,7 @@ export async function generateExercises(
   const raw = await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
-  ], false, 2048, 0.95, EXERCISE_MODEL_ID);
+  ], false, 2048, getExerciseGenerationTemperature(conceptId), EXERCISE_MODEL_ID);
 
   writeRecentExerciseTypes(historyKey, pickedTypes);
 
