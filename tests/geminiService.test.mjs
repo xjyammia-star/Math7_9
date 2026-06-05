@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { detectOutputIssues, getExerciseGenerationTemperature, getExerciseRepairTemperature, replaceOrAppendMathDiagramBlock, shouldRegenerateCircleExerciseFresh, shouldRetryCircleSceneRepair, shouldStripDiagramArtifactsAfterRepair, wrapUnfencedCircleSceneBlock } from '../src/services/geminiService.ts';
+import { buildDeterministicCircleIntersectionSceneFromPrompt, detectOutputIssues, getExerciseGenerationTemperature, getExerciseRepairTemperature, replaceOrAppendMathDiagramBlock, shouldRegenerateCircleExerciseFresh, shouldRetryCircleSceneRepair, shouldStripDiagramArtifactsAfterRepair, wrapUnfencedCircleSceneBlock } from '../src/services/geminiService.ts';
 import { buildChatCompletionBody } from '../src/utils/modelRequest.js';
 
 const messages = [{ role: 'user', content: 'Hello' }];
@@ -45,6 +45,14 @@ const replacedBlock = replaceOrAppendMathDiagramBlock(
 );
 assert.match(replacedBlock, /```math-diagram/);
 assert.match(replacedBlock, /"template":"circle_scene"/);
+
+const deterministicChordIntersection = buildDeterministicCircleIntersectionSceneFromPrompt(
+  '如图，在⊙O中，直径AB与弦CD相交于点E，且∠AEC=30°。若AB=10,AE=2,求弦CD的长。'
+);
+assert.ok(deterministicChordIntersection);
+assert.match(deterministicChordIntersection, /"template":"circle_scene"/);
+assert.match(deterministicChordIntersection, /"type":"angle"/);
+assert.match(deterministicChordIntersection, /"type":"intersection"/);
 
 assert.equal(
   shouldStripDiagramArtifactsAfterRepair(['template_mismatch'], 'area-perimeter'),

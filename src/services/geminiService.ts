@@ -187,6 +187,124 @@ export function replaceOrAppendMathDiagramBlock(text: string, diagramJson: strin
   return `${source}\n\n${block}`.trim();
 }
 
+function stripMathDiagramBlocks(text: string): string {
+  return String(text ?? '').replace(/```math-diagram[\s\S]*?```/gi, '').trim();
+}
+
+function solveLineCircleIntersections(
+  ex: number,
+  ey: number,
+  ux: number,
+  uy: number,
+  radius: number
+): [number, number] | null {
+  const b = 2 * (ex * ux + ey * uy);
+  const c = ex * ex + ey * ey - radius * radius;
+  const disc = b * b - 4 * c;
+  if (disc < 0) return null;
+  const root = Math.sqrt(disc);
+  const t1 = (-b - root) / 2;
+  const t2 = (-b + root) / 2;
+  return [t1, t2];
+}
+
+export function buildDeterministicCircleIntersectionSceneFromPrompt(text: string): string | null {
+  const prompt = stripMathDiagramBlocks(text);
+  const diameterMatch = prompt.match(/直径\s*([A-Z])\s*([A-Z])/i);
+  const chordMatch = prompt.match(/弦\s*([A-Z])\s*([A-Z])/i);
+  const intersectionMatch = prompt.match(/交于点\s*([A-Z])/i);
+  const angleMatch = prompt.match(/∠\s*([A-Z])\s*([A-Z])\s*([A-Z])\s*=\s*(\d+(?:\.\d+)?)/i);
+
+  if (!diameterMatch || !chordMatch || !intersectionMatch || !angleMatch) return null;
+
+  const aName = diameterMatch[1].toUpperCase();
+  const bName = diameterMatch[2].toUpperCase();
+  const cName = chordMatch[1].toUpperCase();
+  const dName = chordMatch[2].toUpperCase();
+  const eName = intersectionMatch[1].toUpperCase();
+  const angleA = angleMatch[1].toUpperCase();
+  const angleV = angleMatch[2].toUpperCase();
+  const angleB = angleMatch[3].toUpperCase();
+  const angleDeg = Number(angleMatch[4]);
+
+  if (!Number.isFinite(angleDeg) || angleV !== eName) return null;
+  if (!([aName, bName].includes(angleA) && [cName, dName].includes(angleB))) return null;
+
+  const diameterLabel = `${aName}${bName}`;
+  const radiusMatch = prompt.match(new RegExp(`${diameterLabel}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
+  const diameterLength = radiusMatch ? Number(radiusMatch[1]) : 10;
+  const radius = diameterLength / 2;
+  if (!Number.isFinite(radius) || radius <= 0) return null;
+
+  const aeMatch = prompt.match(new RegExp(`${aName}${eName}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
+  const beMatch = prompt.match(new RegExp(`${bName}${eName}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
+
+  let ex = 0;
+  if (aeMatch) {
+    ex = -radius + Number(aeMatch[1]);
+  } else if (beMatch) {
+    ex = radius - Number(beMatch[1]);
+  }
+  if (!Number.isFinite(ex) || Math.abs(ex) >= radius) return null;
+
+  const ey = 0;
+  const theta = (angleDeg * Math.PI) / 180;
+  const usesUpperPoint = angleB === cName;
+  const dirAngle =
+    angleA === aName
+      ? usesUpperPoint ? Math.PI - theta : Math.PI + theta
+      : usesUpperPoint ? theta : -theta;
+
+  const ux = Math.cos(dirAngle);
+  const uy = Math.sin(dirAngle);
+  const roots = solveLineCircleIntersections(ex, ey, ux, uy, radius);
+  if (!roots) return null;
+
+  const [t1, t2] = roots;
+  const forwardT = Math.max(t1, t2);
+  const backwardT = Math.min(t1, t2);
+  if (!(forwardT > 0 && backwardT < 0)) return null;
+
+  const upper = { x: ex + ux * forwardT, y: ey + uy * forwardT };
+  const lower = { x: ex + ux * backwardT, y: ey + uy * backwardT };
+
+  const cPoint = usesUpperPoint ? upper : lower;
+  const dPoint = usesUpperPoint ? lower : upper;
+
+  const scene = {
+    template: 'circle_scene',
+    scene: {
+      conceptId: 'circles',
+      figureType: 'circle',
+      center: 'O',
+      points: [
+        { id: 'O', x: 0, y: 0, label: 'O' },
+        { id: aName, x: -radius, y: 0, label: aName },
+        { id: bName, x: radius, y: 0, label: bName },
+        { id: cName, x: cPoint.x, y: cPoint.y, label: cName },
+        { id: dName, x: dPoint.x, y: dPoint.y, label: dName },
+        { id: eName, x: ex, y: ey, label: eName },
+      ],
+      relations: [
+        { type: 'segment', points: [aName, bName] },
+        { type: 'segment', points: [cName, dName] },
+        { type: 'circle', center: 'O', radius },
+        { type: 'intersection', point: eName, of: [`${aName}${bName}`, `${cName}${dName}`] },
+        { type: 'angle', points: [angleA, angleV, angleB], value: angleDeg },
+      ],
+      givens: [
+        { type: 'length', points: [aName, bName], value: diameterLength },
+        ...(aeMatch ? [{ type: 'length', points: [aName, eName], value: Number(aeMatch[1]) }] : []),
+        ...(beMatch ? [{ type: 'length', points: [bName, eName], value: Number(beMatch[1]) }] : []),
+      ],
+      targets: [],
+      display: {},
+    },
+  };
+
+  return JSON.stringify(scene);
+}
+
 function needsDiagramRepair(
   text: string,
   conceptTitle: string,
@@ -881,7 +999,11 @@ Rules:
     const issues = detectOutputIssues(wrapped, conceptTitle, conceptDesc, 'must_draw', 'circles');
     return issues.length === 0 ? wrapped : null;
   } catch {
-    return null;
+    const deterministic = buildDeterministicCircleIntersectionSceneFromPrompt(exerciseText);
+    if (!deterministic) return null;
+    const wrapped = replaceOrAppendMathDiagramBlock(exerciseText, deterministic);
+    const issues = detectOutputIssues(wrapped, conceptTitle, conceptDesc, 'must_draw', 'circles');
+    return issues.length === 0 ? wrapped : null;
   }
 }
 
