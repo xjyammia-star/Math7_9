@@ -132,6 +132,53 @@ function addIfMentionedSegmentError(promptText, segmentPairs, errors, segmentNam
   }
 }
 
+function extractNamedCoordinate(promptText, pointName) {
+  const target = String(pointName ?? '').toUpperCase();
+  const patterns = [
+    new RegExp(`点${target}(?:的坐标(?:为|是)?|坐标为|坐标是)?\\s*[（(]\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*[,，]\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*[)）]`, 'i'),
+    new RegExp(`\\b${target}\\s*[（(]\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*[,，]\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*[)）]`, 'i'),
+  ];
+
+  for (const pattern of patterns) {
+    const match = promptText.match(pattern);
+    if (!match) continue;
+    const x = Number(match[1]);
+    const y = Number(match[2]);
+    if (Number.isFinite(x) && Number.isFinite(y)) {
+      return { x, y };
+    }
+  }
+
+  return null;
+}
+
+export function validateCirclePromptSanity(prompt) {
+  const promptText = normalizeText(prompt);
+  const errors = [];
+  const hasOriginCircleCue =
+    /平面直角坐标系|coordinate system/i.test(promptText) &&
+    /原点O|O为原点|以O为原点|圆心O在原点|圆心在原点O|⊙O经过原点O/i.test(promptText);
+
+  if (hasOriginCircleCue) {
+    const tangentAxisRegex = /过点?([A-Z])作[^。；,\n]*?切线[^。；,\n]*?交\s*([xy])\s*轴于点?([A-Z])/gi;
+    for (const match of promptText.matchAll(tangentAxisRegex)) {
+      const tangentPoint = String(match[1] ?? '').toUpperCase();
+      const axis = String(match[2] ?? '').toLowerCase();
+      const coordinate = extractNamedCoordinate(promptText, tangentPoint);
+      if (!coordinate) continue;
+
+      if ((axis === 'x' && Math.abs(coordinate.y) < 1e-9) || (axis === 'y' && Math.abs(coordinate.x) < 1e-9)) {
+        errors.push(`degenerate_tangent_axis_intersection_${tangentPoint.toLowerCase()}_${axis}`);
+      }
+    }
+  }
+
+  return {
+    ok: errors.length === 0,
+    errors,
+  };
+}
+
 export function validateCircleSceneAgainstPrompt(prompt, sceneInput) {
   const promptText = normalizeText(prompt);
   const scene = normalizeCircleScene(sceneInput);

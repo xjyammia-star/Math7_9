@@ -21,6 +21,14 @@ assert.equal(doubaoBody.response_format, undefined);
 assert.equal(doubaoBody.max_tokens, 128);
 assert.equal(doubaoBody.temperature, 0.7);
 
+const deterministicChordIntersectionChinese = buildDeterministicCircleIntersectionSceneFromPrompt(
+  '\u5982\u56fe\uff0c\u5728\u2299O\u4e2d\uff0c\u76f4\u5f84AB\u4e0e\u5f26CD\u76f8\u4ea4\u4e8e\u70b9E\uff0c\u4e14\u2220AEC=30\u00b0\u3002\u82e5AB=10,AE=2,\u6c42\u5f26CD\u7684\u957f\u3002'
+);
+assert.ok(deterministicChordIntersectionChinese);
+assert.match(deterministicChordIntersectionChinese, /"template":"circle_scene"/);
+assert.match(deterministicChordIntersectionChinese, /"type":"angle"/);
+assert.match(deterministicChordIntersectionChinese, /"type":"intersection"/);
+
 assert.equal(
   shouldStripDiagramArtifactsAfterRepair(['circle_scene_invalid'], 'circles'),
   false,
@@ -182,5 +190,33 @@ const missingArcPointExercise = [
 assert.ok(
   detectOutputIssues(missingArcPointExercise, 'Circles', 'Circle theorems', 'must_draw', 'circles').includes('circle_scene_semantic_mismatch')
 );
+
+const degenerateCoordinateExercise = [
+  '\u5982\u56fe,\u5728\u5e73\u9762\u76f4\u89d2\u5750\u6807\u7cfb\u4e2d,\u2299O\u7ecf\u8fc7\u539f\u70b9O,\u70b9A\u3001B\u3001C\u5728\u2299O\u4e0a,\u4e14\u70b9A\u7684\u5750\u6807\u4e3a(4,0)\u3002\u8fde\u63a5AB\u3001BC\u3001AC\u3002\u5df2\u77e5\u2220ABC=60\u00b0,\u5f26BC\u7684\u957f\u4e3a2\u221a3,\u8fc7A\u4f5c\u2299O\u7684\u5207\u7ebf\u4ea4x\u8f74\u4e8eD\u3002\u6c42\u70b9D\u7684\u5750\u6807\u3002',
+  '```math-diagram',
+  JSON.stringify({
+    template: 'circle_scene',
+    scene: {
+      conceptId: 'circles',
+      figureType: 'circle',
+      center: 'O',
+      points: [],
+      relations: [],
+      givens: [],
+      targets: [],
+      display: {},
+    },
+  }),
+  '```',
+].join('\n');
+
+const degenerateCoordinateIssues = detectOutputIssues(
+  degenerateCoordinateExercise,
+  'Circles',
+  'Circle theorems',
+  'must_draw',
+  'circles'
+);
+assert.ok(degenerateCoordinateIssues.includes('circle_prompt_degenerate_tangent_axis_intersection_a_x'));
 
 console.log('gemini service request body test passed');

@@ -4,7 +4,7 @@ import { classifyDiagramNeed, shouldRequireDiagramBlock, stripDiagramArtifacts }
 import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleChordRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterIntersectingChordsRepair, needsCircleDiameterRepair, needsCircleDiameterTangentChordRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleTangentRepair, needsCircleThreePointsRepair, needsLinearIntersectionRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
 import { buildAlgebraExerciseBatch, isAlgebraQuestionBankConcept } from "../utils/algebraExerciseTemplates.js";
 import { coerceCircleScenePayload, detectCircleSceneIssues, extractCircleScene } from "../utils/circleSceneSchema.js";
-import { validateCircleSceneAgainstPrompt } from "../utils/circleScenePromptValidation.js";
+import { validateCirclePromptSanity, validateCircleSceneAgainstPrompt } from "../utils/circleScenePromptValidation.js";
 import { buildAreaPerimeterExerciseBatch, isAreaPerimeterConcept } from "../utils/areaPerimeterExerciseTemplates.js";
 import { buildPythagorasExerciseBatch, isPythagorasConcept } from "../utils/pythagorasExerciseTemplates.js";
 import { buildDifficultyGuidance, genericProblemTypesByDifficulty, normalizeDifficulty, minTierPoolSize } from "../utils/exerciseTierPolicy.js";
@@ -147,7 +147,8 @@ export function shouldRetryCircleSceneRepair(
     issue === 'missing_diagram_block' ||
     issue === 'circle_scene_invalid' ||
     issue === 'circle_scene_semantic_mismatch' ||
-    issue === 'diagram_json_unfenced'
+    issue === 'diagram_json_unfenced' ||
+    issue.startsWith('circle_prompt_')
   );
 }
 
@@ -171,7 +172,8 @@ export function shouldRegenerateCircleExerciseFresh(
   return finalIssues.some((issue) =>
     issue === 'missing_diagram_block' ||
     issue === 'circle_scene_invalid' ||
-    issue === 'circle_scene_semantic_mismatch'
+    issue === 'circle_scene_semantic_mismatch' ||
+    issue.startsWith('circle_prompt_')
   );
 }
 
@@ -352,6 +354,10 @@ export function detectOutputIssues(
   if (needsDiagramRepair(text, conceptTitle, conceptDesc, diagramPolicy, conceptId)) issues.push("missing_diagram_block");
 
   if (String(conceptId ?? '').trim() === 'circles') {
+    const promptSanity = validateCirclePromptSanity(text);
+    if (!promptSanity.ok) {
+      issues.push(...promptSanity.errors.map((error) => `circle_prompt_${error}`));
+    }
     issues.push(...detectCircleSceneIssues(text));
     const extracted = extractCircleScene(text);
     if (extracted?.scene) {
@@ -920,9 +926,10 @@ Rules:
 - Do not leave raw JSON outside the fenced math-diagram block.
 - If the prompt names an arc point, tangent point, intersection point, or foot point, encode it explicitly in the scene.
 - If the prompt mentions a relation like AB ⟂ OP, AF intersects CD at P, or F lies on minor arc BC, encode that relation explicitly in the scene.
+- In coordinate-geometry circle problems, never create a degenerate tangent-axis question where the tangency point already lies on that same axis. For example, if A=(4,0), the tangent at A must not be asked to intersect the x-axis at a new point D.
 - The diagram must contain only prompt-given information and must not leak the answer.`;
 
-  const freshUser = [
+  const freshUserLines = [
     `Task: Regenerate ${count} mathematics exercise(s) for "${conceptTitle}".`,
     `Grade Level: ${grade}`,
     `Difficulty: ${difficulty}`,
@@ -931,30 +938,40 @@ Rules:
     `Diagram policy: ${diagramPolicy}`,
     `Hard constraint: output exactly one complete circle_scene per exercise.`,
     `Hard constraint: scene.points must be non-empty and must include all named points in the text.`,
+    `Hard constraint: in coordinate circle questions, avoid degenerate tangent-axis intersections where the requested new point would coincide with the tangency point.`,
     `Hard constraint: output only the numbered questions with their matching math-diagram block(s).`,
-    `Timestamp: ${Date.now()}`,
-  ].join('\n');
+  ];
 
-  let regenerated = await safeGenerate(
-    [
-      { role: "system", content: freshSystem },
-      { role: "user", content: freshUser },
-    ],
-    false,
-    2048,
-    0.18,
-    modelId
-  );
+  let regenerated = "";
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const freshUser = [...freshUserLines, `Attempt: ${attempt}`, `Timestamp: ${Date.now()}`].join('\n');
+    regenerated = await safeGenerate(
+      [
+        { role: "system", content: freshSystem },
+        { role: "user", content: freshUser },
+      ],
+      false,
+      2048,
+      0.18,
+      modelId
+    );
 
-  regenerated = limitGeneratedExercises(sanitizeMath(regenerated), count);
-  regenerated = normalizeMarkdownTables(regenerated);
-  regenerated = wrapUnfencedCircleSceneBlock(regenerated);
-  regenerated = maskQuestionAnswerLeaks({
-    conceptTitle,
-    conceptDesc,
-    generatedText: regenerated,
-    diagramPolicy,
-  });
+    regenerated = limitGeneratedExercises(sanitizeMath(regenerated), count);
+    regenerated = normalizeMarkdownTables(regenerated);
+    regenerated = wrapUnfencedCircleSceneBlock(regenerated);
+    regenerated = maskQuestionAnswerLeaks({
+      conceptTitle,
+      conceptDesc,
+      generatedText: regenerated,
+      diagramPolicy,
+    });
+
+    const promptIssues = detectOutputIssues(regenerated, conceptTitle, conceptDesc, diagramPolicy, 'circles')
+      .filter((issue) => issue.startsWith('circle_prompt_'));
+    if (promptIssues.length === 0) {
+      return regenerated;
+    }
+  }
 
   return regenerated;
 }
@@ -1791,7 +1808,8 @@ export async function generateExercises(
       `- For this trial, the diagram block must use template "circle_scene" with a nested "scene" object.\n` +
       `- Do not generate proof/explanation-only or solution-commentary-only circle questions.\n` +
       `- Legacy circle_* templates are invalid for circles in this trial. Do not output them.\n` +
-      `- The scene must spell out points, relations, givens, targets, and display flags explicitly so Python can render without guessing.\n`
+      `- The scene must spell out points, relations, givens, targets, and display flags explicitly so Python can render without guessing.\n` +
+      `- In coordinate-geometry circle problems, never generate a tangent-axis intersection that collapses to the tangency point itself. Example: if A=(4,0), do not ask for the tangent at A to intersect the x-axis at a new point D.\n`
     : "";
 
   const userMsg =

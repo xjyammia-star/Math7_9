@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { validateCircleSceneAgainstPrompt } from '../src/utils/circleScenePromptValidation.js';
+import { validateCirclePromptSanity, validateCircleSceneAgainstPrompt } from '../src/utils/circleScenePromptValidation.js';
 
 const prompt = '\u5982\u56fe\uff0cAB\u662f\u2299O\u7684\u76f4\u5f84\uff0c\u5f26CD\u5782\u76f4\u4e8eAB\u4e8e\u70b9E\uff0c\u4ea4\u2299O\u4e8e\u70b9C\uff0cD\u3002\u8fde\u63a5AC\uff0cAD\uff0cBC\u3002\u5df2\u77e5AC=\u221a2\uff0cAD=\u221a6\uff0c\u6c42\u25b3ABD\u7684\u9762\u79ef\u3002';
 
@@ -118,3 +118,8 @@ assert.ok(arcPointValidation.errors.includes('missing_point_f'));
 assert.ok(arcPointValidation.errors.includes('missing_segment_af'));
 assert.ok(arcPointValidation.errors.includes('missing_segment_cf'));
 assert.ok(arcPointValidation.errors.includes('missing_intersection_p_af_cd'));
+
+const degenerateCoordinatePrompt = '\u5982\u56fe,\u5728\u5e73\u9762\u76f4\u89d2\u5750\u6807\u7cfb\u4e2d,\u2299O\u7ecf\u8fc7\u539f\u70b9O,\u70b9A\u3001B\u3001C\u5728\u2299O\u4e0a,\u4e14\u70b9A\u7684\u5750\u6807\u4e3a(4,0)\u3002\u8fc7A\u4f5c\u2299O\u7684\u5207\u7ebf\u4ea4x\u8f74\u4e8e\u70b9D\u3002\u6c42\u70b9D\u7684\u5750\u6807\u3002';
+const degenerateValidation = validateCirclePromptSanity(degenerateCoordinatePrompt);
+assert.equal(degenerateValidation.ok, false);
+assert.ok(degenerateValidation.errors.includes('degenerate_tangent_axis_intersection_a_x'));
