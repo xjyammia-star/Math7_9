@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { detectOutputIssues, getExerciseGenerationTemperature, getExerciseRepairTemperature, shouldRegenerateCircleExerciseFresh, shouldRetryCircleSceneRepair, shouldStripDiagramArtifactsAfterRepair, wrapUnfencedCircleSceneBlock } from '../src/services/geminiService.ts';
+import { detectOutputIssues, getExerciseGenerationTemperature, getExerciseRepairTemperature, replaceOrAppendMathDiagramBlock, shouldRegenerateCircleExerciseFresh, shouldRetryCircleSceneRepair, shouldStripDiagramArtifactsAfterRepair, wrapUnfencedCircleSceneBlock } from '../src/services/geminiService.ts';
 import { buildChatCompletionBody } from '../src/utils/modelRequest.js';
 
 const messages = [{ role: 'user', content: 'Hello' }];
@@ -38,6 +38,13 @@ assert.equal(shouldRegenerateCircleExerciseFresh(['circle_scene_invalid'], 'circ
 assert.equal(shouldRegenerateCircleExerciseFresh(['circle_scene_semantic_mismatch'], 'circles'), true);
 assert.equal(shouldRegenerateCircleExerciseFresh(['missing_diagram_block'], 'circles'), true);
 assert.equal(shouldRegenerateCircleExerciseFresh(['template_mismatch'], 'area-perimeter'), false);
+
+const replacedBlock = replaceOrAppendMathDiagramBlock(
+  '1. 如图，已知 AB 是直径。',
+  '{"template":"circle_scene","scene":{"conceptId":"circles","figureType":"circle","center":"O","points":[{"name":"O","role":"center_point"},{"name":"A","role":"tangent_point"},{"name":"B","role":"tangent_point"}],"relations":[{"type":"diameter","points":["A","B"]}],"givens":[],"targets":[],"display":{}}}'
+);
+assert.match(replacedBlock, /```math-diagram/);
+assert.match(replacedBlock, /"template":"circle_scene"/);
 
 assert.equal(
   shouldStripDiagramArtifactsAfterRepair(['template_mismatch'], 'area-perimeter'),

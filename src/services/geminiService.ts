@@ -175,6 +175,18 @@ export function shouldRegenerateCircleExerciseFresh(
   );
 }
 
+export function replaceOrAppendMathDiagramBlock(text: string, diagramJson: string): string {
+  const source = String(text ?? '').trim();
+  const block = `\`\`\`math-diagram\n${diagramJson}\n\`\`\``;
+  if (!source) return block;
+
+  if (/```math-diagram[\s\S]*?```/i.test(source)) {
+    return source.replace(/```math-diagram[\s\S]*?```/i, block).trim();
+  }
+
+  return `${source}\n\n${block}`.trim();
+}
+
 function needsDiagramRepair(
   text: string,
   conceptTitle: string,
@@ -815,6 +827,62 @@ Rules:
   });
 
   return regenerated;
+}
+
+async function regenerateCircleSceneOnly(
+  exerciseText: string,
+  conceptTitle: string,
+  conceptDesc: string,
+  grade: Grade,
+  difficulty: Difficulty,
+  lang: Language,
+  modelId: AiModelId = EXERCISE_MODEL_ID
+): Promise<string | null> {
+  const system = `You are extracting and rebuilding only the diagram payload for a middle-school circle exercise.
+
+Rules:
+- Return valid JSON only.
+- Output exactly one object in this shape:
+  {"template":"circle_scene","scene":{...}}
+- scene.points must not be empty.
+- Include every named point, every explicitly connected segment, every explicit chord/diameter/intersection/right-angle/arc-membership/angle relation from the exercise text.
+- Do not include solutions or explanation prose.
+- Do not use legacy circle_* templates.
+- The diagram must contain only prompt-given information and must not leak the answer.`;
+
+  const user = [
+    `Language: ${lang === "zh" ? "Chinese" : "English"}`,
+    `Grade: ${grade}`,
+    `Difficulty: ${difficulty}`,
+    `Concept title: ${conceptTitle}`,
+    `Concept description: ${conceptDesc}`,
+    `Task: Rebuild only the circle_scene JSON for this exercise text.`,
+    `Exercise text:`,
+    exerciseText,
+  ].join('\n');
+
+  const raw = await safeGenerate(
+    [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+    true,
+    1600,
+    0.08,
+    modelId
+  );
+
+  try {
+    const parsed = JSON.parse(raw);
+    const coerced = coerceCircleScenePayload(parsed);
+    if (!coerced) return null;
+    const json = JSON.stringify(coerced);
+    const wrapped = replaceOrAppendMathDiagramBlock(exerciseText, json);
+    const issues = detectOutputIssues(wrapped, conceptTitle, conceptDesc, 'must_draw', 'circles');
+    return issues.length === 0 ? wrapped : null;
+  } catch {
+    return null;
+  }
 }
 
 const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string }> = {
@@ -1671,6 +1739,23 @@ export async function generateExercises(
         diagramPolicy,
         EXERCISE_MODEL_ID
       );
+      const regeneratedIssues = detectOutputIssues(regenerated, conceptTitle, conceptDesc, diagramPolicy, conceptId);
+      if (shouldRegenerateCircleExerciseFresh(regeneratedIssues, conceptId)) {
+        const sceneOnly = await regenerateCircleSceneOnly(
+          regenerated,
+          conceptTitle,
+          conceptDesc,
+          grade,
+          difficulty,
+          lang,
+          EXERCISE_MODEL_ID
+        );
+        if (sceneOnly) {
+          return diagramPolicy === "must_not_draw"
+            ? limitGeneratedExercises(stripDiagramArtifacts(normalizeMarkdownTables(sceneOnly)), count)
+            : sceneOnly;
+        }
+      }
       return diagramPolicy === "must_not_draw"
         ? limitGeneratedExercises(stripDiagramArtifacts(normalizeMarkdownTables(regenerated)), count)
         : regenerated;
