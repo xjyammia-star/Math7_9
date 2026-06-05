@@ -60,6 +60,24 @@ function normalizeNamedValueList(items) {
     .filter(Boolean);
 }
 
+function normalizeIntersectionSources(relation) {
+  const rawCandidates = [];
+
+  if (Array.isArray(relation.of)) rawCandidates.push(...relation.of);
+  if (Array.isArray(relation.lines)) rawCandidates.push(...relation.lines);
+  if (Array.isArray(relation.sources)) rawCandidates.push(...relation.sources);
+  if (relation.source1 != null) rawCandidates.push(relation.source1);
+  if (relation.source2 != null) rawCandidates.push(relation.source2);
+  if (relation.line1 != null) rawCandidates.push(relation.line1);
+  if (relation.line2 != null) rawCandidates.push(relation.line2);
+  if (typeof relation.of === 'string') rawCandidates.push(...String(relation.of).split(/[,\u3001]/));
+  if (typeof relation.lines === 'string') rawCandidates.push(...String(relation.lines).split(/[,\u3001]/));
+
+  return rawCandidates
+    .map((item) => (asText(item) || '').toUpperCase())
+    .filter(Boolean);
+}
+
 function coerceCircleScenePayload(input) {
   if (!isPlainObject(input)) return null;
 
@@ -134,7 +152,7 @@ function normalizeCircleScene(input) {
     radius: relation.radius,
     label: relation.label,
     points: Array.isArray(relation.points) ? relation.points.map((item) => (asText(item) || '').toUpperCase()).filter(Boolean) : relation.points,
-    of: Array.isArray(relation.of) ? relation.of.map((item) => (asText(item) || '').toUpperCase()).filter(Boolean) : relation.of,
+    of: normalizeIntersectionSources(relation),
   })).filter((relation) => relation.type);
 
   scene.givens = scene.givens.map((given) => ({

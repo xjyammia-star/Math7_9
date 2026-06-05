@@ -157,4 +157,28 @@ const angleScene = {
 
 assert.equal(validateCircleScene(angleScene).ok, true);
 
+const looseIntersectionScene = {
+  conceptId: 'circles',
+  figureType: 'circle',
+  center: 'O',
+  points: [
+    { name: 'O', role: 'center_point' },
+    { name: 'A', role: 'tangent_point' },
+    { name: 'B', role: 'tangent_point' },
+    { name: 'C', role: 'arc_point', arcSide: 'minor' },
+    { name: 'D', role: 'arc_point', arcSide: 'major' },
+    { name: 'E', role: 'intersection_point' },
+  ],
+  relations: [
+    { type: 'diameter', points: ['A', 'B'] },
+    { type: 'chord', points: ['C', 'D'] },
+    { type: 'intersection', point: 'E', line1: 'AB', line2: 'CD' },
+  ],
+  givens: [],
+  targets: [],
+  display: {},
+};
+
+assert.equal(validateCircleScene(looseIntersectionScene).ok, true);
+
 console.log('circle scene schema test passed');
