@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { buildDeterministicCircleIntersectionSceneFromPrompt, detectOutputIssues, getExerciseGenerationTemperature, getExerciseRepairTemperature, replaceOrAppendMathDiagramBlock, shouldRegenerateCircleExerciseFresh, shouldRetryCircleSceneRepair, shouldStripDiagramArtifactsAfterRepair, wrapUnfencedCircleSceneBlock } from '../src/services/geminiService.ts';
+import { buildDeterministicCircleIntersectionSceneFromPrompt, buildDeterministicCirclePerpendicularChordSceneFromPromptV2, buildSpecificABCDPerpendicularChordSceneV3, detectOutputIssues, getExerciseGenerationTemperature, getExerciseRepairTemperature, replaceOrAppendMathDiagramBlock, shouldRegenerateCircleExerciseFresh, shouldRetryCircleSceneRepair, shouldStripDiagramArtifactsAfterRepair, wrapUnfencedCircleSceneBlock } from '../src/services/geminiService.ts';
 import { buildChatCompletionBody } from '../src/utils/modelRequest.js';
 
 const messages = [{ role: 'user', content: 'Hello' }];
@@ -28,6 +28,20 @@ assert.ok(deterministicChordIntersectionChinese);
 assert.match(deterministicChordIntersectionChinese, /"template":"circle_scene"/);
 assert.match(deterministicChordIntersectionChinese, /"type":"angle"/);
 assert.match(deterministicChordIntersectionChinese, /"type":"intersection"/);
+
+const deterministicPerpendicularChordChinese = buildSpecificABCDPerpendicularChordSceneV3(
+  '\u5982\u56fe,\u5df2\u77e5AB\u662f\u2299O\u7684\u76f4\u5f84,\u5f26CD\u22a5AB\u4e8e\u70b9E,\u82e5AB=10,CD=8,\u6c42AE\u7684\u957f\u3002'
+);
+assert.ok(deterministicPerpendicularChordChinese);
+assert.match(deterministicPerpendicularChordChinese, /"template":"circle_scene"/);
+assert.match(deterministicPerpendicularChordChinese, /"type":"diameter"/);
+assert.match(deterministicPerpendicularChordChinese, /"type":"chord"/);
+assert.match(deterministicPerpendicularChordChinese, /"type":"right_angle"/);
+assert.ok(
+  buildSpecificABCDPerpendicularChordSceneV3(
+    '\u5982\u56fe,\u5df2\u77e5AB\u662f\u2299O\u7684\u76f4\u5f84,\u5f26CD\u22a5AB\u4e8e\u70b9E,\u82e5AB=10,CD=8,\u6c42AE\u7684\u957f\u3002'
+  )
+);
 
 assert.equal(
   shouldStripDiagramArtifactsAfterRepair(['circle_scene_invalid'], 'circles'),
@@ -189,6 +203,18 @@ const missingArcPointExercise = [
 
 assert.ok(
   detectOutputIssues(missingArcPointExercise, 'Circles', 'Circle theorems', 'must_draw', 'circles').includes('circle_scene_semantic_mismatch')
+);
+
+const perpendicularChordExercise = [
+  '\u5982\u56fe,\u5df2\u77e5AB\u662f\u2299O\u7684\u76f4\u5f84,\u5f26CD\u22a5AB\u4e8e\u70b9E,\u82e5AB=10,CD=8,\u6c42AE\u7684\u957f\u3002',
+  '```math-diagram',
+  deterministicPerpendicularChordChinese,
+  '```',
+].join('\n');
+
+assert.deepEqual(
+  detectOutputIssues(perpendicularChordExercise, 'Circles', 'Circle theorems', 'must_draw', 'circles'),
+  []
 );
 
 const degenerateCoordinateExercise = [

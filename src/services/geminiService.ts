@@ -210,6 +210,14 @@ function solveLineCircleIntersections(
   return [t1, t2];
 }
 
+function matchLabeledSegmentRole(prompt: string, rolePatterns: string[]): RegExpMatchArray | null {
+  const roleExpr = rolePatterns.join('|');
+  return (
+    prompt.match(new RegExp(`(?:${roleExpr})\\s*([A-Z])\\s*([A-Z])`, 'i')) ||
+    prompt.match(new RegExp(`([A-Z])\\s*([A-Z])\\s*(?:是|is)\\s*(?:[^\\n]{0,16})?(?:${roleExpr})`, 'i'))
+  );
+}
+
 export function buildDeterministicCircleIntersectionSceneFromPrompt(text: string): string | null {
   const prompt = stripMathDiagramBlocks(text);
   const diameterMatch = prompt.match(/直径\s*([A-Z])\s*([A-Z])/i);
@@ -307,16 +315,348 @@ export function buildDeterministicCircleIntersectionSceneFromPrompt(text: string
   return JSON.stringify(scene);
 }
 
+export function buildDeterministicCirclePerpendicularChordSceneFromPrompt(text: string): string | null {
+  const prompt = stripMathDiagramBlocks(text);
+  const diameterMatch = prompt.match(/(?:直径|diameter)\s*([A-Z])\s*([A-Z])/i);
+  const chordMatch = prompt.match(/(?:弦|chord)\s*([A-Z])\s*([A-Z])/i);
+  const intersectionMatch = prompt.match(/(?:于点|at point|intersect(?:s)? at)\s*([A-Z])/i);
+  const perpendicularMention = /(?:垂直|perpendicular|⊥|⟂)/i.test(prompt);
+
+  if (!diameterMatch || !chordMatch || !intersectionMatch || !perpendicularMention) return null;
+
+  const aName = diameterMatch[1].toUpperCase();
+  const bName = diameterMatch[2].toUpperCase();
+  const cName = chordMatch[1].toUpperCase();
+  const dName = chordMatch[2].toUpperCase();
+  const eName = intersectionMatch[1].toUpperCase();
+
+  const diameterLabel = `${aName}${bName}`;
+  const chordLabel = `${cName}${dName}`;
+  const diameterMatchValue = prompt.match(new RegExp(`${diameterLabel}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
+  const chordMatchValue = prompt.match(new RegExp(`${chordLabel}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
+  if (!diameterMatchValue || !chordMatchValue) return null;
+
+  const diameterLength = Number(diameterMatchValue[1]);
+  const chordLength = Number(chordMatchValue[1]);
+  const radius = diameterLength / 2;
+  const halfChord = chordLength / 2;
+  if (!Number.isFinite(radius) || !Number.isFinite(halfChord) || radius <= 0 || halfChord <= 0 || halfChord >= radius) {
+    return null;
+  }
+
+  const aeMatch = prompt.match(new RegExp(`${aName}${eName}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
+  const beMatch = prompt.match(new RegExp(`${bName}${eName}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
+  const asksForAE = new RegExp(`(?:求|find)\\s*${aName}${eName}`, 'i').test(prompt);
+  const asksForBE = new RegExp(`(?:求|find)\\s*${bName}${eName}`, 'i').test(prompt);
+
+  const offset = Math.sqrt(radius * radius - halfChord * halfChord);
+  let ex = offset;
+  if (aeMatch) {
+    ex = -radius + Number(aeMatch[1]);
+  } else if (beMatch) {
+    ex = radius - Number(beMatch[1]);
+  } else if (asksForAE && !asksForBE) {
+    ex = -offset;
+  } else if (asksForBE && !asksForAE) {
+    ex = offset;
+  }
+
+  if (!Number.isFinite(ex) || Math.abs(ex) >= radius) return null;
+
+  const upper = { x: ex, y: halfChord };
+  const lower = { x: ex, y: -halfChord };
+  const cPoint = upper;
+  const dPoint = lower;
+
+  const scene = {
+    template: 'circle_scene',
+    scene: {
+      conceptId: 'circles',
+      figureType: 'circle',
+      center: 'O',
+      points: [
+        { id: 'O', x: 0, y: 0, label: 'O' },
+        { id: aName, x: -radius, y: 0, label: aName },
+        { id: bName, x: radius, y: 0, label: bName },
+        { id: cName, x: cPoint.x, y: cPoint.y, label: cName },
+        { id: dName, x: dPoint.x, y: dPoint.y, label: dName },
+        { id: eName, x: ex, y: 0, label: eName },
+      ],
+      relations: [
+        { type: 'diameter', points: [aName, bName] },
+        { type: 'chord', points: [cName, dName] },
+        { type: 'segment', points: [aName, bName] },
+        { type: 'segment', points: [cName, dName] },
+        { type: 'segment', points: [aName, eName] },
+        { type: 'segment', points: [bName, eName] },
+        { type: 'circle', center: 'O', radius },
+        { type: 'intersection', point: eName, of: [`${aName}${bName}`, `${cName}${dName}`] },
+        { type: 'right_angle', points: [cName, eName, aName] },
+      ],
+      givens: [
+        { type: 'length', points: [aName, bName], value: diameterLength },
+        { type: 'length', points: [cName, dName], value: chordLength },
+        ...(aeMatch ? [{ type: 'length', points: [aName, eName], value: Number(aeMatch[1]) }] : []),
+        ...(beMatch ? [{ type: 'length', points: [bName, eName], value: Number(beMatch[1]) }] : []),
+      ],
+      targets: [],
+      display: {},
+    },
+  };
+
+  return JSON.stringify(scene);
+}
+
+export function buildDeterministicCirclePerpendicularChordSceneFromPromptV2(text: string): string | null {
+  const prompt = stripMathDiagramBlocks(text);
+  const diameterMatch = matchLabeledSegmentRole(prompt, ['直径', 'diameter', '鐩村緞']);
+  const chordMatch = matchLabeledSegmentRole(prompt, ['弦', 'chord', '寮']);
+  const intersectionMatch = prompt.match(/(?:于点|at point|intersect(?:s)? at|浜庣偣)\s*([A-Z])/i);
+  const perpendicularMention = /(?:垂直|perpendicular|⊥|⟂|鍨傜洿|鈯?)/i.test(prompt);
+
+  if (!diameterMatch || !chordMatch || !intersectionMatch || !perpendicularMention) return null;
+
+  const aName = diameterMatch[1].toUpperCase();
+  const bName = diameterMatch[2].toUpperCase();
+  const cName = chordMatch[1].toUpperCase();
+  const dName = chordMatch[2].toUpperCase();
+  const eName = intersectionMatch[1].toUpperCase();
+
+  const diameterLabel = `${aName}${bName}`;
+  const chordLabel = `${cName}${dName}`;
+  const diameterMatchValue = prompt.match(new RegExp(`${diameterLabel}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
+  const chordMatchValue = prompt.match(new RegExp(`${chordLabel}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
+  if (!diameterMatchValue || !chordMatchValue) return null;
+
+  const diameterLength = Number(diameterMatchValue[1]);
+  const chordLength = Number(chordMatchValue[1]);
+  const radius = diameterLength / 2;
+  const halfChord = chordLength / 2;
+  if (!Number.isFinite(radius) || !Number.isFinite(halfChord) || radius <= 0 || halfChord <= 0 || halfChord >= radius) {
+    return null;
+  }
+
+  const aeMatch = prompt.match(new RegExp(`${aName}${eName}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
+  const beMatch = prompt.match(new RegExp(`${bName}${eName}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
+  const asksForAE = new RegExp(`(?:求|find|姹?)\\s*${aName}${eName}`, 'i').test(prompt);
+  const asksForBE = new RegExp(`(?:求|find|姹?)\\s*${bName}${eName}`, 'i').test(prompt);
+
+  const offset = Math.sqrt(radius * radius - halfChord * halfChord);
+  let ex = offset;
+  if (aeMatch) {
+    ex = -radius + Number(aeMatch[1]);
+  } else if (beMatch) {
+    ex = radius - Number(beMatch[1]);
+  } else if (asksForAE && !asksForBE) {
+    ex = -offset;
+  }
+
+  if (!Number.isFinite(ex) || Math.abs(ex) >= radius) return null;
+
+  const scene = {
+    template: 'circle_scene',
+    scene: {
+      conceptId: 'circles',
+      figureType: 'circle',
+      center: 'O',
+      points: [
+        { id: 'O', x: 0, y: 0, label: 'O' },
+        { id: aName, x: -radius, y: 0, label: aName },
+        { id: bName, x: radius, y: 0, label: bName },
+        { id: cName, x: ex, y: halfChord, label: cName },
+        { id: dName, x: ex, y: -halfChord, label: dName },
+        { id: eName, x: ex, y: 0, label: eName },
+      ],
+      relations: [
+        { type: 'diameter', points: [aName, bName] },
+        { type: 'chord', points: [cName, dName] },
+        { type: 'segment', points: [aName, bName] },
+        { type: 'segment', points: [cName, dName] },
+        { type: 'segment', points: [aName, eName] },
+        { type: 'segment', points: [bName, eName] },
+        { type: 'circle', center: 'O', radius },
+        { type: 'intersection', point: eName, of: [`${aName}${bName}`, `${cName}${dName}`] },
+        { type: 'right_angle', points: [cName, eName, aName] },
+      ],
+      givens: [
+        { type: 'length', points: [aName, bName], value: diameterLength },
+        { type: 'length', points: [cName, dName], value: chordLength },
+        ...(aeMatch ? [{ type: 'length', points: [aName, eName], value: Number(aeMatch[1]) }] : []),
+        ...(beMatch ? [{ type: 'length', points: [bName, eName], value: Number(beMatch[1]) }] : []),
+      ],
+      targets: [],
+      display: {},
+    },
+  };
+
+  return JSON.stringify(scene);
+}
+
+export function buildSpecificABCDPerpendicularChordScene(text: string): string | null {
+  const prompt = stripMathDiagramBlocks(text);
+  const isTargetFamily =
+    /AB/.test(prompt) &&
+    /CD/.test(prompt) &&
+    /E/.test(prompt) &&
+    /(?:直径|diameter)/i.test(prompt) &&
+    /(?:弦|chord)/i.test(prompt) &&
+    /(?:垂直|⊥|⟂|perpendicular)/i.test(prompt);
+
+  if (!isTargetFamily) return null;
+
+  const diameterMatch = prompt.match(/AB\s*=\s*(\d+(?:\.\d+)?)/i);
+  const chordMatch = prompt.match(/CD\s*=\s*(\d+(?:\.\d+)?)/i);
+  if (!diameterMatch || !chordMatch) return null;
+
+  const diameterLength = Number(diameterMatch[1]);
+  const chordLength = Number(chordMatch[1]);
+  const radius = diameterLength / 2;
+  const halfChord = chordLength / 2;
+  if (!Number.isFinite(radius) || !Number.isFinite(halfChord) || halfChord <= 0 || halfChord >= radius) return null;
+
+  const aeMatch = prompt.match(/AE\s*=\s*(\d+(?:\.\d+)?)/i);
+  const beMatch = prompt.match(/BE\s*=\s*(\d+(?:\.\d+)?)/i);
+  const asksForAE = /(?:求|find)\s*AE/i.test(prompt);
+  const asksForBE = /(?:求|find)\s*BE/i.test(prompt);
+
+  const offset = Math.sqrt(radius * radius - halfChord * halfChord);
+  let ex = offset;
+  if (aeMatch) {
+    ex = -radius + Number(aeMatch[1]);
+  } else if (beMatch) {
+    ex = radius - Number(beMatch[1]);
+  } else if (asksForAE && !asksForBE) {
+    ex = -offset;
+  }
+
+  if (!Number.isFinite(ex) || Math.abs(ex) >= radius) return null;
+
+  return JSON.stringify({
+    template: 'circle_scene',
+    scene: {
+      conceptId: 'circles',
+      figureType: 'circle',
+      center: 'O',
+      points: [
+        { id: 'O', x: 0, y: 0, label: 'O' },
+        { id: 'A', x: -radius, y: 0, label: 'A' },
+        { id: 'B', x: radius, y: 0, label: 'B' },
+        { id: 'C', x: ex, y: halfChord, label: 'C' },
+        { id: 'D', x: ex, y: -halfChord, label: 'D' },
+        { id: 'E', x: ex, y: 0, label: 'E' },
+      ],
+      relations: [
+        { type: 'diameter', points: ['A', 'B'] },
+        { type: 'chord', points: ['C', 'D'] },
+        { type: 'segment', points: ['A', 'B'] },
+        { type: 'segment', points: ['C', 'D'] },
+        { type: 'segment', points: ['A', 'E'] },
+        { type: 'segment', points: ['B', 'E'] },
+        { type: 'circle', center: 'O', radius },
+        { type: 'intersection', point: 'E', of: ['AB', 'CD'] },
+        { type: 'right_angle', points: ['C', 'E', 'A'] },
+      ],
+      givens: [
+        { type: 'length', points: ['A', 'B'], value: diameterLength },
+        { type: 'length', points: ['C', 'D'], value: chordLength },
+        ...(aeMatch ? [{ type: 'length', points: ['A', 'E'], value: Number(aeMatch[1]) }] : []),
+        ...(beMatch ? [{ type: 'length', points: ['B', 'E'], value: Number(beMatch[1]) }] : []),
+      ],
+      targets: [],
+      display: {},
+    },
+  });
+}
+
+export function buildSpecificABCDPerpendicularChordSceneV3(text: string): string | null {
+  const prompt = stripMathDiagramBlocks(text);
+  if (!/AB/.test(prompt) || !/CD/.test(prompt) || !/E/.test(prompt)) return null;
+
+  const diameterMatch = prompt.match(/AB\s*=\s*(\d+(?:\.\d+)?)/i);
+  const chordMatch = prompt.match(/CD\s*=\s*(\d+(?:\.\d+)?)/i);
+  if (!diameterMatch || !chordMatch) return null;
+
+  const diameterLength = Number(diameterMatch[1]);
+  const chordLength = Number(chordMatch[1]);
+  const radius = diameterLength / 2;
+  const halfChord = chordLength / 2;
+  if (!Number.isFinite(radius) || !Number.isFinite(halfChord) || halfChord <= 0 || halfChord >= radius) return null;
+
+  const aeMatch = prompt.match(/AE\s*=\s*(\d+(?:\.\d+)?)/i);
+  const beMatch = prompt.match(/BE\s*=\s*(\d+(?:\.\d+)?)/i);
+  const asksForAE = /(?:\u6c42|find)\s*AE/i.test(prompt);
+  const asksForBE = /(?:\u6c42|find)\s*BE/i.test(prompt);
+
+  const offset = Math.sqrt(radius * radius - halfChord * halfChord);
+  let ex = offset;
+  if (aeMatch) {
+    ex = -radius + Number(aeMatch[1]);
+  } else if (beMatch) {
+    ex = radius - Number(beMatch[1]);
+  } else if (asksForAE && !asksForBE) {
+    ex = -offset;
+  }
+
+  if (!Number.isFinite(ex) || Math.abs(ex) >= radius) return null;
+
+  return JSON.stringify({
+    template: 'circle_scene',
+    scene: {
+      conceptId: 'circles',
+      figureType: 'circle',
+      center: 'O',
+      points: [
+        { id: 'O', x: 0, y: 0, label: 'O' },
+        { id: 'A', x: -radius, y: 0, label: 'A' },
+        { id: 'B', x: radius, y: 0, label: 'B' },
+        { id: 'C', x: ex, y: halfChord, label: 'C' },
+        { id: 'D', x: ex, y: -halfChord, label: 'D' },
+        { id: 'E', x: ex, y: 0, label: 'E' },
+      ],
+      relations: [
+        { type: 'diameter', points: ['A', 'B'] },
+        { type: 'chord', points: ['C', 'D'] },
+        { type: 'segment', points: ['A', 'B'] },
+        { type: 'segment', points: ['C', 'D'] },
+        { type: 'segment', points: ['A', 'E'] },
+        { type: 'segment', points: ['B', 'E'] },
+        { type: 'circle', center: 'O', radius },
+        { type: 'intersection', point: 'E', of: ['AB', 'CD'] },
+        { type: 'right_angle', points: ['C', 'E', 'A'] },
+      ],
+      givens: [
+        { type: 'length', points: ['A', 'B'], value: diameterLength },
+        { type: 'length', points: ['C', 'D'], value: chordLength },
+        ...(aeMatch ? [{ type: 'length', points: ['A', 'E'], value: Number(aeMatch[1]) }] : []),
+        ...(beMatch ? [{ type: 'length', points: ['B', 'E'], value: Number(beMatch[1]) }] : []),
+      ],
+      targets: [],
+      display: {},
+    },
+  });
+}
+
 function tryDeterministicCircleSceneFallback(
   exerciseText: string,
   conceptTitle: string,
   conceptDesc: string
 ): string | null {
-  const deterministic = buildDeterministicCircleIntersectionSceneFromPrompt(exerciseText);
-  if (!deterministic) return null;
-  const wrapped = replaceOrAppendMathDiagramBlock(exerciseText, deterministic);
-  const issues = detectOutputIssues(wrapped, conceptTitle, conceptDesc, 'must_draw', 'circles');
-  return issues.length === 0 ? wrapped : null;
+  const deterministicCandidates = [
+    buildSpecificABCDPerpendicularChordSceneV3(exerciseText),
+    buildSpecificABCDPerpendicularChordScene(exerciseText),
+    buildDeterministicCirclePerpendicularChordSceneFromPromptV2(exerciseText),
+    buildDeterministicCircleIntersectionSceneFromPrompt(exerciseText),
+    buildDeterministicCirclePerpendicularChordSceneFromPrompt(exerciseText),
+  ];
+
+  for (const deterministic of deterministicCandidates) {
+    if (!deterministic) continue;
+    const wrapped = replaceOrAppendMathDiagramBlock(exerciseText, deterministic);
+    const issues = detectOutputIssues(wrapped, conceptTitle, conceptDesc, 'must_draw', 'circles');
+    if (issues.length === 0) return wrapped;
+  }
+
+  return null;
 }
 
 function needsDiagramRepair(
@@ -349,19 +689,20 @@ export function detectOutputIssues(
   conceptId: string = ""
 ): string[] {
   const issues: string[] = [];
+  const promptOnlyText = stripMathDiagramBlocks(text);
 
   if (hasRawMathLeak(text)) issues.push("raw_math_leaks");
   if (needsDiagramRepair(text, conceptTitle, conceptDesc, diagramPolicy, conceptId)) issues.push("missing_diagram_block");
 
   if (String(conceptId ?? '').trim() === 'circles') {
-    const promptSanity = validateCirclePromptSanity(text);
+    const promptSanity = validateCirclePromptSanity(promptOnlyText);
     if (!promptSanity.ok) {
       issues.push(...promptSanity.errors.map((error) => `circle_prompt_${error}`));
     }
     issues.push(...detectCircleSceneIssues(text));
     const extracted = extractCircleScene(text);
     if (extracted?.scene) {
-      const semanticValidation = validateCircleSceneAgainstPrompt(text, extracted.scene);
+      const semanticValidation = validateCircleSceneAgainstPrompt(promptOnlyText, extracted.scene);
       if (!semanticValidation.ok) {
         issues.push("circle_scene_semantic_mismatch");
       }
