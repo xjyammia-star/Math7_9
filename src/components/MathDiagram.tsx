@@ -678,6 +678,200 @@ function normalizeDiagramData(template: string, data: any): any {
   return data;
 }
 
+function formatSceneValue(value: unknown, suffix = ''): string {
+  if (value === null || value === undefined || value === '') return '';
+  const text = cleanDiagramLabelText(value);
+  if (!text) return '';
+  return suffix && !text.endsWith(suffix) ? `${text}${suffix}` : text;
+}
+
+function scenePointName(point: any): string {
+  return String(point?.name ?? point?.label ?? point?.id ?? '').trim().toUpperCase();
+}
+
+function scenePairKey(a: string, b: string): string {
+  return [String(a ?? '').toUpperCase(), String(b ?? '').toUpperCase()].sort().join('');
+}
+
+function CircleScene({ data }: { data: any }) {
+  const scene = normalizeCircleScene(data?.scene ?? data);
+  const points = (scene.points ?? []).filter((point: any) => asFiniteNumber(point.x) !== null && asFiniteNumber(point.y) !== null);
+  if (points.length === 0) {
+    return <InvalidDiagramFallback message="circle_scene local fallback requires explicit points" />;
+  }
+
+  const pointMap = new Map<string, any>();
+  for (const point of points) {
+    pointMap.set(scenePointName(point), point);
+  }
+
+  const xs = points.map((point: any) => Number(point.x));
+  const ys = points.map((point: any) => Number(point.y));
+
+  for (const relation of scene.relations ?? []) {
+    if (relation?.type === 'circle') {
+      const centerName = scenePointName({ name: relation.center });
+      const center = pointMap.get(centerName);
+      const radius = asFiniteNumber(relation.radius);
+      if (center && radius !== null) {
+        xs.push(Number(center.x) - radius, Number(center.x) + radius);
+        ys.push(Number(center.y) - radius, Number(center.y) + radius);
+      }
+    }
+  }
+
+  const pad = Math.max(1, (Math.max(...xs) - Math.min(...xs) + Math.max(...ys) - Math.min(...ys)) * 0.12);
+  const sc = makeScaler(Math.min(...xs) - pad, Math.max(...xs) + pad, Math.min(...ys) - pad, Math.max(...ys) + pad);
+
+  const pairLabels = new Map<string, string>();
+  const angleLabels = new Map<string, string>();
+  for (const given of scene.givens ?? []) {
+    if (Array.isArray(given?.points) && given.points.length === 2) {
+      const label = formatSceneValue(given.value, typeof given.value === 'number' ? '' : '');
+      if (label) pairLabels.set(scenePairKey(given.points[0], given.points[1]), label);
+    }
+    if (Array.isArray(given?.points) && given.points.length === 3) {
+      const label = formatSceneValue(given.value, '°');
+      if (label) angleLabels.set(given.points.map((item: string) => String(item).toUpperCase()).join('>'), label);
+    }
+  }
+  for (const relation of scene.relations ?? []) {
+    if (relation?.type === 'angle' && Array.isArray(relation.points) && relation.points.length === 3) {
+      const label = formatSceneValue(relation.value ?? relation.label, typeof (relation.value ?? relation.label) === 'number' ? '°' : '');
+      if (label) angleLabels.set(relation.points.map((item: string) => String(item).toUpperCase()).join('>'), label);
+    }
+  }
+
+  const renderArc = (relation: any, index: number) => {
+    const center = pointMap.get(scenePointName({ name: relation.center }));
+    const start = pointMap.get(scenePointName({ name: relation.start }));
+    const end = pointMap.get(scenePointName({ name: relation.end }));
+    const radius = asFiniteNumber(relation.radius);
+    if (!center || !start || !end || radius === null) return null;
+
+    const sCenter = sc({ x: Number(center.x), y: Number(center.y) });
+    const sStart = sc({ x: Number(start.x), y: Number(start.y) });
+    const sEnd = sc({ x: Number(end.x), y: Number(end.y) });
+    const pixelRadius = Math.hypot(sStart.x - sCenter.x, sStart.y - sCenter.y);
+    const startAngle = Math.atan2(sStart.y - sCenter.y, sStart.x - sCenter.x);
+    const endAngle = Math.atan2(sEnd.y - sCenter.y, sEnd.x - sCenter.x);
+    let diff = endAngle - startAngle;
+    while (diff < 0) diff += Math.PI * 2;
+    const largeArc = diff > Math.PI ? 1 : 0;
+    const sweep = 1;
+    const label = cleanDiagramLabelText(relation.label);
+    const mid = startAngle + diff / 2;
+    const lx = sCenter.x + Math.cos(mid) * (pixelRadius + 16);
+    const ly = sCenter.y + Math.sin(mid) * (pixelRadius + 16);
+
+    return (
+      <g key={`scene-arc-${index}`}>
+        <path
+          d={`M${sStart.x},${sStart.y} A${pixelRadius},${pixelRadius} 0 ${largeArc} ${sweep} ${sEnd.x},${sEnd.y}`}
+          fill="none"
+          stroke={GREY}
+          strokeWidth={1.8}
+        />
+        {label && (
+          <text x={lx} y={ly} fontSize={11} fill={GREY} textAnchor="middle" fontWeight="700">
+            {label}
+          </text>
+        )}
+      </g>
+    );
+  };
+
+  return (
+    <g>
+      {(scene.relations ?? []).map((relation: any, index: number) => {
+        if (!relation) return null;
+        if (relation.type === 'circle') {
+          const center = pointMap.get(scenePointName({ name: relation.center }));
+          const radius = asFiniteNumber(relation.radius);
+          if (!center || radius === null) return null;
+          const sCenter = sc({ x: Number(center.x), y: Number(center.y) });
+          const sEdge = sc({ x: Number(center.x) + radius, y: Number(center.y) });
+          return (
+            <circle
+              key={`scene-circle-${index}`}
+              cx={sCenter.x}
+              cy={sCenter.y}
+              r={Math.abs(sEdge.x - sCenter.x)}
+              fill="none"
+              stroke={GREY}
+              strokeWidth={2.2}
+            />
+          );
+        }
+
+        if (relation.type === 'arc') {
+          return renderArc(relation, index);
+        }
+
+        if ((relation.type === 'segment' || relation.type === 'chord' || relation.type === 'diameter' || relation.type === 'line' || relation.type === 'helper_line') && Array.isArray(relation.points) && relation.points.length === 2) {
+          const a = pointMap.get(scenePointName({ name: relation.points[0] }));
+          const b = pointMap.get(scenePointName({ name: relation.points[1] }));
+          if (!a || !b) return null;
+          const pa = sc({ x: Number(a.x), y: Number(a.y) });
+          const pb = sc({ x: Number(b.x), y: Number(b.y) });
+          const dash = relation.type === 'helper_line' ? '6 4' : '';
+          const label = pairLabels.get(scenePairKey(relation.points[0], relation.points[1]));
+          return (
+            <g key={`scene-seg-${index}`}>
+              <Seg a={pa} b={pb} stroke={GOLD} sw={2.4} dash={dash} />
+              {label && <SegLabel a={pa} b={pb} label={label} color={GOLD} />}
+            </g>
+          );
+        }
+
+        if (relation.type === 'right_angle' && Array.isArray(relation.points) && relation.points.length === 3) {
+          const a = pointMap.get(scenePointName({ name: relation.points[0] }));
+          const v = pointMap.get(scenePointName({ name: relation.points[1] }));
+          const b = pointMap.get(scenePointName({ name: relation.points[2] }));
+          if (!a || !v || !b) return null;
+          return (
+            <RightAngleMark
+              key={`scene-right-angle-${index}`}
+              v={sc({ x: Number(v.x), y: Number(v.y) })}
+              a={sc({ x: Number(a.x), y: Number(a.y) })}
+              b={sc({ x: Number(b.x), y: Number(b.y) })}
+              size={10}
+              color={GREY}
+            />
+          );
+        }
+
+        if (relation.type === 'angle' && Array.isArray(relation.points) && relation.points.length === 3) {
+          const a = pointMap.get(scenePointName({ name: relation.points[0] }));
+          const v = pointMap.get(scenePointName({ name: relation.points[1] }));
+          const b = pointMap.get(scenePointName({ name: relation.points[2] }));
+          if (!a || !v || !b) return null;
+          const label = angleLabels.get(relation.points.map((item: string) => String(item).toUpperCase()).join('>'));
+          return (
+            <AngleMark
+              key={`scene-angle-${index}`}
+              v={sc({ x: Number(v.x), y: Number(v.y) })}
+              a={sc({ x: Number(a.x), y: Number(a.y) })}
+              b={sc({ x: Number(b.x), y: Number(b.y) })}
+              label={label}
+              color={GOLD}
+              r={20}
+            />
+          );
+        }
+
+        return null;
+      })}
+
+      {points.map((point: any, index: number) => {
+        const p = sc({ x: Number(point.x), y: Number(point.y) });
+        const label = cleanDiagramLabelText(scenePointName(point));
+        return <Dot key={`scene-point-${index}`} p={p} label={label} color={point.role === 'center_point' ? WHITE : GOLD} />;
+      })}
+    </g>
+  );
+}
+
 // ─── Template renderers ──────────────────────────────────────────────────────
 
 /** right_triangle: legs a (horizontal) and b (vertical), right angle at B */
@@ -2639,6 +2833,7 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'circle_intersecting_chords': content = <CircleIntersectingChords data={parsed} />; break;
       case 'circle_diameter_chords': content = <CircleDiameterChords data={parsed} />; break;
       case 'circle_diameter_tangent_chord': content = <CircleDiameterTangentChord data={parsed} />; break;
+      case 'circle_scene':        content = <CircleScene data={parsed} />; break;
       case 'linear_function':     content = <LinearFunction data={parsed} />; break;
       case 'quadratic_function':  content = <QuadraticFunction data={parsed} />; break;
       case 'number_line':
