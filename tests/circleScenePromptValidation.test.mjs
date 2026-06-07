@@ -123,3 +123,8 @@ const degenerateCoordinatePrompt = '\u5982\u56fe,\u5728\u5e73\u9762\u76f4\u89d2\
 const degenerateValidation = validateCirclePromptSanity(degenerateCoordinatePrompt);
 assert.equal(degenerateValidation.ok, false);
 assert.ok(degenerateValidation.errors.includes('degenerate_tangent_axis_intersection_a_x'));
+
+const inconsistentTangentPrompt = '\u5982\u56fe,\u5728\u5e73\u9762\u76f4\u89d2\u5750\u6807\u7cfb\u4e2d,\u2299O\u7684\u534a\u5f84\u4e3a5,\u5706\u5fc3O\u7684\u5750\u6807\u4e3a(0,0)\u3002\u70b9A\u7684\u5750\u6807\u4e3a(3,4),\u70b9B\u662f\u2299O\u4e0a\u4e00\u70b9\u3002\u8fc7\u70b9A\u4f5c\u2299O\u7684\u5207\u7ebf,\u5207\u70b9\u4e3aC\u3002';
+const inconsistentTangentValidation = validateCirclePromptSanity(inconsistentTangentPrompt);
+assert.equal(inconsistentTangentValidation.ok, false);
+assert.ok(inconsistentTangentValidation.errors.includes('inconsistent_tangent_point_a_c'));

@@ -219,4 +219,32 @@ const degenerateCoordinateIssues = detectOutputIssues(
 );
 assert.ok(degenerateCoordinateIssues.includes('circle_prompt_degenerate_tangent_axis_intersection_a_x'));
 
+const inconsistentTangentExercise = [
+  '\u5982\u56fe,\u5728\u5e73\u9762\u76f4\u89d2\u5750\u6807\u7cfb\u4e2d,\u2299O\u7684\u534a\u5f84\u4e3a5,\u5706\u5fc3O\u7684\u5750\u6807\u4e3a(0,0)\u3002\u70b9A\u7684\u5750\u6807\u4e3a(3,4),\u70b9B\u662f\u2299O\u4e0a\u4e00\u70b9,\u4e14\u4f4d\u4e8e\u7b2c\u56db\u8c61\u9650\u3002\u8fc7\u70b9A\u4f5c\u2299O\u7684\u5207\u7ebf,\u5207\u70b9\u4e3aC\u3002\u76f4\u7ebfAC\u4e0ex\u8f74\u4ea4\u4e8e\u70b9D\u3002\u8fde\u63a5OA\u3001OC\u3001OB\u3002\u82e5\u2220AOB=90\u00b0,\u6c42\u70b9D\u7684\u5750\u6807\u3002',
+  '```math-diagram',
+  JSON.stringify({
+    template: 'circle_scene',
+    scene: {
+      conceptId: 'circles',
+      figureType: 'circle',
+      center: 'O',
+      points: [],
+      relations: [],
+      givens: [],
+      targets: [],
+      display: {},
+    },
+  }),
+  '```',
+].join('\n');
+
+const inconsistentTangentIssues = detectOutputIssues(
+  inconsistentTangentExercise,
+  'Circles',
+  'Circle theorems',
+  'must_draw',
+  'circles'
+);
+assert.ok(inconsistentTangentIssues.includes('circle_prompt_inconsistent_tangent_point_a_c'));
+
 console.log('gemini service request body test passed');
