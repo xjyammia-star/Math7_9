@@ -154,6 +154,10 @@ STRICT PRINCIPLES:
    - MANDATORY: If the problem names specific points (e.g. A, B, C, D, G, H) on geometric figures, you MUST include a diagram even if the answer is purely computational.
    - TEMPLATE SELECTION RULES (critical):
      * Circle problems (弦、切线、圆心、半径) → use circle_chord or circle_tangent templates. NEVER use linear_function or quadratic_function for circle geometry.
+     * 圆内接四边形 (cyclic quadrilateral, inscribed polygon ABCD in circle) → ALWAYS use circle_cyclic_quadrilateral template. NEVER use coordinate_points for this.
+     * 圆内接四边形 with extension line (F on extension of CD, or similar) → use circle_cyclic_quadrilateral with label_E for intersection point; add show_extension_to_E and label_E fields.
+     * 直径 + points on circle (AB is diameter, C/D on arc) → use circle_diameter_points template.
+     * Two chords intersecting inside circle → use circle_intersecting_chords template.
      * Pure geometry (no coordinate grid in problem) → ALWAYS set axes:false. Use right_triangle / triangle / rectangle / coordinate_points with axes:false.
      * Only use axes:true when the problem explicitly mentions a coordinate system (坐标系/坐标轴/函数图象).
 
@@ -268,6 +272,25 @@ STRICT PRINCIPLES:
    {"template":"circle_tangent","radius":5,"op_dist":13,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_radius":"5","label_pa":"12","label_op":"13"}
    ${BT}
 
+   Cyclic quadrilateral inscribed in circle (圆内接四边形 ABCD):
+   Use this whenever the problem has a quadrilateral ABCD inscribed in a circle, regardless of whether diagonals or extension lines are involved.
+   labels array = [A, B, C, D] in order. angles array = positions on circle in degrees (optional, frontend picks good defaults).
+   ${BT}math-diagram
+   {"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"label_O":"O"}
+   ${BT}
+
+   Cyclic quadrilateral with diagonal intersection E and extension point F on CD extended (圆内接四边形，对角线交点E，F在CD延长线上):
+   THIS IS THE CORRECT TEMPLATE for problems like: "圆内接四边形ABCD，AB是直径，AC平分∠DAB，BD与AC交于点E，F在CD延长线上，BF=BE".
+   Use circle_cyclic_quadrilateral with label_E for the diagonal intersection, show_extension_to_E:true, label_E for F-like external point.
+   ${BT}math-diagram
+   {"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"label_O":"O","label_E":"E","show_extension_to_E":true,"label_A":"A","label_B":"B","label_C":"C","label_D":"D"}
+   ${BT}
+
+   Circle with diameter AB and points C/D on arc (直径AB，弧上有点C、D):
+   ${BT}math-diagram
+   {"template":"circle_diameter_points","radius":5,"label_O":"O","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_ab":"10"}
+   ${BT}
+
    DIAGRAM LABEL RULE: ALL "label" values must be plain Unicode text only.
    NO LaTeX, NO dollar signs, NO backslashes inside labels.
    Use: ∠ ° ′ ⊥ ∥ △ directly as Unicode characters.
@@ -293,9 +316,13 @@ STRICT PRINCIPLES:
    RULE 1 — EVERY LaTeX command MUST be inside $...$:
      Write "所以" and "因为" as plain Chinese, never \therefore or \because.
      WRONG: 点P在\odot O外        RIGHT: 点$P$在$\odot O$外
+     WRONG: \odot O的半径         RIGHT: $\odot O$的半径
+     WRONG: AB是\odot O的直径     RIGHT: $AB$是$\odot O$的直径
+     WRONG: 圆内接四边形ABCD，AB是odotO的直径  RIGHT: 圆内接四边形$ABCD$，$AB$是$\odot O$的直径
      WRONG: \triangle ABC         RIGHT: $\triangle ABC$
      WRONG: AB\parallel CD        RIGHT: $AB \parallel CD$
      WRONG: CF\perp BE            RIGHT: $CF \perp BE$
+     CRITICAL: The word "odot" must NEVER appear outside $...$. Always write $\odot O$ with dollar signs.
 
    RULE 2 — $ signs must be BALANCED, one opener for every closer:
      WRONG: $\perp$$    RIGHT: $\perp$
