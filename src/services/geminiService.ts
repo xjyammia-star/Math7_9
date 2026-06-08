@@ -158,6 +158,9 @@ STRICT PRINCIPLES:
      * 圆内接四边形 with extension line (F on extension of CD, or similar) → use circle_cyclic_quadrilateral with label_E for intersection point; add show_extension_to_E and label_E fields.
      * 直径 + points on circle (AB is diameter, C/D on arc) → use circle_diameter_points template.
      * Two chords intersecting inside circle → use circle_intersecting_chords template.
+     * Tangent line at A + chord BC parallel to tangent + point D on arc + connect BD/CD
+       (切线交A，弦BC平行切线，D在弧上) → use circle_chord_tangent template.
+       Set label_P for external point, label_A/B for tangent/chord endpoints, label_C for arc point D.
      * Circle inscribed in / tangent to sides of a triangle (圆与三角形两边相切, 地上圆O在斜边上) → ALWAYS use coordinate_points with axes:false.
        Include a "circle" field with cx/cy/r. Place the right angle vertex at the correct corner.
        NEVER use right_triangle for problems involving a circle tangent to two sides.
@@ -276,6 +279,16 @@ STRICT PRINCIPLES:
    {"template":"circle_tangent","radius":5,"op_dist":13,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_radius":"5","label_pa":"12","label_op":"13"}
    ${BT}
 
+   Tangent at A + chord BC parallel to tangent PA + point D on arc (切线 PA切⊙O于A，弦BC∥PA，D在劣弧BC上):
+   THIS IS THE CORRECT TEMPLATE for: "PA切⊙O于A，弦BC∥PA，连接AB、AC，D在劣弧BC上，连接BD、CD"
+   Use circle_chord_tangent: A=tangent point on circle, P=external point, B=other end of chord AB,
+   C=arc point (label it with the actual name from the problem, e.g. "C" or "D").
+   For chord BC parallel to tangent: the chord is AB in the template; the arc point C/D maps to label_C.
+   ${BT}math-diagram
+   {"template":"circle_chord_tangent","radius":5,"angle":25,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_C":"C"}
+   ${BT}
+   NOTE: label_C here represents the arc point D from the problem if the problem uses D. Just set label_C to "D".
+
    Cyclic quadrilateral inscribed in circle (圆内接四边形 ABCD):
    Use this whenever the problem has a quadrilateral ABCD inscribed in a circle, regardless of whether diagonals or extension lines are involved.
    labels array = [A, B, C, D] in order. angles array = positions on circle in degrees (optional, frontend picks good defaults).
@@ -360,7 +373,14 @@ STRICT PRINCIPLES:
      WRONG: \triangle ABC         RIGHT: $\triangle ABC$
      WRONG: AB\parallel CD        RIGHT: $AB \parallel CD$
      WRONG: CF\perp BE            RIGHT: $CF \perp BE$
+     WRONG: \angle ABD = 25\circ  RIGHT: $\angle ABD = 25^\circ$
+     WRONG: \angle CDB的度数    RIGHT: $\angle CDB$的度数
+     WRONG: 弦BC\parallelPA       RIGHT: $BC \parallel PA$
+     WRONG: angleABD = 25circ     RIGHT: $\angle ABD = 25^\circ$
+     WRONG: angleCDB的度数        RIGHT: $\angle CDB$的度数
      CRITICAL: The word "odot" must NEVER appear outside $...$. Always write $\odot O$ with dollar signs.
+     CRITICAL: "angle", "parallel", "perp", "circ" must NEVER appear as plain text. Always inside $...$.
+     CRITICAL: Degree symbol ° in math must be written as $25^\circ$, NEVER as "25circ" or "25\circ" outside $.
 
    RULE 2 — $ signs must be BALANCED, one opener for every closer:
      WRONG: $\perp$$    RIGHT: $\perp$
@@ -386,6 +406,11 @@ STRICT PRINCIPLES:
      If a \\ appears outside $...$, it is wrong — fix it.
      If you see \\\\cmd (double backslash), it is wrong — use \\cmd.
      Count every $: the total must be even. If odd, you have an error.
+     SCAN for these specific bare-word errors before finalising (all must be inside $...$):
+       "odot"  "angle"  "parallel"  "perp"  "circ"  "triangle"  "frac"  "sqrt"
+     If ANY of those words appear outside $...$, wrap the entire surrounding expression in $...$.
+     Example scan: find "angleABD" → wrong → replace with "$\angle ABD$".
+     Example scan: find "parallelPA" → wrong → replace with "$\parallel PA$" or "$BC \parallel PA$".
 
 8. LANGUAGE CONSISTENCY (CRITICAL): Reply in the same language as the conversation.
    If the student writes in Chinese, ALWAYS reply in Chinese. This overrides everything else.`;
