@@ -158,6 +158,10 @@ STRICT PRINCIPLES:
      * 圆内接四边形 with extension line (F on extension of CD, or similar) → use circle_cyclic_quadrilateral with label_E for intersection point; add show_extension_to_E and label_E fields.
      * 直径 + points on circle (AB is diameter, C/D on arc) → use circle_diameter_points template.
      * Two chords intersecting inside circle → use circle_intersecting_chords template.
+     * Circle inscribed in / tangent to sides of a triangle (圆与三角形两边相切, 地上圆O在斜边上) → ALWAYS use coordinate_points with axes:false.
+       Include a "circle" field with cx/cy/r. Place the right angle vertex at the correct corner.
+       NEVER use right_triangle for problems involving a circle tangent to two sides.
+     * right_triangle template: ONLY use when the problem has NO circle and just shows a plain right triangle with side labels.
      * Pure geometry (no coordinate grid in problem) → ALWAYS set axes:false. Use right_triangle / triangle / rectangle / coordinate_points with axes:false.
      * Only use axes:true when the problem explicitly mentions a coordinate system (坐标系/坐标轴/函数图象).
 
@@ -290,6 +294,40 @@ STRICT PRINCIPLES:
    ${BT}math-diagram
    {"template":"circle_diameter_points","radius":5,"label_O":"O","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_ab":"10"}
    ${BT}
+
+   Right triangle with inscribed circle tangent to two legs (直角三角形内切圆/在斜边上的圆O与两直角边相切):
+   THIS IS THE CORRECT TEMPLATE for problems like:
+   "在Rt△ABC中，∠C=90°，AC=12，BC=9，点O在斜边AB上，以O为圆心作圆，该圆分别与AC、BC相切于D、E，过A作圆O的切线，切点为F"
+   KEY RULES for this diagram type:
+   - 直角在C: place C at origin (0,0), A at (0,AC), B at (BC,0). RIGHT ANGLE IS AT C, NOT B.
+   - Circle center O is on hypotenuse AB. Compute O coordinates: radius r = (AC+BC-AB)/2 for inscribed circle; for O on AB use r = AC*BC/AB.
+   - Tangent points D (on AC) and E (on BC) are at distance r from O perpendicular to each leg.
+   - Point F is the second tangent point from external vertex A to circle O.
+   - Show the circle using the "circle" field. Draw segments AB, AC, BC, OD, OE, AF.
+   EXAMPLE (AC=12, BC=9, AB=15, r=3, O is at (3,4) from C):
+   ```math-diagram
+   {"template":"coordinate_points","axes":false,"points":[
+     {"x":0,"y":0,"label":"C"},
+     {"x":0,"y":12,"label":"A"},
+     {"x":9,"y":0,"label":"B"},
+     {"x":0,"y":3,"label":"D"},
+     {"x":3,"y":0,"label":"E"},
+     {"x":2.4,"y":3.2,"label":"O"},
+     {"x":1.44,"y":6.08,"label":"F"}
+   ],"segments":[["A","B"],["A","C"],["B","C"],["A","F"],["O","D"],["O","E"]],
+   "circle":{"cx":2.4,"cy":3.2,"r":3},
+   "angleMarks":[{"vertex":"C","from":"A","to":"B","right":true}]}
+   ```
+   COORDINATE CALCULATION GUIDE for Rt△ABC with ∠C=90°, AC=b, BC=a, AB=c:
+     C=(0,0), A=(0,b), B=(a,0)
+     r = a*b/c  (radius when O is foot of altitude, or use (a+b-c)/2 for incircle)
+     O on AB at distance AO from A: AO = b - r  (since AD=AF=b-r, tangent lengths from A)
+     O coordinates: parameterize AB as A + t*(B-A), t = AO/c
+       Ox = 0 + t*a = a*(b-r)/c
+       Oy = b + t*(-b) = b - b*t = b*r/c  (simplified)
+     D on AC: D=(0, r)  (tangent point, distance r from C along AC)
+     E on BC: E=(r, 0)  (tangent point, distance r from C along BC)
+     F on circle (second tangent from A): AF = b - r, F is on the circle toward A
 
    DIAGRAM LABEL RULE: ALL "label" values must be plain Unicode text only.
    NO LaTeX, NO dollar signs, NO backslashes inside labels.
