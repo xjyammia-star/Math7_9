@@ -168,183 +168,79 @@ STRICT PRINCIPLES:
      * Pure geometry (no coordinate grid in problem) → ALWAYS set axes:false. Use right_triangle / triangle / rectangle / coordinate_points with axes:false.
      * Only use axes:true when the problem explicitly mentions a coordinate system (坐标系/坐标轴/函数图象).
 
-3. DIAGRAM FORMAT — TEMPLATE SYSTEM (CRITICAL):
-   Use ONLY the templates below. NEVER invent raw coordinates. The frontend calculates positions automatically.
-   Pick the matching template and fill in numeric values and labels from the problem.
+3. DIAGRAM FORMAT — SVG GENERATION (CRITICAL):
 
-   Right triangle (直角三角形):
-   ${BT}math-diagram
-   {"template":"right_triangle","leg_h":4,"leg_v":3,"labels":{"A":"A","B":"B","C":"C"},"labels":{"AB":"3","BC":"4","AC":"5"}}
-   ${BT}
+   PHILOSOPHY: Do NOT pick a template. Instead:
+   1. READ the problem carefully and identify all geometric elements (points, lines, circles, angles).
+   2. COMPUTE exact coordinates for every point using the given measurements.
+   3. OUTPUT a raw SVG inside a fenced code block tagged ‘math-diagram’.
 
-   General triangle (一般三角形):
-   ${BT}math-diagram
-   {"template":"triangle","sides":[5,4,3],"labels":{"A":"A","B":"B","C":"C"},"right_angle":"B"}
-   ${BT}
-
-   Rectangle (矩形):
-   ${BT}math-diagram
-   {"template":"rectangle","width":8,"height":5,"labels":["A","B","C","D"],"label_width":"8","label_height":"5"}
-   ${BT}
-
-   Rectangle with fold (矩形折叠):
-
-   COORDINATE SYSTEM (memorise this):
-     D=(0,0) bottom-left,  C=(width,0) bottom-right
-     A=(0,height) top-left, B=(width,height) top-right
-     AD = left edge (vertical, length=height)
-     BC = right edge (vertical, length=height)
-     AB = top edge  (horizontal, length=width)
-     DC = bottom edge (horizontal, length=width)
-
-   KEY PARAMETERS:
-     fold_vertex        — corner being folded: "A"|"B"|"C"|"D"
-     E_side, E_ratio    — crease endpoint E: which edge + ratio from first→second letter (0=first letter, 1=second letter)
-     F_side, F_ratio    — crease endpoint F: same convention
-     fold_land_x/y      — where the folded vertex IMAGE (A') lands, in the coordinate system above
-
-   WORKED EXAMPLE — "AB=8, AD=10, fold A onto BC at A', BF=3":
-     • Rect coords: D=(0,0), C=(8,0), B=(8,10), A=(0,10)
-     • F is on BC with BF=3, so F=(8, 10-3)=(8,7)  →  F_side="BC", F_ratio=3/10=0.3
-     • fold_land_x=8, fold_land_y=7
-     • E_side="AD", E_ratio=0.6625
-
-   FULL EXAMPLE OUTPUT:
-   ${BT}math-diagram
-   {"template":"rectangle_fold","width":8,"height":10,"fold_vertex":"A","E_side":"AD","E_ratio":0.6625,"F_side":"BC","F_ratio":0.3,"fold_land_x":8,"fold_land_y":7,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_F":"F","label_Ap":"A'"}
-   ${BT}
-
-   Parallelogram (平行四边形):
-   ${BT}math-diagram
-   {"template":"parallelogram","base":8,"side":5,"angle":60,"label_base":"8","label_side":"5","label_height":"h"}
-   ${BT}
-
-   Ladder against wall (梯子靠墙):
-   ${BT}math-diagram
-   {"template":"ladder","length":10,"foot_dist":6,"label_ladder":"10","label_wall":"8","label_foot":"6"}
-   ${BT}
-
-   Cylinder unrolled / shortest path (圆柱展开/最短路径):
-   ${BT}math-diagram
-   {"template":"cylinder_unrolled","circumference":6.28,"height":8,"label_circ":"2πr","label_height":"8"}
-   ${BT}
-
-   Linear function (一次函数):
-   ${BT}math-diagram
-   {"template":"linear_function","slope":2,"intercept":-1,"xmin":-3,"xmax":3,"label":"y=2x-1"}
-   ${BT}
-
-   Quadratic function (二次函数):
-   ${BT}math-diagram
-   {"template":"quadratic_function","a":1,"b":-2,"c":-3,"xmin":-3,"xmax":5,"label":"y=x²-2x-3"}
-   ${BT}
-
-   Number line (数轴):
-   ${BT}math-diagram
-   {"template":"number_line","range":[-5,5],"points":[{"val":2,"label":"x=2"},{"val":-1,"label":"-1","open":true}]}
-   ${BT}
-
-   Coordinate points and segments (坐标系中的点线):
-   ${BT}math-diagram
-   {"template":"coordinate_points","points":[{"x":0,"y":0,"label":"O"},{"x":3,"y":4,"label":"A"}],"segments":[["O","A"]]}
-   ${BT}
-
-   RECTANGLE IN coordinate_points: MUST list ALL 4 sides in segments.
-   "segments":[["A","B"],["B","C"],["C","D"],["D","A"]]
-
-   PARALLEL LINES + TRANSVERSAL (平行线被截线):
-   Use coordinate_points with axes:false. Two horizontal parallel lines, one diagonal transversal.
-   Compute intersection points exactly — G must have same y as line a, H must have same y as line b.
-   ${BT}math-diagram
-   {"template":"coordinate_points","axes":false,"points":[
-     {"x":0,"y":4,"label":"A"},{"x":8,"y":4,"label":"B"},
-     {"x":0,"y":0,"label":"C"},{"x":8,"y":0,"label":"D"},
-     {"x":2,"y":6,"label":"E"},{"x":6,"y":-2,"label":"F"},
-     {"x":3,"y":4,"label":"G"},{"x":5,"y":0,"label":"H"}
-   ],"segments":[["A","B"],["C","D"],["E","F"]]}
-   ${BT}
-
-   Similar triangles (相似三角形):
-   ${BT}math-diagram
-   {"template":"similar_triangles","sides":[3,4,5],"ratio":2,"labels1":["A","B","C"],"labels2":["A\'","B\'","C\'"]}
-   ${BT}
-
-   Circle with chord and perpendicular (圆中弦与垂径定理):
-   ${BT}math-diagram
-   {"template":"circle_chord","radius":5,"chord_half":4,"label_O":"O","label_A":"A","label_B":"B","label_C":"C","label_radius":"5","label_oc":"3","label_chord_half":"4"}
-   ${BT}
-
-   Circle with tangent from external point (圆外切线):
-   ${BT}math-diagram
-   {"template":"circle_tangent","radius":5,"op_dist":13,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_radius":"5","label_pa":"12","label_op":"13"}
-   ${BT}
-
-   Tangent at A + chord BC parallel to tangent PA + point D on arc (切线 PA切⊙O于A，弦BC∥PA，D在劣弧BC上):
-   THIS IS THE CORRECT TEMPLATE for: "PA切⊙O于A，弦BC∥PA，连接AB、AC，D在劣弧BC上，连接BD、CD"
-   Use circle_chord_tangent: A=tangent point on circle, P=external point, B=other end of chord AB,
-   C=arc point (label it with the actual name from the problem, e.g. "C" or "D").
-   For chord BC parallel to tangent: the chord is AB in the template; the arc point C/D maps to label_C.
-   ${BT}math-diagram
-   {"template":"circle_chord_tangent","radius":5,"angle":25,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_C":"C"}
-   ${BT}
-   NOTE: label_C here represents the arc point D from the problem if the problem uses D. Just set label_C to "D".
-
-   Cyclic quadrilateral inscribed in circle (圆内接四边形 ABCD):
-   Use this whenever the problem has a quadrilateral ABCD inscribed in a circle, regardless of whether diagonals or extension lines are involved.
-   labels array = [A, B, C, D] in order. angles array = positions on circle in degrees (optional, frontend picks good defaults).
-   ${BT}math-diagram
-   {"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"label_O":"O"}
-   ${BT}
-
-   Cyclic quadrilateral with diagonal intersection E and extension point F on CD extended (圆内接四边形，对角线交点E，F在CD延长线上):
-   THIS IS THE CORRECT TEMPLATE for problems like: "圆内接四边形ABCD，AB是直径，AC平分∠DAB，BD与AC交于点E，F在CD延长线上，BF=BE".
-   Use circle_cyclic_quadrilateral with label_E for the diagonal intersection, show_extension_to_E:true, label_E for F-like external point.
-   ${BT}math-diagram
-   {"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"label_O":"O","label_E":"E","show_extension_to_E":true,"label_A":"A","label_B":"B","label_C":"C","label_D":"D"}
-   ${BT}
-
-   Circle with diameter AB and points C/D on arc (直径AB，弧上有点C、D):
-   ${BT}math-diagram
-   {"template":"circle_diameter_points","radius":5,"label_O":"O","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_ab":"10"}
-   ${BT}
-
-   Right triangle with inscribed circle tangent to two legs (直角三角形内切圆/在斜边上的圆O与两直角边相切):
-   THIS IS THE CORRECT TEMPLATE for problems like:
-   "在Rt△ABC中，∠C=90°，AC=12，BC=9，点O在斜边AB上，以O为圆心作圆，该圆分别与AC、BC相切于D、E，过A作圆O的切线，切点为F"
-   KEY RULES for this diagram type:
-   - 直角在C: place C at origin (0,0), A at (0,AC), B at (BC,0). RIGHT ANGLE IS AT C, NOT B.
-   - Circle center O is on hypotenuse AB. Compute O coordinates: radius r = (AC+BC-AB)/2 for inscribed circle; for O on AB use r = AC*BC/AB.
-   - Tangent points D (on AC) and E (on BC) are at distance r from O perpendicular to each leg.
-   - Point F is the second tangent point from external vertex A to circle O.
-   - Show the circle using the "circle" field. Draw segments AB, AC, BC, OD, OE, AF.
-   EXAMPLE (AC=12, BC=9, AB=15, r=3, O is at (3,4) from C):
+   OUTPUT FORMAT (always use this exact wrapper):
    ```math-diagram
-   {"template":"coordinate_points","axes":false,"points":[
-     {"x":0,"y":0,"label":"C"},
-     {"x":0,"y":12,"label":"A"},
-     {"x":9,"y":0,"label":"B"},
-     {"x":0,"y":3,"label":"D"},
-     {"x":3,"y":0,"label":"E"},
-     {"x":2.4,"y":3.2,"label":"O"},
-     {"x":1.44,"y":6.08,"label":"F"}
-   ],"segments":[["A","B"],["A","C"],["B","C"],["A","F"],["O","D"],["O","E"]],
-   "circle":{"cx":2.4,"cy":3.2,"r":3},
-   "angleMarks":[{"vertex":"C","from":"A","to":"B","right":true}]}
+   {"template":"raw_svg","svg":"<svg viewBox=\"0 0 400 400\" xmlns=\"http://www.w3.org/2000/svg\"> ... </svg>"}
    ```
-   COORDINATE CALCULATION GUIDE for Rt△ABC with ∠C=90°, AC=b, BC=a, AB=c:
-     C=(0,0), A=(0,b), B=(a,0)
-     r = a*b/c  (radius when O is foot of altitude, or use (a+b-c)/2 for incircle)
-     O on AB at distance AO from A: AO = b - r  (since AD=AF=b-r, tangent lengths from A)
-     O coordinates: parameterize AB as A + t*(B-A), t = AO/c
-       Ox = 0 + t*a = a*(b-r)/c
-       Oy = b + t*(-b) = b - b*t = b*r/c  (simplified)
-     D on AC: D=(0, r)  (tangent point, distance r from C along AC)
-     E on BC: E=(r, 0)  (tangent point, distance r from C along BC)
-     F on circle (second tangent from A): AF = b - r, F is on the circle toward A
+   IMPORTANT: The entire SVG must be a single-line JSON string value. Escape all double-quotes inside SVG as \". No literal newlines inside the JSON string.
 
-   DIAGRAM LABEL RULE: ALL "label" values must be plain Unicode text only.
-   NO LaTeX, NO dollar signs, NO backslashes inside labels.
-   Use: ∠ ° ′ ⊥ ∥ △ directly as Unicode characters.
+   SVG STYLE RULES (follow exactly):
+   - Background: transparent (no <rect> fill for background)
+   - Stroke color for main lines: #f59e0b (gold/amber)
+   - Stroke color for construction/helper lines: #94a3b8 (slate gray, use stroke-dasharray="5,4")
+   - Circle stroke: #94a3b8 (gray)
+   - Font: font-family="system-ui, sans-serif"
+   - Label font-size: 15, fill: #f8fafc (near white)
+   - Point dots: <circle r="4" fill="#f59e0b"/>
+   - Right-angle mark: a small 10px square rotated to the angle
+   - stroke-width for main geometry: 2.5
+   - stroke-width for helper lines: 1.5
+   - viewBox: choose to fit the figure with ~40px padding on all sides
+
+   COORDINATE SYSTEM:
+   - SVG y-axis points DOWN. For math diagrams, place larger y values LOWER on screen.
+   - To make a figure appear "math-like" (y up), flip: svg_y = viewBox_height - margin - math_y * scale
+   - Always scale coordinates to fit nicely in the viewBox (use 300-400px working area).
+
+   LABEL PLACEMENT:
+   - Place labels OUTSIDE the figure, offset 14-18px from the point away from the figure center.
+   - Use text-anchor="middle" for most labels.
+   - For points on the left side, use text-anchor="end"; right side use text-anchor="start".
+
+   WHAT TO DRAW (mandatory elements):
+   - All named points as small filled circles + labels
+   - All named line segments
+   - Circles (if any): full circle outline in gray
+   - Right angle marks where \xe2��=90°
+   - Arc marks for equal angles (small arcs near vertex)
+   - Tick marks for equal lengths (small perpendicular ticks on segments)
+
+   WORKED EXAMPLE 1 — Right triangle ∠C=90°, AC=12, BC=9, AB=15 with inscribed circle O (r=3):
+   Math coords: C=(0,0), A=(0,12), B=(9,0), O=(2.4,3.2), D=(0,3), E=(3,0), F=(1.44,6.08)
+   Scale to SVG: use scale=22, origin at (60, 340) so svg_x = 60 + mx*22, svg_y = 340 - my*22
+   C=(60,340), A=(60,76), B=(258,340), O=(112.8,269.6), D=(60,274), E=(126,340), F=(91.7,206)
+   ```math-diagram
+   {"template":"raw_svg","svg":"<svg viewBox=\"0 0 360 400\" xmlns=\"http://www.w3.org/2000/svg\"><line x1=\"60\" y1=\"340\" x2=\"60\" y2=\"76\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"60\" y1=\"340\" x2=\"258\" y2=\"340\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"60\" y1=\"76\" x2=\"258\" y2=\"340\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><circle cx=\"112.8\" cy=\"269.6\" r=\"66\" fill=\"none\" stroke=\"#94a3b8\" stroke-width=\"1.5\"/><line x1=\"60\" y1=\"76\" x2=\"91.7\" y2=\"206\" stroke=\"#94a3b8\" stroke-width=\"1.5\" stroke-dasharray=\"5,4\"/><line x1=\"112.8\" y1=\"269.6\" x2=\"60\" y2=\"274\" stroke=\"#94a3b8\" stroke-width=\"1.5\" stroke-dasharray=\"5,4\"/><line x1=\"112.8\" y1=\"269.6\" x2=\"126\" y2=\"340\" stroke=\"#94a3b8\" stroke-width=\"1.5\" stroke-dasharray=\"5,4\"/><rect x=\"60\" y=\"330\" width=\"10\" height=\"10\" fill=\"none\" stroke=\"#94a3b8\" stroke-width=\"1.5\"/><circle cx=\"60\" cy=\"340\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"60\" cy=\"76\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"258\" cy=\"340\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"112.8\" cy=\"269.6\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"60\" cy=\"274\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"126\" cy=\"340\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"91.7\" cy=\"206\" r=\"4\" fill=\"#f59e0b\"/><text x=\"44\" y=\"348\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"end\">C</text><text x=\"44\" y=\"76\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"end\">A</text><text x=\"270\" y=\"348\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\">B</text><text x=\"124\" y=\"260\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\">O</text><text x=\"44\" y=\"278\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"end\">D</text><text x=\"130\" y=\"358\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\">E</text><text x=\"80\" y=\"200\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\">F</text></svg>"}
+   ```
+
+   WORKED EXAMPLE 2 — Circle ⊙O, cyclic quadrilateral ABCD, E on extension of AB, CE bisects ∠BCD:
+   Place circle center at (200,200), radius=120. Space A,B,C,D on circle.
+   A at 200°, B at 290°, C at 20°, D at 110° (angles from positive x-axis).
+   E is on extension of AB beyond B.
+   ```math-diagram
+   {"template":"raw_svg","svg":"<svg viewBox=\"0 0 440 420\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"200\" cy=\"210\" r=\"130\" fill=\"none\" stroke=\"#94a3b8\" stroke-width=\"1.5\"/><line x1=\"82.9\" y1=\"275.6\" x2=\"155.6\" y2=\"85.5\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"155.6\" y1=\"85.5\" x2=\"322.2\" y2=\"165.4\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"322.2\" y1=\"165.4\" x2=\"255.6\" y2=\"333.8\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"255.6\" y1=\"333.8\" x2=\"82.9\" y2=\"275.6\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"82.9\" y1=\"275.6\" x2=\"322.2\" y2=\"165.4\" stroke=\"#94a3b8\" stroke-width=\"1.5\" stroke-dasharray=\"5,4\"/><line x1=\"155.6\" y1=\"85.5\" x2=\"255.6\" y2=\"333.8\" stroke=\"#94a3b8\" stroke-width=\"1.5\" stroke-dasharray=\"5,4\"/><line x1=\"82.9\" y1=\"275.6\" x2=\"0\" y2=\"310\" stroke=\"#f59e0b\" stroke-width=\"2\" stroke-dasharray=\"6,3\"/><circle cx=\"82.9\" cy=\"275.6\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"155.6\" cy=\"85.5\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"322.2\" cy=\"165.4\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"255.6\" cy=\"333.8\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"0\" cy=\"310\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"200\" cy=\"210\" r=\"4\" fill=\"#94a3b8\"/><text x=\"66\" y=\"276\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"end\">A</text><text x=\"148\" y=\"70\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"middle\">B</text><text x=\"337\" y=\"162\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\">C</text><text x=\"262\" y=\"352\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\">D</text><text x=\"0\" y=\"328\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"middle\">E</text><text x=\"210\" y=\"206\" font-size=\"15\" font-family=\"system-ui\" fill=\"#94a3b8\">O</text></svg>"}
+   ```
+
+   WORKED EXAMPLE 3 — Tangent PA at A, chord BC ∥ PA, D on minor arc BC:
+   Circle center O=(220,210), r=120. A at top (220,90). P external left (60,90). B at lower-left (108,302). C at lower-right (332,302). D on minor arc between B and C at (220,330).
+   ```math-diagram
+   {"template":"raw_svg","svg":"<svg viewBox=\"0 0 420 400\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"220\" cy=\"210\" r=\"120\" fill=\"none\" stroke=\"#94a3b8\" stroke-width=\"1.5\"/><line x1=\"60\" y1=\"90\" x2=\"380\" y2=\"90\" stroke=\"#94a3b8\" stroke-width=\"1.5\" stroke-dasharray=\"5,4\"/><line x1=\"60\" y1=\"90\" x2=\"220\" y2=\"90\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"108\" y1=\"302\" x2=\"332\" y2=\"302\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"220\" y1=\"90\" x2=\"108\" y2=\"302\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"220\" y1=\"90\" x2=\"332\" y2=\"302\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"108\" y1=\"302\" x2=\"220\" y2=\"330\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"332\" y1=\"302\" x2=\"220\" y2=\"330\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><circle cx=\"220\" cy=\"90\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"60\" cy=\"90\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"108\" cy=\"302\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"332\" cy=\"302\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"220\" cy=\"330\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"220\" cy=\"210\" r=\"4\" fill=\"#94a3b8\"/><text x=\"228\" y=\"78\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\">A</text><text x=\"48\" y=\"80\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"end\">P</text><text x=\"94\" y=\"320\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"end\">B</text><text x=\"346\" y=\"320\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\">C</text><text x=\"220\" y=\"352\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"middle\">D</text><text x=\"230\" y=\"208\" font-size=\"15\" font-family=\"system-ui\" fill=\"#94a3b8\">O</text></svg>"}
+   ```
+
+   GENERAL RULES:
+   - ALWAYS output a diagram for geometry problems. No exceptions.
+   - Compute coordinates from the actual numbers in the problem (AC=12, BC=9, etc.).
+   - If numbers are not given, choose reasonable values (e.g. radius=120px for a circle).
+   - Keep the SVG self-contained. No external images, no <script> tags.
+   - The JSON must be valid: escape all \" inside the svg string, no literal newlines.
+   - viewBox should leave ~40px margin on each side of the figure.
 
 4. (reserved)
 5. VARIETY RULE (STRICT): Rotate problem types. Never generate the same type more than twice in a row.

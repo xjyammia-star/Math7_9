@@ -201,7 +201,8 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
       const content = String(children).replace(/\n$/, '');
       const isDiagram = content.includes('"template"') || content.includes('"type"') ||
         content.includes('"geometry"') || content.includes('"window"') ||
-        content.includes('"points"') ||
+        content.includes('"points"') || content.includes('"raw_svg"') ||
+        content.trim().startsWith('<svg') ||
         content.includes('\nrect ') || content.includes('\nline ') ||
         content.startsWith('rect ') || content.startsWith('line ');
       if (!inline && ((match && match[1] === 'math-diagram') || isDiagram)) {

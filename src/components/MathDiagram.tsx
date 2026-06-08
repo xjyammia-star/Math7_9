@@ -2784,9 +2784,27 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
 
   // If it arrived as a string, try to parse JSON
   if (typeof parsed === 'string') {
+    // Check if it's a raw SVG string
+    const trimmed = parsed.trim();
+    if (trimmed.startsWith('<svg') || trimmed.startsWith('<?xml')) {
+      return (
+        <div className="my-6 flex justify-center bg-slate-900/40 p-4 rounded-3xl border border-white/5 backdrop-blur-sm"
+          dangerouslySetInnerHTML={{ __html: trimmed }}
+        />
+      );
+    }
     try { parsed = JSON.parse(parsed); } catch {
       return <SilentDiagramFallback />;
     }
+  }
+
+  // raw_svg template: JSON wrapper around a raw SVG string
+  if (parsed?.template === 'raw_svg' && typeof parsed?.svg === 'string') {
+    return (
+      <div className="my-6 flex justify-center bg-slate-900/40 p-4 rounded-3xl border border-white/5 backdrop-blur-sm"
+        dangerouslySetInnerHTML={{ __html: parsed.svg }}
+      />
+    );
   }
 
   let template: string = String(parsed?.template ?? parsed?.type ?? '').trim();
