@@ -116,8 +116,8 @@ const FormulaVisualizer: React.FC<Props> = ({ lang }) => {
 
         <div className="flex-1 overflow-y-auto">
           <div className="flex flex-col lg:flex-row gap-0 h-full">
-            <div className="lg:flex-1 flex items-start justify-center p-6 border-b lg:border-b-0 lg:border-r border-[var(--color-brand-border)] overflow-y-auto">
-              <div className="w-full max-w-lg">
+            <div className="lg:flex-1 flex items-start justify-center p-4 border-b lg:border-b-0 lg:border-r border-[var(--color-brand-border)] overflow-y-auto">
+              <div className="w-full max-w-2xl">
                 <VisualComponent lang={lang} />
               </div>
             </div>
