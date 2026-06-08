@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ClipboardList,
   Settings2,
@@ -19,7 +19,6 @@ import { generateExercises, solveExercises } from '../services/geminiService';
 import LearningAgent from './LearningAgent';
 import MathDiagram from './MathDiagram';
 import { sanitizeMath } from '../utils/mathUtils';
-import { extractEmbeddedDiagram } from '../utils/markdownDiagram';
 
 // ─── Curriculum labels ────────────────────────────────────────────────────
 const CURRICULUM_LABELS: Record<Curriculum, { zh: string; en: string; flag: string; color: string }> = {
@@ -57,11 +56,6 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
   const [showSolution, setShowSolution] = useState(false);
   const [isGuiding, setIsGuiding]   = useState(false);
   const [error, setError]           = useState<string | null>(null);
-  const isStructuredExerciseConcept = concept?.id === 'area-perimeter' || concept?.id === 'pythagoras';
-
-  useEffect(() => {
-    setCount(1);
-  }, [isStructuredExerciseConcept]);
 
   const handleReset = () => {
     setExercises(null); setSolution(null); setShowSolution(false);
@@ -120,32 +114,19 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
     setLoading(true);
     setExercises(null); setSolution(null); setShowSolution(false); setIsGuiding(false); setError(null);
     try {
-      const exerciseCount = count;
       const specificTitle = activeConcept.specificFocus ? activeConcept.specificFocus[lang] : activeConcept.title[lang];
       const promptContext = `${specificTitle}${requirement ? ` (Special focus: ${requirement})` : ' (Ensure maximum variety of problem types, randomize sub-scenarios)'}`;
       const result = await generateExercises(
         promptContext,
         activeConcept.description[lang],
-        grade, difficulty, exerciseCount, lang,
-        curriculum,
-        activeConcept.id
+        grade, difficulty, count, lang,
+        curriculum
       );
       setExercises(result);
     } catch (err: any) {
-      const message = String(err?.message ?? '');
-      const isTemplateError =
-        message.startsWith('PYTHAGORAS_TEMPLATE_ERROR:') ||
-        message.startsWith('AREA_PERIMETER_TEMPLATE_ERROR:');
-
-      setError(
-        message === 'AI_INTERNAL_ERROR'
-          ? (lang === 'zh' ? '生成出错，请稍后重试。' : 'Evaluation error, please try again.')
-          : isTemplateError
-            ? (lang === 'zh'
-                ? '题型模板生成失败，请切换难度或年级后重试。'
-                : 'Template generation failed. Please try another difficulty or grade.')
-            : 'Connection error. Please try again.'
-      );
+      setError(err?.message === 'AI_INTERNAL_ERROR'
+        ? (lang === 'zh' ? '生成出错，请稍后重试。' : 'Evaluation error, please try again.')
+        : 'Connection error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -183,16 +164,6 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
           const m = text.match(/(\{[\s\S]*\})/);
           return <MathDiagram data={m ? JSON.parse(m[1]) : text.trim()} />;
         } catch (e) {}
-      }
-      const embeddedDiagram = extractEmbeddedDiagram(text);
-      if (embeddedDiagram) {
-        return (
-          <div className="mb-4 space-y-4">
-            {embeddedDiagram.leadingText && <p className="mb-0">{embeddedDiagram.leadingText}</p>}
-            <MathDiagram data={embeddedDiagram.diagramData} />
-            {embeddedDiagram.trailingText && <p className="mb-0">{embeddedDiagram.trailingText}</p>}
-          </div>
-        );
       }
       return <p className="mb-4">{children}</p>;
     },
@@ -285,15 +256,9 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
                 {t.countLabel}
               </label>
               <input
-                type="number"
-                min={1}
-                max={10}
+                type="number" min="1" max="10"
                 value={count}
-                onChange={e => {
-                  const next = parseInt(e.target.value, 10);
-                  if (!Number.isFinite(next)) return;
-                  setCount(Math.max(1, Math.min(10, next)));
-                }}
+                onChange={e => setCount(parseInt(e.target.value))}
                 className="w-full bg-[var(--color-brand-bg)] border border-[var(--color-brand-border)] rounded-xl px-4 py-2.5 text-sm text-slate-200 outline-none focus:ring-1 focus:ring-[var(--color-brand-accent)] transition-all"
               />
             </div>

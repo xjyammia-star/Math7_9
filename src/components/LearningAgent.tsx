@@ -9,18 +9,6 @@ import { Concept, Language, Curriculum, Message } from '../types';
 import { startFeynmanSession, chatStep, guideExercise, guideExerciseStep } from '../services/geminiService';
 import MathDiagram from './MathDiagram';
 import { sanitizeMath } from '../utils/mathUtils';
-import { extractEmbeddedDiagram } from '../utils/markdownDiagram';
-import { normalizeTutorPlainText, shouldRenderTutorContentWithMath } from '../utils/tutorMarkdown';
-
-interface LearningAgentProps {
-  concept: Concept;
-  lang: Language;
-  curriculum?: Curriculum | null;
-  initialMessage?: string;
-  initialContext?: string;
-  autoStart?: boolean;
-  mode?: 'learn' | 'guide';
-}
 
 const LearningAgent: React.FC<LearningAgentProps> = ({
   concept,
@@ -135,16 +123,6 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
           return <MathDiagram data={m ? JSON.parse(m[1]) : text.trim()} />;
         } catch (e) {}
       }
-      const embeddedDiagram = extractEmbeddedDiagram(text);
-      if (embeddedDiagram) {
-        return (
-          <div className="mb-4 space-y-4">
-            {embeddedDiagram.leadingText && <p className="mb-0">{embeddedDiagram.leadingText}</p>}
-            <MathDiagram data={embeddedDiagram.diagramData} />
-            {embeddedDiagram.trailingText && <p className="mb-0">{embeddedDiagram.trailingText}</p>}
-          </div>
-        );
-      }
       return <p className="mb-4">{children}</p>;
     },
     code({ node, inline, className, children, ...props }: any) {
@@ -163,22 +141,6 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
       }
       return <code className={className} {...props}>{children}</code>;
     }
-  };
-
-  const renderTutorContent = (content: string) => {
-    const sanitized = sanitizeMath(content);
-    const useMathMode = shouldRenderTutorContentWithMath(sanitized);
-    const displayText = useMathMode ? sanitized : normalizeTutorPlainText(sanitized);
-
-    return (
-      <ReactMarkdown
-        remarkPlugins={useMathMode ? [remarkMath] : []}
-        rehypePlugins={useMathMode ? [rehypeKatex] : []}
-        components={mdComponents}
-      >
-        {displayText}
-      </ReactMarkdown>
-    );
   };
 
   // ── Not started ──────────────────────────────────────────────────────
@@ -267,7 +229,13 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
             }`}>
               {msg.role === 'user' ? msg.content : (
                 <div className="markdown-body prose prose-invert prose-sm max-w-none prose-p:leading-relaxed">
-                  {renderTutorContent(msg.content)}
+                  <ReactMarkdown
+                    remarkPlugins={[remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                    components={mdComponents}
+                  >
+                    {sanitizeMath(msg.content)}
+                  </ReactMarkdown>
                 </div>
               )}
             </div>

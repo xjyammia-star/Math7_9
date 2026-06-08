@@ -1,74 +1,36 @@
 import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
-import { classifyDiagramNeed, shouldRequireDiagramBlock, stripDiagramArtifacts } from "../utils/diagramPolicy";
-import { maskQuestionAnswerLeaks, needsAngleValueSourceMismatchRepair, needsCentralAngleRayRepair, needsCircleChordRepair, needsCircleCyclicQuadrilateralRepair, needsCircleDiameterIntersectingChordsRepair, needsCircleDiameterRepair, needsCircleDiameterTangentChordRepair, needsCircleIntersectingChordsRepair, needsCircleSectorRepair, needsCircleTangentRepair, needsCircleThreePointsRepair, needsLinearIntersectionRepair, needsPointLabelRepair, needsQuestionAnswerLeakRepair, needsTangentChordRepair } from "../utils/diagramConsistency";
-import { buildAlgebraExerciseBatch, isAlgebraQuestionBankConcept } from "../utils/algebraExerciseTemplates.js";
-import { coerceCircleScenePayload, detectCircleSceneIssues, extractCircleScene } from "../utils/circleSceneSchema.js";
-import { validateCirclePromptSanity, validateCircleSceneAgainstPrompt } from "../utils/circleScenePromptValidation.js";
-import { buildAreaPerimeterExerciseBatch, isAreaPerimeterConcept } from "../utils/areaPerimeterExerciseTemplates.js";
-import { buildPythagorasExerciseBatch, isPythagorasConcept } from "../utils/pythagorasExerciseTemplates.js";
-import { buildDifficultyGuidance, genericProblemTypesByDifficulty, normalizeDifficulty, minTierPoolSize } from "../utils/exerciseTierPolicy.js";
-import { getConceptProblemTypeBoosters, getExerciseTypePool } from "../utils/exerciseTypeTaxonomy.js";
-import { sanitizeMath } from "../utils/mathUtils";
-import { buildChatCompletionBody } from "../utils/modelRequest";
-
-export type AiModelId = "glm47" | "doubao";
-
-export type AiModelConfig = {
-  id: AiModelId;
-  label: string;
-  baseUrl: string;
-  apiKey: string;
-  model: string;
-};
 
 const ARK_BASE_URL =
   (import.meta as any).env?.VITE_DOUBAO_BASE_URL ||
   "https://ark.cn-beijing.volces.com/api/v3";
-
-export const EXERCISE_MODEL_ID: AiModelId = "glm47";
-export const TUTOR_MODEL_ID: AiModelId = "doubao";
-
-const AI_MODEL_CONFIGS: Record<AiModelId, AiModelConfig> = {
-  glm47: {
-    id: "glm47",
-    label: "GLM 4.7",
-    baseUrl: ARK_BASE_URL,
-    apiKey: (import.meta as any).env?.VITE_GLM_API_KEY || "",
-    model: (import.meta as any).env?.VITE_GLM_MODEL || "ep-20260528150018-jh75j",
-  },
-  doubao: {
-    id: "doubao",
-    label: "豆包",
-    baseUrl: ARK_BASE_URL,
-    apiKey: (import.meta as any).env?.VITE_DOUBAO_API_KEY || "",
-    model: (import.meta as any).env?.VITE_DOUBAO_MODEL || "doubao-seed-2-0-lite-250615",
-  },
-};
-
-function getModelConfig(modelId: AiModelId = TUTOR_MODEL_ID): AiModelConfig {
-  return AI_MODEL_CONFIGS[modelId];
-}
+const ARK_API_KEY = (import.meta as any).env?.VITE_DOUBAO_API_KEY || "";
+const ARK_MODEL =
+  (import.meta as any).env?.VITE_DOUBAO_MODEL ||
+  "doubao-seed-2-0-lite-250615";
 
 async function safeGenerate(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
   jsonMode = false,
-  maxTokens = 800,
-  temperature = 0.7,
-  modelId: AiModelId = TUTOR_MODEL_ID
+  maxTokens = 800
 ): Promise<string> {
   try {
-    const modelConfig = getModelConfig(modelId);
-    if (!modelConfig.apiKey) {
-      throw new Error(`${modelConfig.label} API key is missing`);
+    const body: Record<string, any> = {
+      model: ARK_MODEL,
+      messages,
+      max_tokens: maxTokens,
+      temperature: 0.7,
+      top_p: 0.95,
+    };
+    if (jsonMode) {
+      body.response_format = { type: "json_object" };
     }
-    const body = buildChatCompletionBody(modelConfig, messages, jsonMode, maxTokens, temperature, modelId);
 
-    const res = await fetch(`${modelConfig.baseUrl}/chat/completions`, {
+    const res = await fetch(`${ARK_BASE_URL}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${modelConfig.apiKey}`,
+        Authorization: `Bearer ${ARK_API_KEY}`,
       },
       body: JSON.stringify(body),
     });
@@ -95,1284 +57,6 @@ async function safeGenerate(
     }
     console.error("ARK API Error:", error);
     throw error;
-  }
-}
-
-const RAW_MATH_LEAK_PATTERNS: RegExp[] = [
-  /(?:^|[^A-Za-z])(?:\\)?odot(?=[A-Z0-9(])/,
-  /(?:^|[^A-Za-z])(?:\\)?triangle(?=[A-Z0-9(])/,
-  /(?:^|[^A-Za-z])(?:\\)?angle(?=[A-Z0-9(])/,
-  /(?:^|[^A-Za-z])(?:\\)?perp(?=[A-Z0-9(])/,
-  /(?:^|[^A-Za-z])(?:\\)?parallel(?=[A-Z0-9(])/,
-  /(?:^|[^A-Za-z])(?:\\)?circ\b/,
-];
-
-function hasRawMathLeak(text: string): boolean {
-  return RAW_MATH_LEAK_PATTERNS.some((pattern) => pattern.test(text));
-}
-
-function hasMathDiagramBlock(text: string): boolean {
-  return text.includes('```math-diagram') || text.includes('"template"');
-}
-
-function hasUnfencedDiagramJson(text: string): boolean {
-  const source = String(text ?? "");
-  return source.includes('"template"') && !source.includes('```math-diagram');
-}
-
-export function shouldStripDiagramArtifactsAfterRepair(
-  finalIssues: string[],
-  conceptId: string = ""
-): boolean {
-  const hasDiagramIssues = finalIssues.some((issue) =>
-    issue.includes("diagram") ||
-    issue.includes("template_mismatch") ||
-    issue.includes("semantic_mismatch") ||
-    issue.includes("missing_central_angle_ray") ||
-    issue.includes("circle_scene_invalid") ||
-    issue.includes("circle_diameter_line_mismatch") ||
-    issue.includes("circle_chord_semantic_mismatch")
-  );
-
-  return hasDiagramIssues && String(conceptId ?? '').trim() !== 'circles';
-}
-
-export function shouldRetryCircleSceneRepair(
-  finalIssues: string[],
-  conceptId: string = ""
-): boolean {
-  if (String(conceptId ?? '').trim() !== 'circles') return false;
-
-  return finalIssues.some((issue) =>
-    issue === 'missing_diagram_block' ||
-    issue === 'circle_scene_invalid' ||
-    issue === 'circle_scene_semantic_mismatch' ||
-    issue === 'diagram_json_unfenced' ||
-    issue.startsWith('circle_prompt_')
-  );
-}
-
-export function getExerciseGenerationTemperature(conceptId: string = ""): number {
-  return String(conceptId ?? '').trim() === 'circles' ? 0.35 : 0.95;
-}
-
-export function getExerciseRepairTemperature(conceptId: string = "", attempt: number = 1): number {
-  if (String(conceptId ?? '').trim() !== 'circles') return 0.7;
-  if (attempt <= 1) return 0.25;
-  if (attempt === 2) return 0.18;
-  return 0.12;
-}
-
-export function shouldRegenerateCircleExerciseFresh(
-  finalIssues: string[],
-  conceptId: string = ""
-): boolean {
-  if (String(conceptId ?? '').trim() !== 'circles') return false;
-
-  return finalIssues.some((issue) =>
-    issue === 'missing_diagram_block' ||
-    issue === 'circle_scene_invalid' ||
-    issue === 'circle_scene_semantic_mismatch' ||
-    issue.startsWith('circle_prompt_')
-  );
-}
-
-export function replaceOrAppendMathDiagramBlock(text: string, diagramJson: string): string {
-  const source = String(text ?? '').trim();
-  const block = `\`\`\`math-diagram\n${diagramJson}\n\`\`\``;
-  if (!source) return block;
-
-  if (/```math-diagram[\s\S]*?```/i.test(source)) {
-    return source.replace(/```math-diagram[\s\S]*?```/i, block).trim();
-  }
-
-  return `${source}\n\n${block}`.trim();
-}
-
-function stripMathDiagramBlocks(text: string): string {
-  return String(text ?? '').replace(/```math-diagram[\s\S]*?```/gi, '').trim();
-}
-
-function solveLineCircleIntersections(
-  ex: number,
-  ey: number,
-  ux: number,
-  uy: number,
-  radius: number
-): [number, number] | null {
-  const b = 2 * (ex * ux + ey * uy);
-  const c = ex * ex + ey * ey - radius * radius;
-  const disc = b * b - 4 * c;
-  if (disc < 0) return null;
-  const root = Math.sqrt(disc);
-  const t1 = (-b - root) / 2;
-  const t2 = (-b + root) / 2;
-  return [t1, t2];
-}
-
-function matchLabeledSegmentRole(prompt: string, rolePatterns: string[]): RegExpMatchArray | null {
-  const roleExpr = rolePatterns.join('|');
-  return (
-    prompt.match(new RegExp(`(?:${roleExpr})\\s*([A-Z])\\s*([A-Z])`, 'i')) ||
-    prompt.match(new RegExp(`([A-Z])\\s*([A-Z])\\s*(?:是|is)\\s*(?:[^\\n]{0,16})?(?:${roleExpr})`, 'i'))
-  );
-}
-
-export function buildDeterministicCircleIntersectionSceneFromPrompt(text: string): string | null {
-  const prompt = stripMathDiagramBlocks(text);
-  const diameterMatch = prompt.match(/直径\s*([A-Z])\s*([A-Z])/i);
-  const chordMatch = prompt.match(/弦\s*([A-Z])\s*([A-Z])/i);
-  const intersectionMatch = prompt.match(/交于点\s*([A-Z])/i);
-  const angleMatch = prompt.match(/∠\s*([A-Z])\s*([A-Z])\s*([A-Z])\s*=\s*(\d+(?:\.\d+)?)/i);
-
-  if (!diameterMatch || !chordMatch || !intersectionMatch || !angleMatch) return null;
-
-  const aName = diameterMatch[1].toUpperCase();
-  const bName = diameterMatch[2].toUpperCase();
-  const cName = chordMatch[1].toUpperCase();
-  const dName = chordMatch[2].toUpperCase();
-  const eName = intersectionMatch[1].toUpperCase();
-  const angleA = angleMatch[1].toUpperCase();
-  const angleV = angleMatch[2].toUpperCase();
-  const angleB = angleMatch[3].toUpperCase();
-  const angleDeg = Number(angleMatch[4]);
-
-  if (!Number.isFinite(angleDeg) || angleV !== eName) return null;
-  if (!([aName, bName].includes(angleA) && [cName, dName].includes(angleB))) return null;
-
-  const diameterLabel = `${aName}${bName}`;
-  const radiusMatch = prompt.match(new RegExp(`${diameterLabel}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
-  const diameterLength = radiusMatch ? Number(radiusMatch[1]) : 10;
-  const radius = diameterLength / 2;
-  if (!Number.isFinite(radius) || radius <= 0) return null;
-
-  const aeMatch = prompt.match(new RegExp(`${aName}${eName}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
-  const beMatch = prompt.match(new RegExp(`${bName}${eName}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
-
-  let ex = 0;
-  if (aeMatch) {
-    ex = -radius + Number(aeMatch[1]);
-  } else if (beMatch) {
-    ex = radius - Number(beMatch[1]);
-  }
-  if (!Number.isFinite(ex) || Math.abs(ex) >= radius) return null;
-
-  const ey = 0;
-  const theta = (angleDeg * Math.PI) / 180;
-  const usesUpperPoint = angleB === cName;
-  const dirAngle =
-    angleA === aName
-      ? usesUpperPoint ? Math.PI - theta : Math.PI + theta
-      : usesUpperPoint ? theta : -theta;
-
-  const ux = Math.cos(dirAngle);
-  const uy = Math.sin(dirAngle);
-  const roots = solveLineCircleIntersections(ex, ey, ux, uy, radius);
-  if (!roots) return null;
-
-  const [t1, t2] = roots;
-  const forwardT = Math.max(t1, t2);
-  const backwardT = Math.min(t1, t2);
-  if (!(forwardT > 0 && backwardT < 0)) return null;
-
-  const upper = { x: ex + ux * forwardT, y: ey + uy * forwardT };
-  const lower = { x: ex + ux * backwardT, y: ey + uy * backwardT };
-
-  const cPoint = usesUpperPoint ? upper : lower;
-  const dPoint = usesUpperPoint ? lower : upper;
-
-  const scene = {
-    template: 'circle_scene',
-    scene: {
-      conceptId: 'circles',
-      figureType: 'circle',
-      center: 'O',
-      points: [
-        { id: 'O', x: 0, y: 0, label: 'O' },
-        { id: aName, x: -radius, y: 0, label: aName },
-        { id: bName, x: radius, y: 0, label: bName },
-        { id: cName, x: cPoint.x, y: cPoint.y, label: cName },
-        { id: dName, x: dPoint.x, y: dPoint.y, label: dName },
-        { id: eName, x: ex, y: ey, label: eName },
-      ],
-      relations: [
-        { type: 'segment', points: [aName, bName] },
-        { type: 'segment', points: [cName, dName] },
-        { type: 'circle', center: 'O', radius },
-        { type: 'intersection', point: eName, of: [`${aName}${bName}`, `${cName}${dName}`] },
-        { type: 'angle', points: [angleA, angleV, angleB], value: angleDeg },
-      ],
-      givens: [
-        { type: 'length', points: [aName, bName], value: diameterLength },
-        ...(aeMatch ? [{ type: 'length', points: [aName, eName], value: Number(aeMatch[1]) }] : []),
-        ...(beMatch ? [{ type: 'length', points: [bName, eName], value: Number(beMatch[1]) }] : []),
-      ],
-      targets: [],
-      display: {},
-    },
-  };
-
-  return JSON.stringify(scene);
-}
-
-export function buildDeterministicCirclePerpendicularChordSceneFromPrompt(text: string): string | null {
-  const prompt = stripMathDiagramBlocks(text);
-  const diameterMatch = prompt.match(/(?:直径|diameter)\s*([A-Z])\s*([A-Z])/i);
-  const chordMatch = prompt.match(/(?:弦|chord)\s*([A-Z])\s*([A-Z])/i);
-  const intersectionMatch = prompt.match(/(?:于点|at point|intersect(?:s)? at)\s*([A-Z])/i);
-  const perpendicularMention = /(?:垂直|perpendicular|⊥|⟂)/i.test(prompt);
-
-  if (!diameterMatch || !chordMatch || !intersectionMatch || !perpendicularMention) return null;
-
-  const aName = diameterMatch[1].toUpperCase();
-  const bName = diameterMatch[2].toUpperCase();
-  const cName = chordMatch[1].toUpperCase();
-  const dName = chordMatch[2].toUpperCase();
-  const eName = intersectionMatch[1].toUpperCase();
-
-  const diameterLabel = `${aName}${bName}`;
-  const chordLabel = `${cName}${dName}`;
-  const diameterMatchValue = prompt.match(new RegExp(`${diameterLabel}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
-  const chordMatchValue = prompt.match(new RegExp(`${chordLabel}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
-  if (!diameterMatchValue || !chordMatchValue) return null;
-
-  const diameterLength = Number(diameterMatchValue[1]);
-  const chordLength = Number(chordMatchValue[1]);
-  const radius = diameterLength / 2;
-  const halfChord = chordLength / 2;
-  if (!Number.isFinite(radius) || !Number.isFinite(halfChord) || radius <= 0 || halfChord <= 0 || halfChord >= radius) {
-    return null;
-  }
-
-  const aeMatch = prompt.match(new RegExp(`${aName}${eName}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
-  const beMatch = prompt.match(new RegExp(`${bName}${eName}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
-  const asksForAE = new RegExp(`(?:求|find)\\s*${aName}${eName}`, 'i').test(prompt);
-  const asksForBE = new RegExp(`(?:求|find)\\s*${bName}${eName}`, 'i').test(prompt);
-
-  const offset = Math.sqrt(radius * radius - halfChord * halfChord);
-  let ex = offset;
-  if (aeMatch) {
-    ex = -radius + Number(aeMatch[1]);
-  } else if (beMatch) {
-    ex = radius - Number(beMatch[1]);
-  } else if (asksForAE && !asksForBE) {
-    ex = -offset;
-  } else if (asksForBE && !asksForAE) {
-    ex = offset;
-  }
-
-  if (!Number.isFinite(ex) || Math.abs(ex) >= radius) return null;
-
-  const upper = { x: ex, y: halfChord };
-  const lower = { x: ex, y: -halfChord };
-  const cPoint = upper;
-  const dPoint = lower;
-
-  const scene = {
-    template: 'circle_scene',
-    scene: {
-      conceptId: 'circles',
-      figureType: 'circle',
-      center: 'O',
-      points: [
-        { id: 'O', x: 0, y: 0, label: 'O' },
-        { id: aName, x: -radius, y: 0, label: aName },
-        { id: bName, x: radius, y: 0, label: bName },
-        { id: cName, x: cPoint.x, y: cPoint.y, label: cName },
-        { id: dName, x: dPoint.x, y: dPoint.y, label: dName },
-        { id: eName, x: ex, y: 0, label: eName },
-      ],
-      relations: [
-        { type: 'diameter', points: [aName, bName] },
-        { type: 'chord', points: [cName, dName] },
-        { type: 'segment', points: [aName, bName] },
-        { type: 'segment', points: [cName, dName] },
-        { type: 'segment', points: [aName, eName] },
-        { type: 'segment', points: [bName, eName] },
-        { type: 'circle', center: 'O', radius },
-        { type: 'intersection', point: eName, of: [`${aName}${bName}`, `${cName}${dName}`] },
-        { type: 'right_angle', points: [cName, eName, aName] },
-      ],
-      givens: [
-        { type: 'length', points: [aName, bName], value: diameterLength },
-        { type: 'length', points: [cName, dName], value: chordLength },
-        ...(aeMatch ? [{ type: 'length', points: [aName, eName], value: Number(aeMatch[1]) }] : []),
-        ...(beMatch ? [{ type: 'length', points: [bName, eName], value: Number(beMatch[1]) }] : []),
-      ],
-      targets: [],
-      display: {},
-    },
-  };
-
-  return JSON.stringify(scene);
-}
-
-export function buildDeterministicCirclePerpendicularChordSceneFromPromptV2(text: string): string | null {
-  const prompt = stripMathDiagramBlocks(text);
-  const diameterMatch = matchLabeledSegmentRole(prompt, ['直径', 'diameter', '鐩村緞']);
-  const chordMatch = matchLabeledSegmentRole(prompt, ['弦', 'chord', '寮']);
-  const intersectionMatch = prompt.match(/(?:于点|at point|intersect(?:s)? at|浜庣偣)\s*([A-Z])/i);
-  const perpendicularMention = /(?:垂直|perpendicular|⊥|⟂|鍨傜洿|鈯?)/i.test(prompt);
-
-  if (!diameterMatch || !chordMatch || !intersectionMatch || !perpendicularMention) return null;
-
-  const aName = diameterMatch[1].toUpperCase();
-  const bName = diameterMatch[2].toUpperCase();
-  const cName = chordMatch[1].toUpperCase();
-  const dName = chordMatch[2].toUpperCase();
-  const eName = intersectionMatch[1].toUpperCase();
-
-  const diameterLabel = `${aName}${bName}`;
-  const chordLabel = `${cName}${dName}`;
-  const diameterMatchValue = prompt.match(new RegExp(`${diameterLabel}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
-  const chordMatchValue = prompt.match(new RegExp(`${chordLabel}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
-  if (!diameterMatchValue || !chordMatchValue) return null;
-
-  const diameterLength = Number(diameterMatchValue[1]);
-  const chordLength = Number(chordMatchValue[1]);
-  const radius = diameterLength / 2;
-  const halfChord = chordLength / 2;
-  if (!Number.isFinite(radius) || !Number.isFinite(halfChord) || radius <= 0 || halfChord <= 0 || halfChord >= radius) {
-    return null;
-  }
-
-  const aeMatch = prompt.match(new RegExp(`${aName}${eName}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
-  const beMatch = prompt.match(new RegExp(`${bName}${eName}\\s*=\\s*(\\d+(?:\\.\\d+)?)`, 'i'));
-  const asksForAE = new RegExp(`(?:求|find|姹?)\\s*${aName}${eName}`, 'i').test(prompt);
-  const asksForBE = new RegExp(`(?:求|find|姹?)\\s*${bName}${eName}`, 'i').test(prompt);
-
-  const offset = Math.sqrt(radius * radius - halfChord * halfChord);
-  let ex = offset;
-  if (aeMatch) {
-    ex = -radius + Number(aeMatch[1]);
-  } else if (beMatch) {
-    ex = radius - Number(beMatch[1]);
-  } else if (asksForAE && !asksForBE) {
-    ex = -offset;
-  }
-
-  if (!Number.isFinite(ex) || Math.abs(ex) >= radius) return null;
-
-  const scene = {
-    template: 'circle_scene',
-    scene: {
-      conceptId: 'circles',
-      figureType: 'circle',
-      center: 'O',
-      points: [
-        { id: 'O', x: 0, y: 0, label: 'O' },
-        { id: aName, x: -radius, y: 0, label: aName },
-        { id: bName, x: radius, y: 0, label: bName },
-        { id: cName, x: ex, y: halfChord, label: cName },
-        { id: dName, x: ex, y: -halfChord, label: dName },
-        { id: eName, x: ex, y: 0, label: eName },
-      ],
-      relations: [
-        { type: 'diameter', points: [aName, bName] },
-        { type: 'chord', points: [cName, dName] },
-        { type: 'segment', points: [aName, bName] },
-        { type: 'segment', points: [cName, dName] },
-        { type: 'segment', points: [aName, eName] },
-        { type: 'segment', points: [bName, eName] },
-        { type: 'circle', center: 'O', radius },
-        { type: 'intersection', point: eName, of: [`${aName}${bName}`, `${cName}${dName}`] },
-        { type: 'right_angle', points: [cName, eName, aName] },
-      ],
-      givens: [
-        { type: 'length', points: [aName, bName], value: diameterLength },
-        { type: 'length', points: [cName, dName], value: chordLength },
-        ...(aeMatch ? [{ type: 'length', points: [aName, eName], value: Number(aeMatch[1]) }] : []),
-        ...(beMatch ? [{ type: 'length', points: [bName, eName], value: Number(beMatch[1]) }] : []),
-      ],
-      targets: [],
-      display: {},
-    },
-  };
-
-  return JSON.stringify(scene);
-}
-
-export function buildSpecificABCDPerpendicularChordScene(text: string): string | null {
-  const prompt = stripMathDiagramBlocks(text);
-  const isTargetFamily =
-    /AB/.test(prompt) &&
-    /CD/.test(prompt) &&
-    /E/.test(prompt) &&
-    /(?:直径|diameter)/i.test(prompt) &&
-    /(?:弦|chord)/i.test(prompt) &&
-    /(?:垂直|⊥|⟂|perpendicular)/i.test(prompt);
-
-  if (!isTargetFamily) return null;
-
-  const diameterMatch = prompt.match(/AB\s*=\s*(\d+(?:\.\d+)?)/i);
-  const chordMatch = prompt.match(/CD\s*=\s*(\d+(?:\.\d+)?)/i);
-  if (!diameterMatch || !chordMatch) return null;
-
-  const diameterLength = Number(diameterMatch[1]);
-  const chordLength = Number(chordMatch[1]);
-  const radius = diameterLength / 2;
-  const halfChord = chordLength / 2;
-  if (!Number.isFinite(radius) || !Number.isFinite(halfChord) || halfChord <= 0 || halfChord >= radius) return null;
-
-  const aeMatch = prompt.match(/AE\s*=\s*(\d+(?:\.\d+)?)/i);
-  const beMatch = prompt.match(/BE\s*=\s*(\d+(?:\.\d+)?)/i);
-  const asksForAE = /(?:求|find)\s*AE/i.test(prompt);
-  const asksForBE = /(?:求|find)\s*BE/i.test(prompt);
-
-  const offset = Math.sqrt(radius * radius - halfChord * halfChord);
-  let ex = offset;
-  if (aeMatch) {
-    ex = -radius + Number(aeMatch[1]);
-  } else if (beMatch) {
-    ex = radius - Number(beMatch[1]);
-  } else if (asksForAE && !asksForBE) {
-    ex = -offset;
-  }
-
-  if (!Number.isFinite(ex) || Math.abs(ex) >= radius) return null;
-
-  return JSON.stringify({
-    template: 'circle_scene',
-    scene: {
-      conceptId: 'circles',
-      figureType: 'circle',
-      center: 'O',
-      points: [
-        { id: 'O', x: 0, y: 0, label: 'O' },
-        { id: 'A', x: -radius, y: 0, label: 'A' },
-        { id: 'B', x: radius, y: 0, label: 'B' },
-        { id: 'C', x: ex, y: halfChord, label: 'C' },
-        { id: 'D', x: ex, y: -halfChord, label: 'D' },
-        { id: 'E', x: ex, y: 0, label: 'E' },
-      ],
-      relations: [
-        { type: 'diameter', points: ['A', 'B'] },
-        { type: 'chord', points: ['C', 'D'] },
-        { type: 'segment', points: ['A', 'B'] },
-        { type: 'segment', points: ['C', 'D'] },
-        { type: 'segment', points: ['A', 'E'] },
-        { type: 'segment', points: ['B', 'E'] },
-        { type: 'circle', center: 'O', radius },
-        { type: 'intersection', point: 'E', of: ['AB', 'CD'] },
-        { type: 'right_angle', points: ['C', 'E', 'A'] },
-      ],
-      givens: [
-        { type: 'length', points: ['A', 'B'], value: diameterLength },
-        { type: 'length', points: ['C', 'D'], value: chordLength },
-        ...(aeMatch ? [{ type: 'length', points: ['A', 'E'], value: Number(aeMatch[1]) }] : []),
-        ...(beMatch ? [{ type: 'length', points: ['B', 'E'], value: Number(beMatch[1]) }] : []),
-      ],
-      targets: [],
-      display: {},
-    },
-  });
-}
-
-export function buildSpecificABCDPerpendicularChordSceneV3(text: string): string | null {
-  const prompt = stripMathDiagramBlocks(text);
-  if (!/AB/.test(prompt) || !/CD/.test(prompt) || !/E/.test(prompt)) return null;
-
-  const diameterMatch = prompt.match(/AB\s*=\s*(\d+(?:\.\d+)?)/i);
-  const chordMatch = prompt.match(/CD\s*=\s*(\d+(?:\.\d+)?)/i);
-  if (!diameterMatch || !chordMatch) return null;
-
-  const diameterLength = Number(diameterMatch[1]);
-  const chordLength = Number(chordMatch[1]);
-  const radius = diameterLength / 2;
-  const halfChord = chordLength / 2;
-  if (!Number.isFinite(radius) || !Number.isFinite(halfChord) || halfChord <= 0 || halfChord >= radius) return null;
-
-  const aeMatch = prompt.match(/AE\s*=\s*(\d+(?:\.\d+)?)/i);
-  const beMatch = prompt.match(/BE\s*=\s*(\d+(?:\.\d+)?)/i);
-  const asksForAE = /(?:\u6c42|find)\s*AE/i.test(prompt);
-  const asksForBE = /(?:\u6c42|find)\s*BE/i.test(prompt);
-
-  const offset = Math.sqrt(radius * radius - halfChord * halfChord);
-  let ex = offset;
-  if (aeMatch) {
-    ex = -radius + Number(aeMatch[1]);
-  } else if (beMatch) {
-    ex = radius - Number(beMatch[1]);
-  } else if (asksForAE && !asksForBE) {
-    ex = -offset;
-  }
-
-  if (!Number.isFinite(ex) || Math.abs(ex) >= radius) return null;
-
-  return JSON.stringify({
-    template: 'circle_scene',
-    scene: {
-      conceptId: 'circles',
-      figureType: 'circle',
-      center: 'O',
-      points: [
-        { id: 'O', x: 0, y: 0, label: 'O' },
-        { id: 'A', x: -radius, y: 0, label: 'A' },
-        { id: 'B', x: radius, y: 0, label: 'B' },
-        { id: 'C', x: ex, y: halfChord, label: 'C' },
-        { id: 'D', x: ex, y: -halfChord, label: 'D' },
-        { id: 'E', x: ex, y: 0, label: 'E' },
-      ],
-      relations: [
-        { type: 'diameter', points: ['A', 'B'] },
-        { type: 'chord', points: ['C', 'D'] },
-        { type: 'segment', points: ['A', 'B'] },
-        { type: 'segment', points: ['C', 'D'] },
-        { type: 'segment', points: ['A', 'E'] },
-        { type: 'segment', points: ['B', 'E'] },
-        { type: 'circle', center: 'O', radius },
-        { type: 'intersection', point: 'E', of: ['AB', 'CD'] },
-        { type: 'right_angle', points: ['C', 'E', 'A'] },
-      ],
-      givens: [
-        { type: 'length', points: ['A', 'B'], value: diameterLength },
-        { type: 'length', points: ['C', 'D'], value: chordLength },
-        ...(aeMatch ? [{ type: 'length', points: ['A', 'E'], value: Number(aeMatch[1]) }] : []),
-        ...(beMatch ? [{ type: 'length', points: ['B', 'E'], value: Number(beMatch[1]) }] : []),
-      ],
-      targets: [],
-      display: {},
-    },
-  });
-}
-
-function tryDeterministicCircleSceneFallback(
-  exerciseText: string,
-  conceptTitle: string,
-  conceptDesc: string
-): string | null {
-  const deterministicCandidates = [
-    buildSpecificABCDPerpendicularChordSceneV3(exerciseText),
-    buildSpecificABCDPerpendicularChordScene(exerciseText),
-    buildDeterministicCirclePerpendicularChordSceneFromPromptV2(exerciseText),
-    buildDeterministicCircleIntersectionSceneFromPrompt(exerciseText),
-    buildDeterministicCirclePerpendicularChordSceneFromPrompt(exerciseText),
-  ];
-
-  for (const deterministic of deterministicCandidates) {
-    if (!deterministic) continue;
-    const wrapped = replaceOrAppendMathDiagramBlock(exerciseText, deterministic);
-    const issues = detectOutputIssues(wrapped, conceptTitle, conceptDesc, 'must_draw', 'circles');
-    if (issues.length === 0) return wrapped;
-  }
-
-  return null;
-}
-
-function needsDiagramRepair(
-  text: string,
-  conceptTitle: string,
-  conceptDesc: string,
-  diagramPolicy: string,
-  conceptId: string = ""
-): boolean {
-  if (String(conceptId ?? '').trim() === 'circles') {
-    return !hasMathDiagramBlock(text);
-  }
-
-  const shouldRequireDiagram = shouldRequireDiagramBlock({
-    conceptId,
-    conceptTitle,
-    conceptDesc,
-    prompt: text,
-    requirement: "",
-  });
-
-  return shouldRequireDiagram && !hasMathDiagramBlock(text);
-}
-
-export function detectOutputIssues(
-  text: string,
-  conceptTitle: string,
-  conceptDesc: string,
-  diagramPolicy: string,
-  conceptId: string = ""
-): string[] {
-  const issues: string[] = [];
-  const promptOnlyText = stripMathDiagramBlocks(text);
-
-  if (hasRawMathLeak(text)) issues.push("raw_math_leaks");
-  if (needsDiagramRepair(text, conceptTitle, conceptDesc, diagramPolicy, conceptId)) issues.push("missing_diagram_block");
-
-  if (String(conceptId ?? '').trim() === 'circles') {
-    const promptSanity = validateCirclePromptSanity(promptOnlyText);
-    if (!promptSanity.ok) {
-      issues.push(...promptSanity.errors.map((error) => `circle_prompt_${error}`));
-    }
-    issues.push(...detectCircleSceneIssues(text));
-    const extracted = extractCircleScene(text);
-    if (extracted?.scene) {
-      const semanticValidation = validateCircleSceneAgainstPrompt(promptOnlyText, extracted.scene);
-      if (!semanticValidation.ok) {
-        issues.push("circle_scene_semantic_mismatch");
-      }
-    }
-    if (hasUnfencedDiagramJson(text)) {
-      issues.push("diagram_json_unfenced");
-    }
-    if (needsQuestionAnswerLeakRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
-      issues.push("question_answer_leak");
-    }
-    return [...new Set(issues)];
-  }
-
-  if (needsCircleDiameterRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
-    issues.push("circle_diameter_line_mismatch");
-  }
-  if (needsCircleChordRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
-    issues.push("circle_chord_semantic_mismatch");
-  }
-  if (needsCircleSectorRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
-    issues.push("circle_sector_template_mismatch");
-  }
-  if (needsPointLabelRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
-    issues.push("point_label_placeholder");
-  }
-  if (needsCircleIntersectingChordsRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
-    issues.push("circle_intersecting_chords_template_mismatch");
-  }
-  if (needsCircleDiameterIntersectingChordsRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
-    issues.push("circle_diameter_intersecting_chords_template_mismatch");
-  }
-  if (needsCircleDiameterTangentChordRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
-    issues.push("circle_diameter_tangent_chord_template_mismatch");
-  }
-  if (needsCircleTangentRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
-    issues.push("circle_tangent_arc_mismatch");
-  }
-  if (needsLinearIntersectionRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
-    issues.push("linear_intersection_template_mismatch");
-  }
-  if (needsTangentChordRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
-    issues.push("tangent_chord_template_mismatch");
-  }
-  if (needsQuestionAnswerLeakRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
-    issues.push("question_answer_leak");
-  }
-  if (needsAngleValueSourceMismatchRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
-    issues.push("angle_value_source_mismatch");
-  }
-  if (needsCentralAngleRayRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
-    issues.push("missing_central_angle_ray");
-  }
-  if (needsCircleThreePointsRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
-    issues.push("circle_three_points_template_mismatch");
-  }
-  if (needsCircleCyclicQuadrilateralRepair({ conceptTitle, conceptDesc, generatedText: text, diagramPolicy })) {
-    issues.push("circle_cyclic_quadrilateral_template_mismatch");
-  }
-  if (hasUnfencedDiagramJson(text)) {
-    issues.push("diagram_json_unfenced");
-  }
-
-  return issues;
-}
-
-function looksLikeExerciseStart(block: string): boolean {
-  const firstLine = block.split('\n').find((line) => line.trim().length > 0)?.trim() ?? '';
-  if (!firstLine) return false;
-
-  return (
-    /^\d+[.)、：:]\s+/.test(firstLine) ||
-    /^[（(]?\d+[）)]\s+/.test(firstLine) ||
-    /^[一二三四五六七八九十]+[.)、：:]\s+/.test(firstLine) ||
-    /^(?:已知|一个|一条|一辆|一棵|一只|将|作|设|若|求|证明|判断|根据|如图|下图|观察|完成|回答|请)\b/.test(firstLine)
-  );
-}
-
-function limitGeneratedExercises(text: string, count: number): string {
-  const normalized = String(text ?? '').replace(/\r\n/g, '\n').trim();
-  if (!normalized) return normalized;
-
-  const blocks = normalized.split(/\n{2,}/);
-  const kept: string[] = [];
-  let current = '';
-  let currentHasEnded = false;
-
-  const flushCurrent = () => {
-    const trimmed = current.trim();
-    if (trimmed) kept.push(trimmed);
-    current = '';
-    currentHasEnded = false;
-  };
-
-  for (const rawBlock of blocks) {
-    const block = rawBlock.trim();
-    if (!block) continue;
-
-    if (!current) {
-      current = block;
-      currentHasEnded = /[。！？?!]$/.test(block);
-      continue;
-    }
-
-    const isNewExercise = looksLikeExerciseStart(block) && currentHasEnded;
-    if (isNewExercise) {
-      flushCurrent();
-      if (kept.length >= count) break;
-      current = block;
-      currentHasEnded = /[。！？?!]$/.test(block);
-      continue;
-    }
-
-    current += '\n\n' + block;
-    currentHasEnded = currentHasEnded || /[。！？?!]$/.test(block);
-  }
-
-  flushCurrent();
-  return kept.slice(0, count).join('\n\n');
-}
-
-function isMarkdownTableSeparator(line: string): boolean {
-  return /^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$/.test(line);
-}
-
-function isMarkdownTableRow(line: string): boolean {
-  const trimmed = line.trim();
-  return trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.includes('|');
-}
-
-function tableRowToBullet(line: string): string | null {
-  const cells = line
-    .trim()
-    .replace(/^\|/, '')
-    .replace(/\|$/, '')
-    .split('|')
-    .map((cell) => cell.trim())
-    .filter(Boolean);
-
-  if (cells.length === 0) return null;
-  if (cells.length === 1) return `- ${cells[0]}`;
-
-  const [label, ...rest] = cells;
-  return `- ${label}: ${rest.join(', ')}`;
-}
-
-function normalizeMarkdownTables(text: string): string {
-  const lines = String(text ?? '').replace(/\r\n/g, '\n').split('\n');
-  const output: string[] = [];
-
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
-    if (!isMarkdownTableRow(line)) {
-      output.push(line);
-      continue;
-    }
-
-    const tableLines: string[] = [];
-    while (i < lines.length && (isMarkdownTableRow(lines[i]) || isMarkdownTableSeparator(lines[i]) || lines[i].trim() === '')) {
-      if (isMarkdownTableRow(lines[i])) tableLines.push(lines[i]);
-      i += 1;
-    }
-    i -= 1;
-
-    for (const tableLine of tableLines) {
-      const bullet = tableRowToBullet(tableLine);
-      if (bullet) output.push(bullet);
-    }
-  }
-
-  return output.join('\n').replace(/\n{3,}/g, '\n\n').trim();
-}
-
-function tryExtractCircleSceneJsonBlock(text: string): { start: number; end: number; json: string } | null {
-  const source = String(text ?? '');
-  for (let start = source.indexOf('{'); start >= 0; start = source.indexOf('{', start + 1)) {
-    let depth = 0;
-    let inString = false;
-    let escaped = false;
-
-    for (let i = start; i < source.length; i += 1) {
-      const ch = source[i];
-      if (inString) {
-        if (escaped) {
-          escaped = false;
-        } else if (ch === '\\') {
-          escaped = true;
-        } else if (ch === '"') {
-          inString = false;
-        }
-        continue;
-      }
-
-      if (ch === '"') {
-        inString = true;
-        continue;
-      }
-      if (ch === '{') {
-        depth += 1;
-        continue;
-      }
-      if (ch === '}') {
-        depth -= 1;
-        if (depth === 0) {
-          const json = source.slice(start, i + 1).trim();
-          try {
-            const parsed = JSON.parse(json);
-            const coerced = coerceCircleScenePayload(parsed);
-            if (coerced) {
-              return { start, end: i + 1, json: JSON.stringify(coerced) };
-            }
-          } catch {
-            break;
-          }
-          break;
-        }
-      }
-    }
-  }
-
-  return null;
-}
-
-export function wrapUnfencedCircleSceneBlock(text: string): string {
-  const source = String(text ?? '');
-  if (source.includes('```math-diagram')) return source;
-
-  const extracted = tryExtractCircleSceneJsonBlock(source);
-  if (!extracted) return source;
-
-  const before = source.slice(0, extracted.start).trimEnd();
-  const after = source.slice(extracted.end).trimStart();
-  const block = `\`\`\`math-diagram\n${extracted.json}\n\`\`\``;
-
-  return [before, block, after].filter(Boolean).join('\n\n').trim();
-}
-
-function normalizeDiagramPolicy(value: unknown, fallback: string): string {
-  const policy = String(value ?? '').trim();
-  if (policy === 'must_not_draw' || policy === 'must_draw' || policy === 'prefer_draw' || policy === 'maybe_draw') {
-    return policy;
-  }
-  return fallback;
-}
-
-async function analyzeDiagramPolicy(
-  conceptTitle: string,
-  conceptDesc: string,
-  grade: Grade,
-  difficulty: Difficulty,
-  lang: Language,
-  modelId: AiModelId = EXERCISE_MODEL_ID
-): Promise<{ policy: string; reason: string; selfCheck: string; selfCheckOk: boolean; confidence: number }> {
-  const system = `You are classifying whether a math exercise should include a diagram.
-
-Return only valid JSON with this shape:
-{
-  "policy": "must_not_draw" | "maybe_draw" | "prefer_draw" | "must_draw",
-  "reason": "short Chinese or English explanation",
-  "selfCheck": "brief check of whether the decision conflicts with the question",
-  "selfCheckOk": true or false,
-  "confidence": 0 to 1
-}
-
-Decision guidance:
-- must_not_draw: the question is purely verbal, conceptual, or computational, and a diagram would not help.
-- maybe_draw: a diagram is possible but the benefit is limited or the wording is ambiguous.
-- prefer_draw: the problem involves standard geometry or coordinate objects and a clear diagram would help.
-- must_draw: the prompt explicitly relies on a diagram or the question would be unclear without one.
-- Prefer the most informative safe diagram when the information is sufficient to draw a standard figure.
-- Do not invent missing constraints.`;
-
-  const user = [
-    `Language: ${lang === "zh" ? "Chinese" : "English"}`,
-    `Grade: ${grade}`,
-    `Difficulty: ${difficulty}`,
-    `Concept title: ${conceptTitle}`,
-    `Concept description: ${conceptDesc}`,
-    `Task: Judge whether this exercise should include a diagram, and self-check the decision.`,
-  ].join('\n');
-
-  const raw = await safeGenerate(
-    [
-      { role: 'system', content: system },
-      { role: 'user', content: user },
-    ],
-    true,
-    384,
-    0.1,
-    modelId
-  );
-
-  try {
-    const parsed = JSON.parse(raw);
-    const policy = normalizeDiagramPolicy(parsed?.policy, 'maybe_draw');
-    const reason = String(parsed?.reason ?? '').trim() || 'No explanation provided.';
-    const selfCheck = String(parsed?.selfCheck ?? '').trim() || 'No self-check provided.';
-    const selfCheckOk = Boolean(parsed?.selfCheckOk);
-    const confidenceRaw = Number(parsed?.confidence);
-    const confidence = Number.isFinite(confidenceRaw) ? Math.max(0, Math.min(1, confidenceRaw)) : 0.5;
-
-    return { policy, reason, selfCheck, selfCheckOk, confidence };
-  } catch {
-    return {
-      policy: 'maybe_draw',
-      reason: 'Failed to parse semantic diagram policy output.',
-      selfCheck: 'Fallback to conservative policy because the JSON output was invalid.',
-      selfCheckOk: false,
-      confidence: 0.25,
-    };
-  }
-}
-
-function reconcileDiagramPolicy(
-  rulePolicy: string,
-  semanticPolicy: string,
-  selfCheckOk: boolean
-): string {
-  if (rulePolicy === 'must_not_draw') return 'must_not_draw';
-  if (rulePolicy === 'must_draw') return 'must_draw';
-  if (rulePolicy === 'prefer_draw') return 'must_draw';
-
-  if (!selfCheckOk) {
-    if (semanticPolicy === 'must_draw') return 'prefer_draw';
-    if (semanticPolicy === 'prefer_draw') return 'maybe_draw';
-    return 'must_not_draw';
-  }
-
-  if (semanticPolicy === 'must_draw' || semanticPolicy === 'prefer_draw' || semanticPolicy === 'maybe_draw') {
-    return semanticPolicy;
-  }
-
-  return rulePolicy;
-}
-
-function buildExerciseModelProfile(modelId: AiModelId, difficulty: Difficulty, lang: Language): { system: string; user: string } {
-  if (modelId !== "glm47") {
-    return { system: "", user: "" };
-  }
-
-  const languageHint = lang === "zh" ? "用中文出题。" : "Write the exercises in English.";
-  const difficultyHint =
-    difficulty === "Easy"
-      ? `- Keep the problem direct, but still avoid bland template copying.\n- Use one clear skill and one obvious reasoning step.\n`
-      : difficulty === "Medium"
-        ? `- Every problem must require at least one non-trivial intermediate step.\n- Avoid pure plug-in exercises that can be solved by a single formula application.\n- For circle/sector questions, do not use the most direct radius+angle-only version unless there is an extra condition.\n`
-        : `- Every problem must require multi-step reasoning or a small twist.\n- Do not generate one-line plug-in exercises.\n- For geometry and circle/sector questions, combine two ideas or add one extra condition so the student must think beyond the standard formula.\n`;
-
-  const system = [
-    "GLM 4.7 style profile for exercise generation:",
-    "- Write stronger, less repetitive exercises than the default style.",
-    "- Prefer richer problem situations, not bare formula drills.",
-    "- Keep the requested knowledge point central, but make the path to the answer noticeably less direct.",
-    "- When the selected difficulty is Medium or Hard, avoid the easiest textbook variant of the topic.",
-    difficultyHint.trimEnd(),
-    "- If the topic is geometry, circles, sectors, or coordinate geometry, prefer a figure that supports the reasoning instead of a text-only shortcut.",
-  ].join("\n");
-
-  const user = [
-    "GLM-specific generation rule:",
-    "- Do not generate the most obvious or shortest possible version of the problem.",
-    "- Medium and Hard should feel like actual training questions, not direct formula substitution.",
-    "- If the topic is circle_sector, do not stop at 'radius + central angle' unless the question has an additional relation, a second quantity, or a comparison task.",
-    "- If the topic is geometry, add one extra reasoning move: an auxiliary relation, a missing quantity to infer, a comparison, or a two-step calculation.",
-    "- For pricing, fee, cost-comparison, and other pure verbal algebra problems, do not invent a coordinate graph or diagram unless the question explicitly asks for one or clearly references an existing figure or coordinate axes.",
-    `- ${languageHint}`,
-  ].join("\n");
-
-  return { system, user };
-}
-
-async function repairExerciseOutput(
-  rawText: string,
-  conceptTitle: string,
-  conceptDesc: string,
-  grade: Grade,
-  difficulty: Difficulty,
-  lang: Language,
-  issueList: string[],
-  count: number,
-  diagramPolicy: string,
-  conceptId: string = "",
-  modelId: AiModelId = EXERCISE_MODEL_ID
-): Promise<string> {
-  const enforcedDiagramPolicy = issueList.includes("missing_diagram_block") ? "must_draw" : diagramPolicy;
-  const impossibleGeometryNote = issueList.includes("circle_diameter_intersecting_chords_template_mismatch")
-    ? `- The original circle statement appears geometrically inconsistent or under-specified. Rewrite it into a nearby valid circle theorem problem of the same difficulty, and include a matching diagram.\n`
-    : "";
-  const circleSceneNote = issueList.includes("circle_scene_invalid")
-    ? `- For circles, output exactly one math-diagram block whose JSON uses {"template":"circle_scene","scene":{...}}. The scene must pass the circle scene schema: conceptId circles, figureType circle, named points, explicit relations, known givens, targets, and display flags. Legacy circle_* templates are invalid in this repair and must be replaced, not reused.\n`
-    : "";
-  const diameterTangentChordNote = issueList.includes("circle_diameter_tangent_chord_template_mismatch")
-    ? `- The original circle statement combines a diameter, a tangent at a circle point, and chord segments from the circle point. Use the dedicated circle_diameter_tangent_chord template, keep every named point visible, and include every explicitly stated chord such as AC and BC when they are named in the text.\n`
-    : "";
-  const circleTangentArcNote = issueList.includes("circle_tangent_arc_mismatch")
-    ? `- The original circle statement uses minor arc / major arc language (优弧 / 劣弧). Set c_arc_type exactly to "minor" or "major" as stated, keep point C on the correct arc, and do not leave the arc side to guesswork.\n`
-    : "";
-  const system = `You are repairing AI-generated middle-school math exercises.
-
-Rules:
-- Preserve the meaning, difficulty, and question count.
-- Do not solve the problems.
-- Only fix formatting and representation issues.
-- Replace leaked math commands in prose with proper math formatting or Unicode symbols.
-- Diagram policy for this task: ${enforcedDiagramPolicy}.
-  - If diagram policy is must_not_draw, do not include any diagram, figure, math-diagram block, template JSON, or visual payload.
-  - If diagram policy is must_draw, include exactly one matching fenced block with the math-diagram template and valid JSON when the problem genuinely depends on a figure, and do not return a text-only fallback.
-  - Only include a diagram when the critical geometric roles are explicit in the statement. If any required point, line, relation, or arc side would need to be guessed, prefer no diagram over a guessed diagram.
-  - For circles in this trial, legacy circle_* templates are not allowed in the final answer. Output exactly one math-diagram block whose JSON uses {"template":"circle_scene","scene":{...}} and keep every point/line/arc relation explicit in the scene.
-  - Hard rule: if the question asks for an unknown quantity, that quantity must not appear as a numeric label anywhere in the final diagram JSON. Use "?" or omit it, even if the model previously wrote a number.
-- Hard rule: every numeric angle shown in the diagram, in any template, must come from an explicit angle value stated in the problem text. If the problem says ∠QAB = 62°, do not output 42° or any other number for that angle.
-- Never leave diagram JSON outside a fenced math-diagram block. Raw objects like {"template":"..."} in prose are invalid and must be wrapped or removed.
-- For intersecting chords inside a circle, use template "circle_intersecting_chords" with ap, pb and exactly the given CD/CP/PD relation.
-- For intersecting chords with AP:PB given as a ratio such as 2:3, solve the actual numeric AP and PB values for the diagram before outputting JSON. Do not leave them as a ratio string; the template needs positive numeric ap and pb.
-- Arc rule of thumb: 劣弧 / minor arc means the shorter arc between two points on the circle (less than 180°). 优弧 / major arc means the longer arc (more than 180°). If the statement says a point is on the minor arc AB, set arc_type:"minor"; if it says major arc / 优弧, set arc_type:"major". Never swap them.
-- For two-line / line-intersection problems, use template "linear_function" with secondary_slope and secondary_intercept so both lines are drawn. If the problem names intercept points, label the x-intercept as A and the y-intercept as B via label_A and label_B. If the problem asks for the intersection point, set show_intersection:true and label_intersection:"P" (or the actual point name).
-- For problems that place exactly three named points A, B, C on the same circle and ask about angles such as ∠AOB, ∠ACB, or their relationship/sum, use template "circle_three_points". Do not use circle_chord for this pattern.
-- For circle-sector / wheel / clock-sweep problems, use template "circle_sector" and provide the OUTER radius plus one of: angle, minutes, or sector_count. Do not leave the template without the numerical parameters it needs. If the wording mentions a fan or annular-sector style inner edge, still keep the outer radius as the required radius field.
-- For cyclic quadrilateral problems that mention C on the minor arc AB and D on the major arc AB, use template "circle_cyclic_quadrilateral" with explicit c_arc_type and d_arc_type fields, keep labels A/B/C/D visible, and use label_angle_aob for the requested central angle AOB when needed. Do not leave D off the circle or swap the arc sides.
-- For diameter problems that ask for angles like ∠ABD, ∠BCD, or ∠CAD, use template "circle_diameter_points" so the diameter endpoints and the relevant chord/angle relationships are drawn explicitly. Do not replace BD with AC or any other diagonal, and place the unknown angle label on the actual vertex it is asked at.
-- For diameter + intersecting chords problems that say AB is a diameter and AC/BD intersect inside the circle (or AC ⟂ BD), use template "circle_diameter_chords" with diameter AB, chords AC and BD, and label E at the intersection point. Do not collapse it into a generic text-only explanation.
-- For diameter + tangent + chord problems that say AB is a diameter, C is a tangency point, P lies on the extension of AB, and AC/BC are connected (or AC/AD are connected, or CD intersects AB at E), use template "circle_diameter_tangent_chord" with the appropriate labels and all explicitly named segments. Do not omit the tangent line, do not omit BC when it is named, and do not use a template that leaves the chord invisible.
-- For tangent-chord theorem problems with a tangent at A and a chord from A to B, such as ∠PAB or ∠ADB, use template "circle_chord_tangent" instead of "circle_tangent". If the problem names one named arc point D only, keep that point visible with label_D and the matching arc-point flag. If the problem names both C and D on the circle (for example C on the minor arc AB and D on the major arc AB), use template "circle_tangent_chord_dual_points" so both points are visible.
-- For tangent-chord problems, never guess the arc side. If the statement says C is on the minor arc AB and D is on the major arc AB, set arc_type:"minor" and d_arc_type:"major" exactly. If the statement reverses them, reverse the fields. Do not swap minor and major arc points.
-- For the same tangent-chord pattern, map the tangent point named in the statement to label_A, and map the chord endpoint labels to the actual chord in the statement. If the statement says the tangent is at C, label_A must be "C". Do not force the visible tangent point to literally be A if the problem names a different point.
-- For circle chord problems, if the problem says the distance from the center to the chord, represent that as the actual center-to-chord perpendicular segment and label it as OC (or the named center-to-chord segment). Do not misuse water_depth or label_depth for a center-to-chord distance.
-- For two-tangent plus one extra tangent problems, if the statement only gives a tangent length such as PA=12 cm, that is enough to build the figure. Use tangent_length/label_pa and show_arc_tangent:true; do not require angle_apb unless it is explicitly given.
-- If the question asks for a specific unknown value, do not print that unknown as a numeric label in the diagram. Use "?" or omit the label, and only annotate the given conditions.
-- If a diagram uses any numeric angle field or label in any template, make sure the value appears explicitly in the problem statement; never invent a nearby-looking angle such as 42° when the statement says 62°.
-- If the question asks for a central angle like ∠AOC, show both rays explicitly. Use show_oc:true on templates that can expose OC directly (such as circle_diameter_points, circle_tangent, or circle_chord_tangent), use show_center_rays:true on circle_cyclic_quadrilateral, and keep circle_chord perpendicular helper lines visible when the central ray is needed. Do not leave the angle floating without its rays.
-- In any geometry diagram, if you label an angle such as ∠ABD, make sure the two rays/segments that define that angle are actually drawn in the figure.
-- Do not add new topics or remove required information.
-- ${impossibleGeometryNote.trim().startsWith('-') ? impossibleGeometryNote.trim().slice(2) : impossibleGeometryNote}
-- ${circleSceneNote.trim().startsWith('-') ? circleSceneNote.trim().slice(2) : circleSceneNote}
-- ${diameterTangentChordNote.trim().startsWith('-') ? diameterTangentChordNote.trim().slice(2) : diameterTangentChordNote}
-- ${circleTangentArcNote.trim().startsWith('-') ? circleTangentArcNote.trim().slice(2) : circleTangentArcNote}
-- Output only the corrected exercises.`;
-
-  const user = [
-    `Language: ${lang === "zh" ? "Chinese" : "English"}`,
-    `Grade: ${grade}`,
-    `Difficulty: ${difficulty}`,
-    `Requested exercise count: ${count}`,
-    `Diagram policy: ${diagramPolicy}`,
-    `Concept title: ${conceptTitle}`,
-    `Concept description: ${conceptDesc}`,
-    `Detected issues: ${issueList.join(", ")}`,
-    `Original output to repair:`,
-    rawText,
-  ].join("\n");
-
-  const repaired = await safeGenerate(
-    [
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ],
-    false,
-    1600,
-    getExerciseRepairTemperature(conceptId, 1),
-    modelId
-  );
-
-  let repairedText = limitGeneratedExercises(sanitizeMath(repaired || rawText), count);
-  repairedText = maskQuestionAnswerLeaks({
-    conceptTitle,
-    conceptDesc,
-    generatedText: repairedText,
-    diagramPolicy,
-  });
-  repairedText = wrapUnfencedCircleSceneBlock(repairedText);
-
-  const remainingIssues = detectOutputIssues(repairedText, conceptTitle, conceptDesc, diagramPolicy, conceptId);
-  if (remainingIssues.length > 0) {
-    const strongerSystem = `${system}\n- The previous repair attempt still violated hard diagram rules. Fix the listed issues exactly and do not repeat the same template or answer leak mistakes.`;
-    const secondRepair = await safeGenerate(
-      [
-        { role: "system", content: strongerSystem },
-        { role: "user", content: `${user}\n\nRemaining issues after repair: ${remainingIssues.join(", ")}` },
-      ],
-      false,
-      1600,
-      getExerciseRepairTemperature(conceptId, 2),
-      modelId
-    );
-    repairedText = limitGeneratedExercises(sanitizeMath(secondRepair || repairedText), count);
-    repairedText = maskQuestionAnswerLeaks({
-      conceptTitle,
-      conceptDesc,
-      generatedText: repairedText,
-      diagramPolicy,
-    });
-    repairedText = wrapUnfencedCircleSceneBlock(repairedText);
-  }
-
-  const finalIssues = detectOutputIssues(repairedText, conceptTitle, conceptDesc, diagramPolicy, conceptId);
-  if (shouldRetryCircleSceneRepair(finalIssues, conceptId)) {
-    const sceneOnlySystem = `${system}
-- The previous attempts still produced an invalid or incomplete circle_scene.
-- Discard the previous diagram payload completely and regenerate a fresh circle_scene from the exercise text.
-- Every named point in the statement must appear in scene.points.
-- Every named connection like AC, BD, AF, CF must appear in scene.relations as a segment when explicitly requested.
-- Every named intersection like "交...于点P" must appear as an intersection relation.
-- Every arc membership like "点F在劣弧BC上" must be explicit via point arcSide or an arc_membership relation.
-- If the diagram cannot satisfy the statement exactly, regenerate the scene instead of omitting points or relations.`;
-    const sceneRetry = await safeGenerate(
-      [
-        { role: "system", content: sceneOnlySystem },
-        { role: "user", content: `${user}\n\nRemaining issues after second repair: ${finalIssues.join(", ")}` },
-      ],
-      false,
-      1600,
-      getExerciseRepairTemperature(conceptId, 3),
-      modelId
-    );
-    repairedText = limitGeneratedExercises(sanitizeMath(sceneRetry || repairedText), count);
-    repairedText = maskQuestionAnswerLeaks({
-      conceptTitle,
-      conceptDesc,
-      generatedText: repairedText,
-      diagramPolicy,
-    });
-    repairedText = wrapUnfencedCircleSceneBlock(repairedText);
-  }
-
-  const settledIssues = detectOutputIssues(repairedText, conceptTitle, conceptDesc, diagramPolicy, conceptId);
-  if (shouldStripDiagramArtifactsAfterRepair(settledIssues, conceptId)) {
-    repairedText = limitGeneratedExercises(
-      stripDiagramArtifacts(normalizeMarkdownTables(repairedText)),
-      count
-    );
-    repairedText = maskQuestionAnswerLeaks({
-      conceptTitle,
-      conceptDesc,
-      generatedText: repairedText,
-      diagramPolicy,
-    });
-  }
-
-  return repairedText;
-}
-
-async function regenerateCircleExerciseFresh(
-  conceptTitle: string,
-  conceptDesc: string,
-  grade: Grade,
-  difficulty: Difficulty,
-  lang: Language,
-  count: number,
-  diagramPolicy: string,
-  modelId: AiModelId = EXERCISE_MODEL_ID
-): Promise<string> {
-  const freshSystem = `You are regenerating a middle-school circle exercise from scratch because the previous output produced an invalid circle_scene.
-
-Rules:
-- Output exactly ${count} exercise(s).
-- Every exercise must include exactly one fenced math-diagram block.
-- The only allowed diagram payload is {"template":"circle_scene","scene":{...}}.
-- scene.points must not be empty.
-- scene.relations must not omit any named connection, intersection, arc membership, or right-angle relation stated in the text.
-- Every named point in the question must appear in scene.points.
-- Do not output legacy circle_* templates.
-- Do not output explanations or solutions.
-- Do not leave raw JSON outside the fenced math-diagram block.
-- If the prompt names an arc point, tangent point, intersection point, or foot point, encode it explicitly in the scene.
-- If the prompt mentions a relation like AB ⟂ OP, AF intersects CD at P, or F lies on minor arc BC, encode that relation explicitly in the scene.
-- In coordinate-geometry circle problems, never create a degenerate tangent-axis question where the tangency point already lies on that same axis. For example, if A=(4,0), the tangent at A must not be asked to intersect the x-axis at a new point D.
-- The diagram must contain only prompt-given information and must not leak the answer.`;
-
-  const freshUserLines = [
-    `Task: Regenerate ${count} mathematics exercise(s) for "${conceptTitle}".`,
-    `Grade Level: ${grade}`,
-    `Difficulty: ${difficulty}`,
-    `Language: ${lang === "zh" ? "Chinese" : "English"}`,
-    `Description: ${conceptDesc}`,
-    `Diagram policy: ${diagramPolicy}`,
-    `Hard constraint: output exactly one complete circle_scene per exercise.`,
-    `Hard constraint: scene.points must be non-empty and must include all named points in the text.`,
-    `Hard constraint: in coordinate circle questions, avoid degenerate tangent-axis intersections where the requested new point would coincide with the tangency point.`,
-    `Hard constraint: output only the numbered questions with their matching math-diagram block(s).`,
-  ];
-
-  let regenerated = "";
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const freshUser = [...freshUserLines, `Attempt: ${attempt}`, `Timestamp: ${Date.now()}`].join('\n');
-    regenerated = await safeGenerate(
-      [
-        { role: "system", content: freshSystem },
-        { role: "user", content: freshUser },
-      ],
-      false,
-      2048,
-      0.18,
-      modelId
-    );
-
-    regenerated = limitGeneratedExercises(sanitizeMath(regenerated), count);
-    regenerated = normalizeMarkdownTables(regenerated);
-    regenerated = wrapUnfencedCircleSceneBlock(regenerated);
-    regenerated = maskQuestionAnswerLeaks({
-      conceptTitle,
-      conceptDesc,
-      generatedText: regenerated,
-      diagramPolicy,
-    });
-
-    const promptIssues = detectOutputIssues(regenerated, conceptTitle, conceptDesc, diagramPolicy, 'circles')
-      .filter((issue) => issue.startsWith('circle_prompt_'));
-    if (promptIssues.length === 0) {
-      return regenerated;
-    }
-  }
-
-  return regenerated;
-}
-
-async function regenerateCircleSceneOnly(
-  exerciseText: string,
-  conceptTitle: string,
-  conceptDesc: string,
-  grade: Grade,
-  difficulty: Difficulty,
-  lang: Language,
-  modelId: AiModelId = EXERCISE_MODEL_ID
-): Promise<string | null> {
-  const system = `You are extracting and rebuilding only the diagram payload for a middle-school circle exercise.
-
-Rules:
-- Return valid JSON only.
-- Output exactly one object in this shape:
-  {"template":"circle_scene","scene":{...}}
-- scene.points must not be empty.
-- Include every named point, every explicitly connected segment, every explicit chord/diameter/intersection/right-angle/arc-membership/angle relation from the exercise text.
-- Do not include solutions or explanation prose.
-- Do not use legacy circle_* templates.
-- The diagram must contain only prompt-given information and must not leak the answer.`;
-
-  const user = [
-    `Language: ${lang === "zh" ? "Chinese" : "English"}`,
-    `Grade: ${grade}`,
-    `Difficulty: ${difficulty}`,
-    `Concept title: ${conceptTitle}`,
-    `Concept description: ${conceptDesc}`,
-    `Task: Rebuild only the circle_scene JSON for this exercise text.`,
-    `Exercise text:`,
-    exerciseText,
-  ].join('\n');
-
-  const raw = await safeGenerate(
-    [
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ],
-    true,
-    1600,
-    0.08,
-    modelId
-  );
-
-  try {
-    const parsed = JSON.parse(raw);
-    const coerced = coerceCircleScenePayload(parsed);
-    if (!coerced) {
-      return tryDeterministicCircleSceneFallback(exerciseText, conceptTitle, conceptDesc);
-    }
-    const json = JSON.stringify(coerced);
-    const wrapped = replaceOrAppendMathDiagramBlock(exerciseText, json);
-    const issues = detectOutputIssues(wrapped, conceptTitle, conceptDesc, 'must_draw', 'circles');
-    if (issues.length === 0) return wrapped;
-    return tryDeterministicCircleSceneFallback(exerciseText, conceptTitle, conceptDesc);
-  } catch {
-    return tryDeterministicCircleSceneFallback(exerciseText, conceptTitle, conceptDesc);
   }
 }
 
@@ -1406,12 +90,6 @@ const CURRICULUM_STYLE: Record<Curriculum, { zh: string; en: string }> = {
     en: "Emphasize interdisciplinary connections and inquiry-based learning. Students reflect on mathematics in real-world contexts. MYP assessment uses Criteria A–D; communication and reflection are key.",
   },
 };
-
-function buildLanguageLock(lang: Language): string {
-  return lang === "zh"
-    ? "LANGUAGE LOCK: 用户当前选择的界面语言是中文。无论学生上一条消息使用中文、英文或其他语言，你都必须只用中文回复。不要因为学生写了 English words 就切换到英文。"
-    : "LANGUAGE LOCK: The user's selected interface language is English. Reply only in English, regardless of whether the student's latest message uses Chinese or another language.";
-}
 
 function buildCurriculumInstruction(
   curriculum: Curriculum | null,
@@ -1475,37 +153,13 @@ STRICT PRINCIPLES:
    - MANDATORY: If you say "如图" or "as shown", you MUST include a diagram block.
    - MANDATORY: If the problem names specific points (e.g. A, B, C, D, G, H) on geometric figures, you MUST include a diagram even if the answer is purely computational.
    - TEMPLATE SELECTION RULES (critical):
-     * Circle problems (弦、切线、圆心、半径、弧长、扇形、直径) → use circle_chord, circle_sector, circle_tangent, circle_chord_tangent, circle_cyclic_quadrilateral, circle_diameter_points, or circle_intersecting_chords templates. NEVER use linear_function or quadratic_function for circle geometry.
-     * Clock hand / minute hand sweeping an arc or sector (钟表分针、时针扫过、弧长、扇形面积) → ALWAYS use circle_sector, not circle_chord. For fan-like or annular-sector wording, keep the outer radius as radius and do not omit it.
-     * Two tangents PA/PB plus another tangent through point C on arc AB, intersecting PA/PB at D/E -> use circle_tangent with show_arc_tangent:true and labels C,D,E. If C is on the major arc AB, set c_arc_type:"major"; only use c_arc_type:"minor" when the problem explicitly says minor arc.
-     * A circular cake/pizza divided into equal slices/sectors → use circle_sector with radius and sector_count. Do NOT omit sector_count, and do NOT use coordinate_points.
-     * Tangent-chord theorem with one named point on the arc (such as D on the minor arc AB or C on the minor arc AC) → use circle_chord_tangent with arc_type:"minor". If the named arc point lies on the major arc / 优弧, use arc_type:"major". If the problem explicitly names both C and D on the circle, use circle_tangent_chord_dual_points so both arc points are drawn.
-     * Cyclic quadrilateral / quadrilateral inscribed in a circle (圆内接四边形、四边形ABCD内接于⊙O) → ALWAYS use circle_cyclic_quadrilateral, not coordinate_points.
-     * If the cyclic-quadrilateral problem says to extend side CD to point E and connect AE, keep A/B/C/D on the circle, add label_E:"E" outside the circle on the extension of CD, and use label_angle_ade for the angle at D when it is given. Do not omit E or collapse the extension into the quadrilateral.
-     * If the problem says AB is a diameter (AB是⊙O的直径), use circle_diameter_points, not circle_cyclic_quadrilateral. A and B must be opposite ends of the diameter through O.
-     * Intersecting chords inside a circle (两弦相交于圆内一点, AP/PB/CP/PD) → ALWAYS use circle_intersecting_chords, not coordinate_points.
-     * Rectangular prism / cuboid nets (展开图) → use rectangular_prism_net. Do NOT invent raw coordinates for solid nets.
+     * Circle problems (弦、切线、圆心、半径) → use circle_chord or circle_tangent templates. NEVER use linear_function or quadratic_function for circle geometry.
      * Pure geometry (no coordinate grid in problem) → ALWAYS set axes:false. Use right_triangle / triangle / rectangle / coordinate_points with axes:false.
-     * Only use axes:true when the problem explicitly mentions a coordinate system
-   * For circle_sector, only include label_area when the problem explicitly asks for area. If the problem only asks for arc length, radius, angle, or sector count, omit label_area entirely. (坐标系/坐标轴/函数图象).
+     * Only use axes:true when the problem explicitly mentions a coordinate system (坐标系/坐标轴/函数图象).
 
 3. DIAGRAM FORMAT — TEMPLATE SYSTEM (CRITICAL):
    Use ONLY the templates below. NEVER invent raw coordinates. The frontend calculates positions automatically.
    Pick the matching template and fill in numeric values and labels from the problem.
-   Point labels are not fixed to A/B/C/D/P/O. Use the exact names stated in the problem. If the problem does not name a point, leave its label blank instead of inventing A/B/C/D/P/O or any other placeholder.
-   Never omit a required side, line, point, or label that is explicitly present in the problem statement.
-   Never label the value being asked for in the question. If the problem asks for CP, do NOT set label_cp to the computed answer; show "?" or omit that segment label. If only CD is given, label the whole CD segment, not CP/PD.
-   For intersecting chords with a difference such as CP is 2 longer than PD / CP比PD长2, use cp_minus_pd and label_difference. Do NOT invent cd, label_cd, label_cp, or label_pd.
-   For intersecting chords with a ratio such as CP:PD=2, use cp_pd_ratio and label_ratio. Do NOT invent cd, label_cd, label_cp, or label_pd.
-   Never label derived tangent lengths such as PA, PB, OP, or radius unless those values are explicitly given in the problem statement.
-   Arc rule: 劣弧 / minor arc is the shorter arc between two points on the circle (less than 180°). 优弧 / major arc is the longer arc (more than 180°). If the statement says a point is on the minor arc AB, set arc_type:"minor"; if it says major arc / 优弧, set arc_type:"major". Never swap them.
-   For two-line / line-intersection problems, use linear_function with a secondary_slope and secondary_intercept so both lines are drawn. If the problem names intercept points, label the x-intercept as A and the y-intercept as B via label_A and label_B. If the problem asks for the intersection point, set show_intersection:true and label_intersection:"P" (or the actual point name).
-   For linear_function and quadratic_function diagrams, do not add derived coordinate labels such as intercept coordinates or vertex coordinates unless the problem explicitly asks for them.
-   In circle_tangent, radius/op_dist may be used as invisible layout values. Do NOT set label_radius or label_op unless the problem explicitly gives those values; if you must show them, also set show_radius_label:true or show_op_label:true.
-   If a tangent problem gives PA and angle APB, use tangent_length and angle_apb with label_pa and label_angle_apb; do NOT invent radius or OP labels.
-   If a tangent problem gives only ∠APB, you may omit tangent_length/op_dist; the renderer will derive a consistent scale from angle_apb alone. Do not invent op_dist just to satisfy the template.
-   For water-depth chord problems, use circle_chord with water_depth and label_depth. water_depth means the vertical height from the lowest point of the circular pipe up to the water surface, NOT the distance from the centre. Do NOT label derived OC or half-chord values unless they are explicitly given in the problem.
-   If you are not confident that a diagram will be exact, prefer a simpler valid template over guessing geometry.
 
    Right triangle (直角三角形):
    ${BT}math-diagram
@@ -1564,24 +218,14 @@ STRICT PRINCIPLES:
    {"template":"cylinder_unrolled","circumference":6.28,"height":8,"label_circ":"2πr","label_height":"8"}
    ${BT}
 
-   Rectangular prism net / cuboid展开图:
-   ${BT}math-diagram
-   {"template":"rectangular_prism_net","length":8,"width":5,"height":4,"label_length":"8 cm","label_width":"5 cm","label_height":"4 cm"}
-   ${BT}
-
    Linear function (一次函数):
    ${BT}math-diagram
    {"template":"linear_function","slope":2,"intercept":-1,"xmin":-3,"xmax":3,"label":"y=2x-1"}
    ${BT}
 
-   Two-line intersection / intercept points:
-   ${BT}math-diagram
-   {"template":"linear_function","slope":-4,"intercept":12,"secondary_slope":2,"secondary_intercept":0,"xmin":-1,"xmax":5,"show_intercepts":true,"show_intersection":true,"label_A":"A","label_B":"B","label_intersection":"P","label":"y=kx+b","secondary_label":"y=2x"}
-   ${BT}
-
    Quadratic function (二次函数):
    ${BT}math-diagram
-   {"template":"quadratic_function","a":1,"b":-2,"c":-3,"xmin":-3,"xmax":5,"label":"y=x^2-2x-3"}
+   {"template":"quadratic_function","a":1,"b":-2,"c":-3,"xmin":-3,"xmax":5,"label":"y=x²-2x-3"}
    ${BT}
 
    Number line (数轴):
@@ -1616,92 +260,13 @@ STRICT PRINCIPLES:
 
    Circle with chord and perpendicular (圆中弦与垂径定理):
    ${BT}math-diagram
-   {"template":"circle_chord","radius":10,"water_depth":4,"show_perpendicular":false,"label_O":"O","label_A":"A","label_B":"B","label_C":"C","label_radius":"10 cm","label_depth":"4 cm","label_chord":"AB"}
-   ${BT}
-
-   Circle sector / clock hand sweep (弧长、扇形面积、钟表分针扫过):
-   ${BT}math-diagram
-   {"template":"circle_sector","radius":15,"minutes":25,"label_O":"O","label_radius":"15 cm","label_angle":"150?","label_arc":"???"}
+   {"template":"circle_chord","radius":5,"chord_half":4,"label_O":"O","label_A":"A","label_B":"B","label_C":"C","label_radius":"5","label_oc":"3","label_chord_half":"4"}
    ${BT}
 
    Circle with tangent from external point (圆外切线):
    ${BT}math-diagram
-   {"template":"circle_tangent","radius":5,"op_dist":13,"label_O":"O","label_P":"P","label_A":"A","label_B":"B"}
+   {"template":"circle_tangent","radius":5,"op_dist":13,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_radius":"5","label_pa":"12","label_op":"13"}
    ${BT}
-   
-   Circle with tangent from external point given only ∠APB:
-   ${BT}math-diagram
-   {"template":"circle_tangent","radius":5,"angle_apb":80,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_angle_apb":"80°"}
-   ${BT}
-
-   Circle with tangent from external point and a central helper ray:
-   ${BT}math-diagram
-   {"template":"circle_tangent","radius":5,"op_dist":13,"show_oc":true,"label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_C":"C","label_angle_aoc":"?"}
-   ${BT}
-
-   Circle sector from equal slices:
-   ${BT}math-diagram
-   {"template":"circle_sector","radius":10,"sector_count":8,"label_O":"O","label_radius":"10 cm","label_angle":"45?","label_arc":"???"}
-   ${BT}
-
-   Circle with two tangents and tangent through arc point C:
-   ${BT}math-diagram
-   {"template":"circle_tangent","tangent_length":12,"angle_apb":50,"show_arc_tangent":true,"c_arc_type":"major","label_O":"O","label_P":"P","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_E":"E","label_pa":"12 cm","label_angle_apb":"50°"}
-   ${BT}
-
-   Intersecting chords inside a circle (圆内两弦相交):
-   ${BT}math-diagram
-   {"template":"circle_intersecting_chords","ap":6,"pb":4,"cd":11,"cp_ratio":0.35,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_P":"P","label_ap":"6","label_pb":"4","label_cd":"11"}
-   ${BT}
-
-   Three named points on a circle with angle relation:
-   ${BT}math-diagram
-   {"template":"circle_three_points","radius":5,"labels":["A","B","C"],"label_O":"O","label_angle_aob":"?","label_angle_acb":"?","label_sum":"135°"}
-   ${BT}
-
-   Intersecting chords with CP:PD ratio:
-   ${BT}math-diagram
-   {"template":"circle_intersecting_chords","ap":6,"pb":4,"cp_pd_ratio":2,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_P":"P","label_ap":"6","label_pb":"4","label_ratio":"CP:PD=2"}
-   ${BT}
-
-   Intersecting chords with CP-PD difference:
-   ${BT}math-diagram
-   {"template":"circle_intersecting_chords","ap":6,"pb":4,"cp_minus_pd":2,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_P":"P","label_ap":"6","label_pb":"4","label_difference":"CP比PD长2"}
-   ${BT}
-
-   Intersecting chords with AP:PB ratio:
-   ${BT}math-diagram
-   {"template":"circle_intersecting_chords","ap":4,"pb":6,"cp":6,"pd":4,"label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_P":"P","label_ap":"4","label_pb":"6","label_cp":"6","label_pd":"4","label_ratio":"AP:PB=2:3"}
-   ${BT}
-
-   Circle with tangent and chord (tangent-chord theorem):
-   ${BT}math-diagram
-   {"template":"circle_chord_tangent","radius":5,"angle":42,"arc_type":"minor","label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"B","label_C":"D","label_angle_apb":"42°","label_angle_adb":"?"}
-   ${BT}
-
-   Circle with tangent, chord, and two named arc points C/D:
-   ${BT}math-diagram
-   {"template":"circle_tangent_chord_dual_points","radius":5,"angle":42,"arc_type":"minor","d_arc_type":"major","label_O":"O","label_P":"P","label_Q":"Q","label_A":"A","label_B":"B","label_C":"C","label_D":"D","label_angle_apb":"42°"}
-   ${BT}
-
-   Cyclic quadrilateral / quadrilateral inscribed in a circle:
-   ${BT}math-diagram
-   {"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"label_O":"O","label_A":"2x+10°","label_B":"3x-5°","label_C":"3x°"}
-   ${BT}
-
-   Cyclic quadrilateral with side CD extended to point E and AE connected:
-   ${BT}math-diagram
-   {"template":"circle_cyclic_quadrilateral","radius":5,"labels":["A","B","C","D"],"label_O":"O","label_E":"E","label_A":"3x°","label_B":"2x+10°","label_C":"105°","label_D":"D","label_angle_ade":"100°","label_angle_bcd":"?"}
-   ${BT}
-
-   Circle with diameter AB and points C/D on the same arc side:
-   ${BT}math-diagram
-   {"template":"circle_diameter_points","radius":5,"label_O":"O","label_A":"A","label_B":"B","label_C":"C","label_D":"D","arc_side":"above","label_angle_abd":"32°","label_angle_bcd":"21°"}
-   ${BT}
-
-   If the question asks for a central angle such as ∠AOC, add "show_oc":true and use "label_angle_aoc":"?" (or omit the label) so the OC ray is visible without giving away the answer.
-
-   For cyclic quadrilateral figures that need a central-angle helper, use "show_center_rays":true and label_angle_aob:"?" for ∠AOB, or label_angle_aoc:"?" for ∠AOC, so the center rays are explicitly drawn.
 
    DIAGRAM LABEL RULE: ALL "label" values must be plain Unicode text only.
    NO LaTeX, NO dollar signs, NO backslashes inside labels.
@@ -1779,7 +344,6 @@ export async function startFeynmanSession(
     `Module: ${concept.title[lang]} (${concept.module})\n` +
     `Student Input: "${problemText}"\n` +
     `Language: ${lang === "zh" ? "Chinese" : "English"}\n\n` +
-    `Formatting rule: keep explanations in plain language. If you use a formula, keep only the formula inside $...$ and keep the surrounding explanation outside math mode. Never wrap whole sentences in $...$.\n` +
     `YOUR OPENING MOVE — RUNG 1 ONLY:\n` +
     `- Start with a 1-2 sentence warm, relatable real-life hook.\n` +
     `- Then ask ONE simple question answerable from pure common sense.\n` +
@@ -1790,7 +354,7 @@ export async function startFeynmanSession(
   return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
-  ], false, 400, 0.7, TUTOR_MODEL_ID);
+  ], false, 400);
 }
 
 export async function guideExercise(
@@ -1812,21 +376,18 @@ EXERCISE GUIDANCE MODE:
 4. SUBSEQUENT TURNS: Affirm correct answers, hint at wrong ones, re-ask.
 5. NEVER give a full worked solution. Maximum one algebraic step per reply.
 6. LANGUAGE: Always reply in ${lang === "zh" ? "Chinese" : "English"}.
-7. FORMATTING: Keep math expressions short and isolated. Never put whole sentences, clauses, or sentence fragments inside $...$.
-${buildLanguageLock(lang)}
-8. LENGTH: 3-5 sentences + 1 question per reply.` + curriculumInstr;
+7. LENGTH: 3-5 sentences + 1 question per reply.` + curriculumInstr;
 
   const userMsg =
     `The student is working on:\n"""\n${exercises}\n"""\n\n` +
     `Topic: ${concept.title[lang]}\n` +
     `Language: ${lang === "zh" ? "Chinese" : "English"}\n\n` +
-    `${buildLanguageLock(lang)}\n\n` +
     `Address THIS specific problem immediately. Identify the first concrete step and ask ONE question.`;
 
   return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
-  ], false, 500, 0.7, TUTOR_MODEL_ID);
+  ], false, 500);
 }
 
 export async function guideExerciseStep(
@@ -1845,8 +406,6 @@ RULES:
 - Ask exactly ONE follow-up question per reply.
 - Keep replies to 3-5 sentences.
 - Language: always ${lang === "zh" ? "Chinese" : "English"}.
-- Formatting: if you use math, keep only the formula in $...$. Never place whole sentences inside math mode.
-- ${buildLanguageLock(lang)}
 - The problems: """${exercises}"""` + curriculumInstr;
 
   const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
@@ -1856,8 +415,6 @@ RULES:
     messages.push({ role: m.role === "user" ? "user" : "assistant", content: m.content });
   });
 
-  messages.push({ role: "user", content: buildLanguageLock(lang) });
-
   if (history.length >= 3) {
     const reminder = lang === "zh"
       ? "（请继续用中文，专注于当前习题的引导。）"
@@ -1865,7 +422,7 @@ RULES:
     messages.push({ role: "user", content: reminder });
   }
 
-  return await safeGenerate(messages, false, 500, 0.7, TUTOR_MODEL_ID);
+  return await safeGenerate(messages, false, 500);
 }
 
 const PROBLEM_TYPE_POOLS: Record<string, string[]> = {
@@ -1953,128 +510,17 @@ const PROBLEM_TYPE_POOLS: Record<string, string[]> = {
   ],
 };
 
-const GENERIC_PROBLEM_TYPES_BY_DIFFICULTY: Record<'Easy' | 'Medium' | 'Hard', string[]> = {
-  Easy: genericProblemTypesByDifficulty.Easy,
-  Medium: genericProblemTypesByDifficulty.Medium,
-  Hard: genericProblemTypesByDifficulty.Hard,
-};
-
-const VARIETY_HISTORY_KEY = "math7-9:exercise-type-history:v1";
-const VARIETY_HISTORY_LIMIT = 8;
-
-type ExerciseTypeHistory = Record<string, string[]>;
-
-function getVarietyStorage(): Storage | null {
-  try {
-    return typeof window !== "undefined" ? window.localStorage : null;
-  } catch {
-    return null;
-  }
+function pickRandom<T>(arr: T[], n: number): T[] {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(n, arr.length));
 }
 
-function readExerciseTypeHistoryMap(): ExerciseTypeHistory {
-  const storage = getVarietyStorage();
-  if (!storage) return {};
-
-  try {
-    const raw = storage.getItem(VARIETY_HISTORY_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function makeExerciseVarietyKey(
-  conceptTitle: string,
-  grade: Grade,
-  difficulty: Difficulty,
-  curriculum: Curriculum | null
-): string {
-  const normalizedTitle = conceptTitle.toLowerCase().replace(/\s+/g, " ").trim();
-  return `${curriculum ?? "general"}|${grade}|${difficulty}|${normalizedTitle}`;
-}
-
-function readRecentExerciseTypes(historyKey: string): string[] {
-  const historyMap = readExerciseTypeHistoryMap();
-  return Array.isArray(historyMap[historyKey]) ? historyMap[historyKey] : [];
-}
-
-function writeRecentExerciseTypes(historyKey: string, usedTypes: string[]) {
-  const storage = getVarietyStorage();
-  if (!storage || usedTypes.length === 0) return;
-
-  const historyMap = readExerciseTypeHistoryMap();
-  const previous = Array.isArray(historyMap[historyKey]) ? historyMap[historyKey] : [];
-  historyMap[historyKey] = [
-    ...usedTypes,
-    ...previous.filter((type) => !usedTypes.includes(type)),
-  ].slice(0, VARIETY_HISTORY_LIMIT);
-
-  try {
-    storage.setItem(VARIETY_HISTORY_KEY, JSON.stringify(historyMap));
-  } catch {
-    // If browser storage is unavailable or full, generation should still work.
-  }
-}
-
-function randomIndex(max: number): number {
-  if (max <= 0) return 0;
-
-  try {
-    const cryptoApi = globalThis.crypto;
-    if (cryptoApi?.getRandomValues) {
-      const values = new Uint32Array(1);
-      cryptoApi.getRandomValues(values);
-      return values[0] % max;
-    }
-  } catch {
-    // Fall back below.
-  }
-
-  return Math.floor(Math.random() * max);
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  const copy = [...arr];
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = randomIndex(i + 1);
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
-
-function pickDiverseExerciseTypes(
-  pool: string[],
-  count: number,
-  recentTypes: string[]
-): string[] {
-  const uniquePool = Array.from(new Set(pool.filter(Boolean)));
-  const targetCount = Math.max(1, Math.min(count, uniquePool.length));
-  const recentSet = new Set(recentTypes);
-  const freshTypes = shuffle(uniquePool.filter((type) => !recentSet.has(type)));
-  const fallbackTypes = shuffle(uniquePool.filter((type) => recentSet.has(type)));
-
-  return [...freshTypes, ...fallbackTypes].slice(0, targetCount);
-}
-
-function getTypePool(conceptTitle: string, difficulty: Difficulty, conceptId: string): string[] | null {
+function getTypePool(conceptTitle: string): string[] | null {
   const title = conceptTitle.toLowerCase();
-  const fallbackPool = GENERIC_PROBLEM_TYPES_BY_DIFFICULTY[normalizeDifficulty(difficulty)] ?? GENERIC_PROBLEM_TYPES_BY_DIFFICULTY.Easy;
-  const boosters = getConceptProblemTypeBoosters(conceptId, conceptTitle);
   for (const [key, pool] of Object.entries(PROBLEM_TYPE_POOLS)) {
-    if (title.includes(key.toLowerCase())) {
-      return Array.from(new Set([...pool, ...boosters, ...fallbackPool]));
-    }
+    if (title.includes(key.toLowerCase())) return pool;
   }
-
-  const modulePool = getExerciseTypePool(conceptId, conceptTitle, difficulty);
-  if (modulePool.length > 0) {
-    return Array.from(new Set([...modulePool, ...fallbackPool]));
-  }
-
-  return Array.from(new Set([...boosters, ...fallbackPool]));
+  return null;
 }
 
 export async function generateExercises(
@@ -2084,74 +530,18 @@ export async function generateExercises(
   difficulty: Difficulty,
   count: number,
   lang: Language,
-  curriculum: Curriculum | null = null,
-  conceptId: string = ""
+  curriculum: Curriculum | null = null
 ) {
-  if (isAlgebraQuestionBankConcept(conceptId, conceptTitle, conceptDesc)) {
-    try {
-      return buildAlgebraExerciseBatch({ count, lang, grade, difficulty, curriculum, conceptId });
-    } catch (error) {
-      console.error('Algebra question-bank generation failed:', error);
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`ALGEBRA_QBANK_ERROR: ${message}`);
-    }
-  }
-
-  if (isAreaPerimeterConcept(conceptId, conceptTitle, conceptDesc)) {
-    return buildAreaPerimeterExerciseBatch({ count, lang, grade, difficulty, curriculum } as any);
-  }
-
-  if (isPythagorasConcept(conceptId, conceptTitle, conceptDesc)) {
-    try {
-      return buildPythagorasExerciseBatch({ count, lang, grade, difficulty, curriculum, persistHistory: true });
-    } catch (error) {
-      console.error('Pythagoras template generation failed:', error);
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`PYTHAGORAS_TEMPLATE_ERROR: ${message}`);
-    }
-  }
-
   const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
-  const modelProfile = buildExerciseModelProfile(EXERCISE_MODEL_ID, difficulty, lang);
-  const system = SYSTEM_PROMPT_BASE + curriculumInstr + modelProfile.system;
-  const diagramPolicy = classifyDiagramNeed({ conceptId, conceptTitle, conceptDesc });
+  const system = SYSTEM_PROMPT_BASE + curriculumInstr;
 
-  const pool = getTypePool(conceptTitle, difficulty, conceptId);
-  const historyKey = makeExerciseVarietyKey(conceptTitle, grade, difficulty, curriculum);
-  const recentTypes = readRecentExerciseTypes(historyKey);
-  const pickedTypes = pickDiverseExerciseTypes(pool, count, recentTypes);
+  const pool = getTypePool(conceptTitle);
+  const pickedTypes = pool ? pickRandom(pool, Math.max(count, 3)) : null;
   const varietyInstr = pickedTypes
     ? (lang === "zh"
         ? `\n本次必须从以下题型中选取（每种最多用一次，禁止重复）：\n${pickedTypes.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}`
         : `\nFor this batch, use these problem types (each at most once):\n${pickedTypes.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}`)
     : `\nVARIETY: Rotate problem types. Never use the same scenario twice in one batch.`;
-  const recentTypesText = recentTypes.length > 0
-    ? recentTypes.map((type, i) => `  ${i + 1}. ${type}`).join("\n")
-    : "  None";
-  const selectedTypesText = pickedTypes.map((type, i) => `  ${i + 1}. ${type}`).join("\n");
-  const difficultyGuide = buildDifficultyGuidance(difficulty, lang);
-  const forcedVarietyInstr =
-    `\nPROBLEM TYPE CONTROL:\n` +
-    `System-selected problem type(s) for THIS generation. You MUST use them in order, one per exercise:\n` +
-    `${selectedTypesText}\n` +
-    `Recently used problem types for this exact concept/grade/difficulty. Avoid repeating them unless no alternative exists:\n` +
-    `${recentTypesText}\n` +
-    `Hard rules:\n` +
-    `- If generating 1 exercise, use ONLY type #1 above.\n` +
-    `- Do not merely change numbers from a previous problem.\n` +
-    `- The scenario, known conditions, target question, and reasoning path must be noticeably different.\n` +
-    `- Keep the requested knowledge point central; do not drift into unrelated topics.\n` +
-    `- Aim for at least ${Math.max(minTierPoolSize[normalizeDifficulty(difficulty)] ?? 30, pickedTypes.length)} distinct variants in the concept pool over time.\n` +
-    (lang === "zh" ? `- Output in Chinese.\n` : "");
-  const circleStrictInstr = conceptId === "circles"
-    ? `\nCIRCLE-SPECIFIC HARD RULES:\n` +
-      `- Every circle exercise must include exactly one math-diagram block.\n` +
-      `- For this trial, the diagram block must use template "circle_scene" with a nested "scene" object.\n` +
-      `- Do not generate proof/explanation-only or solution-commentary-only circle questions.\n` +
-      `- Legacy circle_* templates are invalid for circles in this trial. Do not output them.\n` +
-      `- The scene must spell out points, relations, givens, targets, and display flags explicitly so Python can render without guessing.\n` +
-      `- In coordinate-geometry circle problems, never generate a tangent-axis intersection that collapses to the tangency point itself. Example: if A=(4,0), do not ask for the tangent at A to intersect the x-axis at a new point D.\n`
-    : "";
 
   const userMsg =
     `Task: Generate ${count} mathematics exercise(s) for "${conceptTitle}".\n` +
@@ -2159,106 +549,14 @@ export async function generateExercises(
     `Difficulty: ${difficulty}\n` +
     `Language: ${lang === "zh" ? "Chinese" : "English"}\n` +
     `Description: ${conceptDesc}\n` +
-    difficultyGuide +
-    modelProfile.user +
-    `Diagram policy: ${diagramPolicy}\n` +
-    (diagramPolicy === "must_not_draw"
-      ? `Hard constraint: do not include any diagram, figure, math-diagram block, template JSON, or visual payload.\n`
-        : `Hard constraint: include exactly one valid math-diagram block whenever a clean standard diagram can be drawn from the given information.\n`) +
-    `Hard constraint: only draw a diagram when the critical geometric roles are explicit in the statement. If any required point, line, relation, or arc side would need to be guessed, do not draw a diagram.\n` +
-    `Hard constraint: output exactly ${count} exercise(s) and nothing extra.\n` +
-    `Formatting rule: if any exercise needs a figure, include a matching fenced math-diagram block and keep all math commands properly wrapped in $...$.\n` +
-    `Formatting rule: never use Markdown tables or pipe-separated rows in the question text. If a problem lists coordinates, vertices, or known values, rewrite them as clear sentences or bullet points so they remain readable in this renderer.\n` +
-    `Hard constraint: for pure verbal algebra, pricing, fee, comparison, or cost questions, do not include a coordinate graph or diagram unless the problem explicitly asks for one or clearly mentions a graph/coordinate system.\n` +
-    (conceptId === "circles"
-      ? `Hard constraint for circles: the only allowed diagram payload is {"template":"circle_scene","scene":{...}}. The scene must be complete and self-contained.\n`
-      : "") +
-    varietyInstr + forcedVarietyInstr + `\n` +
-    circleStrictInstr +
+    varietyInstr + `\n` +
     `CRITICAL: DO NOT include solutions. ONLY output the numbered questions.\n` +
     `Timestamp: ${Date.now()}`;
 
-  const raw = await safeGenerate([
+  return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
-  ], false, 2048, getExerciseGenerationTemperature(conceptId), EXERCISE_MODEL_ID);
-
-  writeRecentExerciseTypes(historyKey, pickedTypes);
-
-  let cleaned = sanitizeMath(raw);
-  cleaned = normalizeMarkdownTables(cleaned);
-  if (diagramPolicy === "must_not_draw") {
-    cleaned = stripDiagramArtifacts(cleaned);
-  }
-  cleaned = limitGeneratedExercises(cleaned, count);
-  cleaned = maskQuestionAnswerLeaks({
-    conceptTitle,
-    conceptDesc,
-    generatedText: cleaned,
-    diagramPolicy,
-  });
-  cleaned = wrapUnfencedCircleSceneBlock(cleaned);
-  const issues = detectOutputIssues(cleaned, conceptTitle, conceptDesc, diagramPolicy, conceptId);
-
-  if (issues.length > 0) {
-    const repairDiagramPolicy = issues.includes("missing_diagram_block")
-      ? "must_draw"
-      : diagramPolicy;
-    const repaired = await repairExerciseOutput(
-      cleaned,
-      conceptTitle,
-      conceptDesc,
-      grade,
-      difficulty,
-      lang,
-      issues,
-      count,
-      repairDiagramPolicy,
-      conceptId,
-      EXERCISE_MODEL_ID
-    );
-    if (shouldRegenerateCircleExerciseFresh(
-      detectOutputIssues(repaired, conceptTitle, conceptDesc, diagramPolicy, conceptId),
-      conceptId
-    )) {
-      const regenerated = await regenerateCircleExerciseFresh(
-        conceptTitle,
-        conceptDesc,
-        grade,
-        difficulty,
-        lang,
-        count,
-        diagramPolicy,
-        EXERCISE_MODEL_ID
-      );
-      const regeneratedIssues = detectOutputIssues(regenerated, conceptTitle, conceptDesc, diagramPolicy, conceptId);
-      if (shouldRegenerateCircleExerciseFresh(regeneratedIssues, conceptId)) {
-        const sceneOnly = await regenerateCircleSceneOnly(
-          regenerated,
-          conceptTitle,
-          conceptDesc,
-          grade,
-          difficulty,
-          lang,
-          EXERCISE_MODEL_ID
-        );
-        if (sceneOnly) {
-          return diagramPolicy === "must_not_draw"
-            ? limitGeneratedExercises(stripDiagramArtifacts(normalizeMarkdownTables(sceneOnly)), count)
-            : sceneOnly;
-        }
-      }
-      return diagramPolicy === "must_not_draw"
-        ? limitGeneratedExercises(stripDiagramArtifacts(normalizeMarkdownTables(regenerated)), count)
-        : regenerated;
-    }
-
-    return diagramPolicy === "must_not_draw"
-      ? limitGeneratedExercises(stripDiagramArtifacts(normalizeMarkdownTables(repaired)), count)
-      : repaired;
-  }
-
-  return cleaned;
+  ], false, 2048);
 }
 
 export async function solveExercises(exercises: string, lang: Language) {
@@ -2288,7 +586,7 @@ $$独立公式$$
   return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: exercises },
-  ], false, 2048, 0.7, TUTOR_MODEL_ID);
+  ], false, 2048);
 }
 
 export async function identifyTopic(query: string, lang: Language) {
@@ -2308,10 +606,7 @@ export async function identifyTopic(query: string, lang: Language) {
 
   const text = await safeGenerate(
     [{ role: "system", content: systemMsg }, { role: "user", content: userMsg }],
-    true,
-    800,
-    0.2,
-    TUTOR_MODEL_ID
+    true
   );
 
   try {
@@ -2340,8 +635,6 @@ export async function chatStep(
     });
   });
 
-  messages.push({ role: "user", content: buildLanguageLock(lang) });
-
   if (history.length >= 3) {
     const langReminder = lang === "zh"
       ? "（请继续用中文回复，保持费曼阶梯教学法，当前阶段继续引导，不要跳级。）"
@@ -2349,6 +642,5 @@ export async function chatStep(
     messages.push({ role: "user", content: langReminder });
   }
 
-  return await safeGenerate(messages, false, 600, 0.7, TUTOR_MODEL_ID);
+  return await safeGenerate(messages, false, 600);
 }
-
