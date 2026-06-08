@@ -1,15 +1,6 @@
-// src/utils/circleSceneSchema.ts
+// src/utils/circleSceneSchema.js
 
-export interface CircleScenePayload {
-  template: string;
-  circles?: any[];
-  points?: any[];
-  segments?: any[];
-  labels?: any[];
-  [key: string]: any;
-}
-
-export function coerceCircleScenePayload(data: any): CircleScenePayload {
+export function coerceCircleScenePayload(data) {
   if (!data || typeof data !== 'object') return { template: 'circle_scene' };
   return {
     template: data.template ?? 'circle_scene',
@@ -21,10 +12,9 @@ export function coerceCircleScenePayload(data: any): CircleScenePayload {
   };
 }
 
-export function normalizeCircleScene(data: any): CircleScenePayload {
+export function normalizeCircleScene(data) {
   const payload = coerceCircleScenePayload(data);
-  // Ensure all circles have required fields
-  payload.circles = (payload.circles ?? []).map((c: any) => ({
+  payload.circles = (payload.circles ?? []).map((c) => ({
     cx: c.cx ?? c.x ?? 0,
     cy: c.cy ?? c.y ?? 0,
     r:  c.r  ?? c.radius ?? 1,
@@ -33,7 +23,7 @@ export function normalizeCircleScene(data: any): CircleScenePayload {
   return payload;
 }
 
-export function validateCircleScene(data: any): string | null {
+export function validateCircleScene(data) {
   if (!data || typeof data !== 'object') return 'Invalid circle scene data';
   if (!Array.isArray(data.circles) && data.circles !== undefined) return 'circles must be an array';
   return null;
