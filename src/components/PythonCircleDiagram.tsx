@@ -1,75 +1,72 @@
-import React, { useEffect, useMemo, useState } from 'react';
+// src/components/PythonCircleDiagram.tsx
+import React, { useState, useEffect } from 'react';
 
-type Props = {
+interface PythonCircleDiagramProps {
   template: string;
   data: any;
   fallback: React.ReactNode;
-  svgMaxHeight: number;
-};
-
-type State =
-  | { status: 'loading' }
-  | { status: 'ready'; svg: string }
-  | { status: 'error' };
-
-function isCircleTemplate(template: string): boolean {
-  return template.startsWith('circle');
+  svgMaxHeight?: number;
 }
 
-export default function PythonCircleDiagram({ template, data, fallback, svgMaxHeight }: Props) {
-  const [state, setState] = useState<State>({ status: 'loading' });
-  const payload = useMemo(() => JSON.stringify({ template, ...data }), [template, data]);
+/**
+ * PythonCircleDiagram attempts to render circle diagrams via a Python backend.
+ * Falls back to the provided SVG fallback if the backend is unavailable.
+ */
+const PythonCircleDiagram: React.FC<PythonCircleDiagramProps> = ({
+  template,
+  data,
+  fallback,
+  svgMaxHeight = 360,
+}) => {
+  const [svgContent, setSvgContent] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    if (!isCircleTemplate(template)) {
-      setState({ status: 'error' });
-      return;
-    }
+    // Reset state when data changes
+    setSvgContent(null);
+    setFailed(false);
 
-    let active = true;
-    setState({ status: 'loading' });
+    // Attempt to fetch from Python diagram service
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-    fetch('/api/render-diagram', {
+    fetch('/api/diagram', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: payload,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ template, data }),
+      signal: controller.signal,
     })
-      .then(async (res) => {
-        if (!res.ok) {
-          throw new Error(await res.text());
-        }
+      .then(res => {
+        if (!res.ok) throw new Error('diagram service unavailable');
         return res.text();
       })
-      .then((svg) => {
-        if (!active) return;
-        if (svg.trim().startsWith('<svg')) {
-          setState({ status: 'ready', svg });
-        } else {
-          setState({ status: 'error' });
-        }
+      .then(svg => {
+        clearTimeout(timeoutId);
+        setSvgContent(svg);
       })
       .catch(() => {
-        if (active) setState({ status: 'error' });
+        clearTimeout(timeoutId);
+        setFailed(true);
       });
 
     return () => {
-      active = false;
+      controller.abort();
+      clearTimeout(timeoutId);
     };
-  }, [template, payload]);
+  }, [template, JSON.stringify(data)]);
 
-  if (state.status !== 'ready') {
+  // Show fallback while loading or if failed
+  if (failed || svgContent === null) {
     return <>{fallback}</>;
   }
 
   return (
-    <div className="my-6 flex justify-center bg-slate-900/40 p-4 rounded-3xl border border-white/5 backdrop-blur-sm">
-      <div
-        className="max-w-full h-auto drop-shadow-2xl"
-        style={{ maxHeight: svgMaxHeight }}
-        dangerouslySetInnerHTML={{ __html: state.svg }}
-      />
-    </div>
+    <div
+      className="my-6 flex justify-center bg-slate-900/40 p-4 rounded-3xl border border-white/5 backdrop-blur-sm"
+      dangerouslySetInnerHTML={{ __html: svgContent }}
+      style={{ maxHeight: svgMaxHeight }}
+    />
   );
-}
+};
+
+export default PythonCircleDiagram;
