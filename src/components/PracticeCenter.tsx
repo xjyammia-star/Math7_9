@@ -39,6 +39,15 @@ interface PracticeCenterProps {
   onSelectTopic?: (query: string) => Promise<void>;
 }
 
+// Wrap any inline raw_svg JSON into a fenced code block
+// so sanitizeMath cannot mangle its contents
+function protectDiagramBlocks(text: string): string {
+  return text.replace(
+    /^(\{\s*"template"\s*:\s*"raw_svg".*\})$/gm,
+    (_m: string, p1: string) => '\n```math-diagram\n' + p1 + '\n```\n'
+  );
+}
+
 const PracticeCenter: React.FC<PracticeCenterProps> = ({
   concept,
   lang,
@@ -371,16 +380,7 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
                     rehypePlugins={[rehypeKatex]}
                     components={mdComponents}
                   >
-                    {(() => {
-                      const raw = showSolution ? (solution || '') : exercises;
-                      // Protect raw_svg JSON blocks from sanitizeMath mangling
-                      // Replace inline JSON diagram with a fenced code block so markdown handles it
-                      const protected_ = raw.replace(
-                        /(\{\s*"template"\s*:\s*"raw_svg"[^\n]*\})/g,
-                        (m: string) => '\n```math-diagram\n' + m + '\n```\n'
-                      );
-                      return sanitizeMath(protected_);
-                    })()
+                    {sanitizeMath(protectDiagramBlocks(showSolution ? (solution || '') : exercises))}
                   </ReactMarkdown>
                 </div>
 
