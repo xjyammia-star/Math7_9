@@ -175,7 +175,9 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
       }).join('');
       const isDiagramOnly = (text.trim().startsWith('{') && text.trim().endsWith('}') &&
         (text.includes('"template"') || text.includes('"type"') ||
+         text.includes('"raw_svg"') ||
          text.includes('"geometry"') || text.includes('"window"') || text.includes('"points"'))) ||
+        text.trim().startsWith('<svg') ||
         text.trim().includes('\nrect ') || text.trim().includes('\nline ') ||
         text.trim().startsWith('rect ') || text.trim().startsWith('line ');
       if (isDiagramOnly) {
@@ -369,7 +371,16 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
                     rehypePlugins={[rehypeKatex]}
                     components={mdComponents}
                   >
-                    {sanitizeMath(showSolution ? (solution || '') : exercises)}
+                    {(() => {
+                      const raw = showSolution ? (solution || '') : exercises;
+                      // Protect raw_svg JSON blocks from sanitizeMath mangling
+                      // Replace inline JSON diagram with a fenced code block so markdown handles it
+                      const protected_ = raw.replace(
+                        /(\{\s*"template"\s*:\s*"raw_svg"[^\n]*\})/g,
+                        (m: string) => '\n```math-diagram\n' + m + '\n```\n'
+                      );
+                      return sanitizeMath(protected_);
+                    })()
                   </ReactMarkdown>
                 </div>
 
