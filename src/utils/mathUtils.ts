@@ -148,5 +148,15 @@ function fixKeywordsInSegment(seg: string): string {
     (_: string, n: string) => `$${n}^\\circ$`
   );
 
+  // 60°irc (degree sign + 'irc', AI splits ° from circ) -> $60^\circ$
+  s = s.replace(/(\d+)°irc\b/g,
+    (_: string, n: string) => `$${n}^\\circ$`
+  );
+
+  // standalone ° after number not already in $...$: 60° -> $60^\circ$
+  s = s.replace(/(\d+)°(?!\})/g,
+    (_: string, n: string) => `$${n}^\\circ$`
+  );
+
   return s;
 }

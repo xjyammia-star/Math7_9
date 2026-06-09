@@ -218,8 +218,17 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
         content.startsWith('rect ') || content.startsWith('line ');
       if (!inline && ((match && match[1] === 'math-diagram') || isDiagram)) {
         try {
-          const m = content.match(/(\{[\s\S]*\})/);
-          return <MathDiagram data={m ? JSON.parse(m[1]) : content.trim()} />;
+          const trimmed = content.trim();
+          // Try direct parse first (handles raw_svg JSON)
+          let parsed: any;
+          try {
+            parsed = JSON.parse(trimmed);
+          } catch {
+            // Fallback: extract first {...} block (for simpler templates)
+            const m = trimmed.match(/(\{[^]*?\})(?:\s|$)/);
+            if (m) parsed = JSON.parse(m[1]);
+          }
+          if (parsed) return <MathDiagram data={parsed} />;
         } catch (e) {}
       }
       return <code className={className} {...props}>{children}</code>;
