@@ -16,8 +16,10 @@ export function sanitizeMath(content: string): string {
   // Remove zero-width spaces
   result = result.replace(/\u200b/g, '');
 
-  // Auto-wrap bare LaTeX math patterns that are outside $ delimiters
-  // Match things like \odot, \angle, \triangle, \frac{}{}, \sqrt{} etc. not already in $...$
+  // Step 1: Fix AI bare-keyword errors (odotO -> $\odot O$, angleABC -> $\angle ABC$, etc.)
+  result = fixBareKeywords(result);
+
+  // Step 2: Auto-wrap bare LaTeX commands not yet in $...$
   result = autoWrapBareLaTeX(result);
 
   // Normalize display math blocks (remove extra spaces inside $$...$$)
@@ -85,4 +87,66 @@ function wrapBareLaTeXInSegment(segment: string): string {
   }
 
   return result;
+}
+
+/**
+ * Fixes AI-generated "bare English keyword" errors where the model wrote
+ * e.g. odotO instead of $\odot O$, or angleABC instead of $\angle ABC$,
+ * or ABperpCD instead of $AB \perp CD$, or sqrt10 instead of $\sqrt{10}$.
+ */
+function fixBareKeywords(text: string): string {
+  // Protect existing math regions and code blocks from being double-processed
+  const protectedRegex = /(```[\s\S]*?```|\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g;
+  const parts: string[] = [];
+  let lastIndex = 0;
+  let m: RegExpExecArray | null;
+
+  while ((m = protectedRegex.exec(text)) !== null) {
+    parts.push(fixKeywordsInSegment(text.slice(lastIndex, m.index)));
+    parts.push(m[0]);
+    lastIndex = m.index + m[0].length;
+  }
+  parts.push(fixKeywordsInSegment(text.slice(lastIndex)));
+  return parts.join('');
+}
+
+function fixKeywordsInSegment(seg: string): string {
+  if (!seg) return seg;
+  let s = seg;
+
+  // odotO / odot O  -> $\odot O$
+  s = s.replace(/\bodot\s*([A-Za-z])/g, (_: string, p: string) => `$\\odot ${p}$`);
+
+  // angleABC / angle ABC / angleACB = 90circ -> $\angle ABC$ or $\angle ACB = 90^\circ$
+  s = s.replace(/\bangle\s*([A-Za-z]{1,4})(?:\s*=\s*(\d+)\s*(?:circ|°|\\circ)?)?/g,
+    (_: string, pts: string, deg?: string) =>
+      deg ? `$\\angle ${pts} = ${deg}^\\circ$` : `$\\angle ${pts}$`
+  );
+
+  // ABperpCD / AB perp CD -> $AB \perp CD$
+  s = s.replace(/([A-Za-z]{1,3})\s*perp\s*([A-Za-z]{1,3})/g,
+    (_: string, a: string, b: string) => `$${a} \\perp ${b}$`
+  );
+
+  // ABparallelCD / AB parallel CD -> $AB \parallel CD$
+  s = s.replace(/([A-Za-z]{1,3})\s*parallel\s*([A-Za-z]{1,3})/g,
+    (_: string, a: string, b: string) => `$${a} \\parallel ${b}$`
+  );
+
+  // triangleABC / triangle ABC -> $\triangle ABC$
+  s = s.replace(/\btriangle\s*([A-Za-z]{2,4})/g,
+    (_: string, pts: string) => `$\\triangle ${pts}$`
+  );
+
+  // sqrt10 / sqrt(10) / sqrt 10 -> $\sqrt{10}$
+  s = s.replace(/\bsqrt\s*\(?([0-9.]+)\)?/g,
+    (_: string, n: string) => `$\\sqrt{${n}}$`
+  );
+
+  // 25circ / 90circ (number directly followed by "circ") -> $25^\circ$
+  s = s.replace(/\b(\d+)\s*circ\b/g,
+    (_: string, n: string) => `$${n}^\\circ$`
+  );
+
+  return s;
 }
