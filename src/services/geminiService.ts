@@ -176,9 +176,9 @@ STRICT PRINCIPLES:
    3. OUTPUT a raw SVG inside a fenced code block tagged ‘math-diagram’.
 
    OUTPUT FORMAT (always use this exact wrapper):
-   ```math-diagram
+   ${BT}math-diagram
    {"template":"raw_svg","svg":"<svg viewBox=\"0 0 400 400\" xmlns=\"http://www.w3.org/2000/svg\"> ... </svg>"}
-   ```
+   ${BT}
    IMPORTANT: The entire SVG must be a single-line JSON string value. Escape all double-quotes inside SVG as \". No literal newlines inside the JSON string.
 
    SVG STYLE RULES (follow exactly):
@@ -216,23 +216,23 @@ STRICT PRINCIPLES:
    Math coords: C=(0,0), A=(0,12), B=(9,0), O=(2.4,3.2), D=(0,3), E=(3,0), F=(1.44,6.08)
    Scale to SVG: use scale=22, origin at (60, 340) so svg_x = 60 + mx*22, svg_y = 340 - my*22
    C=(60,340), A=(60,76), B=(258,340), O=(112.8,269.6), D=(60,274), E=(126,340), F=(91.7,206)
-   ```math-diagram
+   ${BT}math-diagram
    {"template":"raw_svg","svg":"<svg viewBox=\"0 0 360 400\" xmlns=\"http://www.w3.org/2000/svg\"><line x1=\"60\" y1=\"340\" x2=\"60\" y2=\"76\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"60\" y1=\"340\" x2=\"258\" y2=\"340\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"60\" y1=\"76\" x2=\"258\" y2=\"340\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><circle cx=\"112.8\" cy=\"269.6\" r=\"66\" fill=\"none\" stroke=\"#94a3b8\" stroke-width=\"1.5\"/><line x1=\"60\" y1=\"76\" x2=\"91.7\" y2=\"206\" stroke=\"#94a3b8\" stroke-width=\"1.5\" stroke-dasharray=\"5,4\"/><line x1=\"112.8\" y1=\"269.6\" x2=\"60\" y2=\"274\" stroke=\"#94a3b8\" stroke-width=\"1.5\" stroke-dasharray=\"5,4\"/><line x1=\"112.8\" y1=\"269.6\" x2=\"126\" y2=\"340\" stroke=\"#94a3b8\" stroke-width=\"1.5\" stroke-dasharray=\"5,4\"/><rect x=\"60\" y=\"330\" width=\"10\" height=\"10\" fill=\"none\" stroke=\"#94a3b8\" stroke-width=\"1.5\"/><circle cx=\"60\" cy=\"340\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"60\" cy=\"76\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"258\" cy=\"340\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"112.8\" cy=\"269.6\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"60\" cy=\"274\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"126\" cy=\"340\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"91.7\" cy=\"206\" r=\"4\" fill=\"#f59e0b\"/><text x=\"44\" y=\"348\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"end\">C</text><text x=\"44\" y=\"76\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"end\">A</text><text x=\"270\" y=\"348\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\">B</text><text x=\"124\" y=\"260\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\">O</text><text x=\"44\" y=\"278\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"end\">D</text><text x=\"130\" y=\"358\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\">E</text><text x=\"80\" y=\"200\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\">F</text></svg>"}
-   ```
+   ${BT}
 
    WORKED EXAMPLE 2 — Circle ⊙O, cyclic quadrilateral ABCD, E on extension of AB, CE bisects ∠BCD:
    Place circle center at (200,200), radius=120. Space A,B,C,D on circle.
    A at 200°, B at 290°, C at 20°, D at 110° (angles from positive x-axis).
    E is on extension of AB beyond B.
-   ```math-diagram
+   ${BT}math-diagram
    {"template":"raw_svg","svg":"<svg viewBox=\"0 0 440 420\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"200\" cy=\"210\" r=\"130\" fill=\"none\" stroke=\"#94a3b8\" stroke-width=\"1.5\"/><line x1=\"82.9\" y1=\"275.6\" x2=\"155.6\" y2=\"85.5\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"155.6\" y1=\"85.5\" x2=\"322.2\" y2=\"165.4\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"322.2\" y1=\"165.4\" x2=\"255.6\" y2=\"333.8\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"255.6\" y1=\"333.8\" x2=\"82.9\" y2=\"275.6\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"82.9\" y1=\"275.6\" x2=\"322.2\" y2=\"165.4\" stroke=\"#94a3b8\" stroke-width=\"1.5\" stroke-dasharray=\"5,4\"/><line x1=\"155.6\" y1=\"85.5\" x2=\"255.6\" y2=\"333.8\" stroke=\"#94a3b8\" stroke-width=\"1.5\" stroke-dasharray=\"5,4\"/><line x1=\"82.9\" y1=\"275.6\" x2=\"0\" y2=\"310\" stroke=\"#f59e0b\" stroke-width=\"2\" stroke-dasharray=\"6,3\"/><circle cx=\"82.9\" cy=\"275.6\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"155.6\" cy=\"85.5\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"322.2\" cy=\"165.4\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"255.6\" cy=\"333.8\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"0\" cy=\"310\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"200\" cy=\"210\" r=\"4\" fill=\"#94a3b8\"/><text x=\"66\" y=\"276\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"end\">A</text><text x=\"148\" y=\"70\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"middle\">B</text><text x=\"337\" y=\"162\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\">C</text><text x=\"262\" y=\"352\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\">D</text><text x=\"0\" y=\"328\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"middle\">E</text><text x=\"210\" y=\"206\" font-size=\"15\" font-family=\"system-ui\" fill=\"#94a3b8\">O</text></svg>"}
-   ```
+   ${BT}
 
    WORKED EXAMPLE 3 — Tangent PA at A, chord BC ∥ PA, D on minor arc BC:
    Circle center O=(220,210), r=120. A at top (220,90). P external left (60,90). B at lower-left (108,302). C at lower-right (332,302). D on minor arc between B and C at (220,330).
-   ```math-diagram
+   ${BT}math-diagram
    {"template":"raw_svg","svg":"<svg viewBox=\"0 0 420 400\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"220\" cy=\"210\" r=\"120\" fill=\"none\" stroke=\"#94a3b8\" stroke-width=\"1.5\"/><line x1=\"60\" y1=\"90\" x2=\"380\" y2=\"90\" stroke=\"#94a3b8\" stroke-width=\"1.5\" stroke-dasharray=\"5,4\"/><line x1=\"60\" y1=\"90\" x2=\"220\" y2=\"90\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"108\" y1=\"302\" x2=\"332\" y2=\"302\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"220\" y1=\"90\" x2=\"108\" y2=\"302\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"220\" y1=\"90\" x2=\"332\" y2=\"302\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"108\" y1=\"302\" x2=\"220\" y2=\"330\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><line x1=\"332\" y1=\"302\" x2=\"220\" y2=\"330\" stroke=\"#f59e0b\" stroke-width=\"2.5\"/><circle cx=\"220\" cy=\"90\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"60\" cy=\"90\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"108\" cy=\"302\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"332\" cy=\"302\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"220\" cy=\"330\" r=\"4\" fill=\"#f59e0b\"/><circle cx=\"220\" cy=\"210\" r=\"4\" fill=\"#94a3b8\"/><text x=\"228\" y=\"78\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\">A</text><text x=\"48\" y=\"80\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"end\">P</text><text x=\"94\" y=\"320\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"end\">B</text><text x=\"346\" y=\"320\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\">C</text><text x=\"220\" y=\"352\" font-size=\"15\" font-family=\"system-ui\" fill=\"#f8fafc\" text-anchor=\"middle\">D</text><text x=\"230\" y=\"208\" font-size=\"15\" font-family=\"system-ui\" fill=\"#94a3b8\">O</text></svg>"}
-   ```
+   ${BT}
 
    GENERAL RULES:
    - ALWAYS output a diagram for geometry problems. No exceptions.
