@@ -281,10 +281,15 @@ STRICT PRINCIPLES:
    - Everything else circle-related → scene 6
 
    RULES:
+   - OUTPUT ORDER: ALWAYS write the full question text FIRST, then the diagram JSON block on its OWN LINE at the END. NEVER put the diagram before the question text.
+   - Example correct order:
+     1. 在图中，$PA$、$PB$分别是$\odot O$的两条切线，... (题目文字全部写完)
+     {"template":"scene","scene":"..."} (图形JSON在最后)
    - ALWAYS output a diagram for geometry problems. No exceptions.
-   - Only output the JSON. No explanation text inside the code block.
+   - Only output the JSON block. No explanation text inside the code block.
    - Angle values: 0 = top of circle, increases clockwise.
    - For scene 6, spread points evenly unless problem implies specific positions.
+   - LaTeX in question text: use $...$ for ALL math symbols. Example: $PA$, $\odot O$, $\angle APB = 40^\circ$, $Rt\triangle ABC$.
 
 4. (reserved)
 5. VARIETY RULE (STRICT): Rotate problem types. Never generate the same type more than twice in a row.
@@ -586,7 +591,7 @@ export async function generateExercises(
   return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
-  ], false, 2048);
+  ], false, 3000);
 }
 
 export async function solveExercises(exercises: string, lang: Language) {

@@ -2802,9 +2802,9 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
   // raw_svg template: JSON wrapper around a raw SVG string
   if (parsed?.template === 'raw_svg' && typeof parsed?.svg === 'string') {
     return (
-      <div className="my-6 flex justify-center bg-slate-900/40 p-4 rounded-3xl border border-white/5 backdrop-blur-sm"
-        dangerouslySetInnerHTML={{ __html: parsed.svg }}
-      />
+      <div className="my-4 flex justify-center bg-slate-900/40 p-3 rounded-2xl border border-white/5 backdrop-blur-sm" style={{maxWidth:'380px',margin:'12px auto'}}>
+        <div style={{width:'100%'}} dangerouslySetInnerHTML={{ __html: parsed.svg.replace(/<svg /, '<svg style="width:100%;height:auto;max-height:320px" ') }}/>
+      </div>
     );
   }
 
@@ -2813,9 +2813,9 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
     const svgStr = renderScene(parsed);
     if (svgStr) {
       return (
-        <div className="my-6 flex justify-center bg-slate-900/40 p-4 rounded-3xl border border-white/5 backdrop-blur-sm"
-          dangerouslySetInnerHTML={{ __html: svgStr }}
-        />
+        <div className="my-4 flex justify-center bg-slate-900/40 p-3 rounded-2xl border border-white/5 backdrop-blur-sm" style={{maxWidth:'380px',margin:'12px auto'}}>
+          <div style={{width:'100%'}} dangerouslySetInnerHTML={{ __html: svgStr.replace(/<svg /, '<svg style="width:100%;height:auto;max-height:320px" ') }}/>
+        </div>
       );
     }
   }

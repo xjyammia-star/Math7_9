@@ -16,10 +16,13 @@ export function sanitizeMath(content: string): string {
   // Remove zero-width spaces
   result = result.replace(/\u200b/g, '');
 
-  // Step 1: Fix AI bare-keyword errors (odotO -> $\odot O$, angleABC -> $\angle ABC$, etc.)
+  // Step 1: Fix AI bare-keyword errors outside $...$ (odotO -> $\odot O$, etc.)
   result = fixBareKeywords(result);
 
-  // Step 2: Auto-wrap bare LaTeX commands not yet in $...$
+  // Step 2: Fix bare keywords INSIDE $...$  (AI writes $angle APB$ without backslash)
+  result = fixInsideMath(result);
+
+  // Step 3: Auto-wrap bare LaTeX commands not yet in $...$
   result = autoWrapBareLaTeX(result);
 
   // Normalize display math blocks (remove extra spaces inside $$...$$)
@@ -175,3 +178,23 @@ function fixKeywordsInSegment(seg: string): string {
   return s;
 }
 
+
+/**
+ * Fixes bare LaTeX keywords INSIDE existing $...$ delimiters.
+ * AI sometimes writes $angle APB$ or $odot O$ without backslashes,
+ * which KaTeX cannot render. This fixes them without double-wrapping.
+ */
+function fixInsideMath(text: string): string {
+  return text.replace(/\$([^$\n]+?)\$/g, (_: string, inner: string) => {
+    let s = inner;
+    // Fix bare keywords (not preceded by backslash or letter - to avoid firing on \triangle etc.)
+    s = s.replace(/(?<!\\)odot\b/g, '\\odot');
+    s = s.replace(/(?<![A-Za-z\\])angle\b/g, '\\angle');
+    s = s.replace(/(?<![A-Za-z\\])parallel\b/g, '\\parallel');
+    s = s.replace(/(?<![A-Za-z\\])perp\b/g, '\\perp');
+    // Fix circ variants: ^circ ^{circ} bare circ -> ^\circ
+    s = s.replace(/\^\{?circ\}?/g, '^\\circ');
+    s = s.replace(/(?<!\^)(?<!\\)\bcirc\b/g, '^\\circ');
+    return `$${s}$`;
+  });
+}
