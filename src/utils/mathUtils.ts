@@ -16,7 +16,10 @@ export function sanitizeMath(content: string): string {
   // Remove zero-width spaces
   result = result.replace(/\u200b/g, '');
 
-  // Step 1: Fix AI bare-keyword errors outside $...$ (odotO -> $\odot O$, etc.)
+  // Step 1a: Fix commands with backslash but missing $ (\angle -> $\angle$)
+  result = fixBareBackslashCommands(result);
+
+  // Step 1b: Fix AI bare-keyword errors outside $...$ (odotO -> $\odot O$, etc.)
   result = fixBareKeywords(result);
 
   // Step 2: Fix bare keywords INSIDE $...$  (AI writes $angle APB$ without backslash)
@@ -197,4 +200,45 @@ function fixInsideMath(text: string): string {
     s = s.replace(/(?<!\^)(?<!\\)\bcirc\b/g, '^\\circ');
     return `$${s}$`;
   });
+}
+
+/**
+ * Fixes LaTeX commands that have backslash but are missing $ delimiters.
+ * AI sometimes writes \angle PAB = 45^\circ (with backslash but no $).
+ * This step runs BEFORE fixBareKeywords to handle this case.
+ */
+function fixBareBackslashCommands(text: string): string {
+  const protected_: string[] = [];
+  let idx = 0;
+  // Protect existing $...$ and $$...$$ blocks
+  let safe = text.replace(/\$\$[\s\S]*?\$\$|\$[^$\n]+?\$/g, (m) => {
+    protected_.push(m);
+    return `\x00${idx++}\x00`;
+  });
+
+  // \angle XYZ = N^\circ  ->  $\angle XYZ = N^\circ$
+  safe = safe.replace(/\\angle\s*([A-Za-z]{1,4})\s*=\s*(\d+)\s*\^\s*\\circ/g,
+    (_: string, pts: string, deg: string) => `$\\angle ${pts} = ${deg}^\\circ$`);
+  // bare \angle XYZ
+  safe = safe.replace(/\\angle\s*([A-Za-z]{1,4})(?!\s*=)/g,
+    (_: string, pts: string) => `$\\angle ${pts}$`);
+  // \odot X
+  safe = safe.replace(/\\odot\s*([A-Za-z])/g,
+    (_: string, p: string) => `$\\odot ${p}$`);
+  // XY\parallel ZW
+  safe = safe.replace(/([A-Za-z]{1,3})\s*\\parallel\s*([A-Za-z]{1,3})/g,
+    (_: string, a: string, b: string) => `$${a} \\parallel ${b}$`);
+  // standalone \parallel X
+  safe = safe.replace(/\\parallel\s*([A-Za-z]{1,3})/g,
+    (_: string, b: string) => `$\\parallel ${b}$`);
+  // XY\perp ZW
+  safe = safe.replace(/([A-Za-z]{1,3})\s*\\perp\s*([A-Za-z]{1,3})/g,
+    (_: string, a: string, b: string) => `$${a} \\perp ${b}$`);
+  // \triangle XYZ
+  safe = safe.replace(/\\triangle\s*([A-Za-z]{2,4})/g,
+    (_: string, pts: string) => `$\\triangle ${pts}$`);
+
+  // Restore protected blocks
+  protected_.forEach((p, i) => { safe = safe.replace(`\x00${i}\x00`, p); });
+  return safe;
 }

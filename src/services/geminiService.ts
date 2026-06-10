@@ -347,11 +347,11 @@ STRICT PRINCIPLES:
      RIGHT: $AB = 6$ 且 $BC = 8$
 
    RULE 5 — SELF-CHECK before outputting:
-     Scan every backslash \\ in your response.
-     If a \\ appears outside $...$, it is wrong — fix it.
-     If you see \\\\cmd (double backslash), it is wrong — use \\cmd.
+     BACKSLASH RULE: In your OUTPUT, LaTeX commands use SINGLE backslash: \angle \odot \triangle \parallel \perp \circ
+     NEVER write \\angle or \\odot (double backslash) in your output. Single backslash only.
+     NEVER write \angle outside $...$. Always: $\angle ABC$, $\odot O$, $\triangle ABC$.
      Count every $: the total must be even. If odd, you have an error.
-     SCAN for these specific bare-word errors before finalising (all must be inside $...$):
+          SCAN for these specific bare-word errors before finalising (all must be inside $...$):
        "odot"  "angle"  "parallel"  "perp"  "circ"  "triangle"  "frac"  "sqrt"
      If ANY of those words appear outside $...$, wrap the entire surrounding expression in $...$.
      Example scan: find "angleABD" → wrong → replace with "$\angle ABD$".
