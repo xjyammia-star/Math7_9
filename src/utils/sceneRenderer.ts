@@ -328,58 +328,102 @@ export function renderScene(sceneJson: SceneJSON): string | null {
 }
 
 function render_cyclic_quad_tangent_extension(s: SceneJSON): string {
-  // ABCD inscribed in circle, AB is diameter, CD tangent at D,
-  // extensions of AD and BC meet at E outside the circle
+  // Geometry: circle O, AB is diameter (horizontal).
+  // D is on circle (tangent point). CD is tangent to circle at D (so OD ⊥ CD).
+  // C is OUTSIDE the circle, on the tangent line at D.
+  // E = intersection of line AD extended beyond D, and line BC extended beyond C.
+  //
+  // Key insight: for E to be outside the circle beyond D, D must be lower-right,
+  // and C must be on the CCW tangent direction from D (going right and slightly down).
+  // This makes lines AD-extended and BC-extended converge to the right of D.
+
   const cx = CX, cy = CY, r = R;
-  const Ap = pt(cx - r, cy);   // A: left end of diameter
-  const Bp = pt(cx + r, cy);   // B: right end of diameter
-  const angle_C = s.angle_C ?? -50;  // C upper-right
-  const angle_D = s.angle_D ?? 60;   // D lower-right (tangent point)
-  const Cp = circle_pt(cx, cy, r, angle_C);
+  const Ap = pt(cx - r, cy);  // A: left end of diameter
+  const Bp = pt(cx + r, cy);  // B: right end of diameter
+
+  // D on circle, lower-right by default (angle 55° from top = lower-right quadrant)
+  const angle_D = (s.angle_D ?? 55);
   const Dp = circle_pt(cx, cy, r, angle_D);
 
-  // E = intersection of line AD extended beyond D, and line BC extended beyond C
+  // Tangent at D: perpendicular to OD.
+  // Use CCW rotation of OD vector for the tangent direction toward lower-right.
+  const od_dx = Dp.x - cx, od_dy = Dp.y - cy;
+  const tang_dx = -od_dy / r;   // CCW tangent direction
+  const tang_dy =  od_dx / r;
+
+  // C on tangent line at D, extended by t_c pixels in tangent direction
+  const t_c = s.t_c ?? 55;
+  const Cp = pt(Dp.x + t_c * tang_dx, Dp.y + t_c * tang_dy);
+
+  // E = intersection of line (A→D extended beyond D) with line (B→C extended beyond C)
   function line_intersect(
     ax: number, ay: number, bx: number, by: number,
     cx2: number, cy2: number, dx2: number, dy2: number
-  ): {x:number,y:number} {
+  ): {x: number, y: number} {
     const denom = (ax-bx)*(cy2-dy2) - (ay-by)*(cx2-dx2);
-    if (Math.abs(denom) < 0.001) return pt(cx+r*1.4, cy+r*0.9);
+    if (Math.abs(denom) < 0.001) return pt(cx + r*1.8, cy - r*0.8);
     const t = ((ax-cx2)*(cy2-dy2) - (ay-cy2)*(cx2-dx2)) / denom;
     return pt(ax + t*(bx-ax), ay + t*(by-ay));
   }
   const Ep = line_intersect(Ap.x, Ap.y, Dp.x, Dp.y, Bp.x, Bp.y, Cp.x, Cp.y);
 
   const elems: string[] = [];
+
+  // Circle
   elems.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${GRAY}" stroke-width="1.5"/>`);
-  // Quadrilateral sides ABCD
-  elems.push(line(Ap.x, Ap.y, Bp.x, Bp.y, GOLD, 2.5));
-  elems.push(line(Bp.x, Bp.y, Cp.x, Cp.y, GOLD, 2.5));
-  elems.push(line(Cp.x, Cp.y, Dp.x, Dp.y, GOLD, 2.5));
-  elems.push(line(Dp.x, Dp.y, Ap.x, Ap.y, GOLD, 2.5));
-  // Diagonals (dashed)
-  elems.push(line(Ap.x, Ap.y, Cp.x, Cp.y, GRAY, 1.5, DASH));
-  elems.push(line(Bp.x, Bp.y, Dp.x, Dp.y, GRAY, 1.5, DASH));
-  // Extensions to E
-  elems.push(line(Dp.x, Dp.y, Ep.x, Ep.y, GOLD, 2));
-  elems.push(line(Cp.x, Cp.y, Ep.x, Ep.y, GOLD, 2));
-  // Tangent at D
-  const od_angle = Math.atan2(Dp.y - cy, Dp.x - cx);
-  const tx = -Math.sin(od_angle)*45, ty = Math.cos(od_angle)*45;
-  elems.push(line(Dp.x-tx, Dp.y-ty, Dp.x+tx, Dp.y+ty, GRAY, 1.5, DASH));
+
+  // Diameter AB (dashed - it's the diameter reference)
+  elems.push(line(Ap.x, Ap.y, Bp.x, Bp.y, GRAY, 1.5, DASH));
+
+  // Sides of quadrilateral: AB, BC, DA
+  elems.push(line(Ap.x, Ap.y, Bp.x, Bp.y, GOLD, 2.5));  // AB (diameter)
+  elems.push(line(Dp.x, Dp.y, Ap.x, Ap.y, GOLD, 2.5));  // DA
+
+  // CD is the tangent segment - draw it as solid (it's a side of the quad)
+  elems.push(line(Cp.x, Cp.y, Dp.x, Dp.y, GOLD, 2.5));  // CD (tangent at D)
+
+  // BC
+  elems.push(line(Bp.x, Bp.y, Cp.x, Cp.y, GOLD, 2.5));  // BC
+
+  // Show tangent line at D extending both ways slightly (to show it's tangent)
+  elems.push(line(Dp.x - tang_dx*20, Dp.y - tang_dy*20,
+                  Dp.x + tang_dx*80, Dp.y + tang_dy*80,
+                  GRAY, 1.5, DASH));
+
+  // Right angle mark at D (OD ⊥ CD)
+  const sq = 8;
+  const perp_x = -tang_dy * sq, perp_y = tang_dx * sq;
+  const rax = Dp.x + perp_x, ray = Dp.y + perp_y;
+  elems.push(`<polyline points="${(rax + tang_dx*sq).toFixed(1)},${(ray + tang_dy*sq).toFixed(1)} ${rax.toFixed(1)},${ray.toFixed(1)} ${(Dp.x + tang_dx*sq).toFixed(1)},${(Dp.y + tang_dy*sq).toFixed(1)}" fill="none" stroke="${GRAY}" stroke-width="1.2"/>`);
+
+  // Extensions to E (dashed)
+  elems.push(line(Dp.x, Dp.y, Ep.x, Ep.y, GOLD, 1.8, DASH));
+  elems.push(line(Cp.x, Cp.y, Ep.x, Ep.y, GOLD, 1.8, DASH));
+
   // Center O
   elems.push(dot(cx, cy, GRAY));
-  elems.push(text(cx+12, cy+6, "O", "start"));
-  // All points
-  for (const [p, lbl] of [
+  elems.push(text(cx + 12, cy + 5, "O", "start"));
+
+  // Points with labels offset outward from center
+  const allPts: [{x:number,y:number}, string][] = [
     [Ap,"A"],[Bp,"B"],[Cp,"C"],[Dp,"D"],[Ep,"E"]
-  ] as [{x:number,y:number}, string][]) {
+  ];
+  for (const [p, lbl] of allPts) {
     elems.push(dot(p.x, p.y));
     const lo = label_offset(p.x, p.y, cx, cy);
     const anchor = p.x < cx-10 ? "end" : p.x > cx+10 ? "start" : "middle";
     elems.push(text(lo.x, lo.y, lbl, anchor));
   }
-  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${elems.join("")}</svg>`;
+
+  // Compute tight viewBox from all points
+  const allX = allPts.map(([p]) => p.x);
+  const allY = allPts.map(([p]) => p.y);
+  const pad = 35;
+  const vx = Math.min(...allX) - pad, vy = Math.min(...allY) - pad;
+  const vw = Math.max(...allX) - Math.min(...allX) + pad*2;
+  const vh = Math.max(...allY) - Math.min(...allY) + pad*2;
+
+  return `<svg viewBox="${vx.toFixed(0)} ${vy.toFixed(0)} ${vw.toFixed(0)} ${vh.toFixed(0)}" xmlns="http://www.w3.org/2000/svg">${elems.join("")}</svg>`;
 }
 
 function render_external_tangent_two_points(s: SceneJSON): string {
