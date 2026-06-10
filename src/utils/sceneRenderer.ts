@@ -44,19 +44,28 @@ function arc_path(cx: number, cy: number, r: number, a1: number, a2: number) {
 
 function render_circle_with_tangent_chord(s: SceneJSON): string {
   // PA tangent at A, chord BC parallel to PA, D on minor arc BC
-  // Geometric fact: if BC ∥ PA (tangent), arc AB = arc AC
+  // Geometric fact: if BC ∥ PA (tangent at A, A at top, PA horizontal),
+  // then B and C MUST be mirror images about the vertical axis through A.
   const cx = CX, cy = CY, r = R;
-  const A = circle_pt(cx, cy, r, 0);   // top of circle
-  const B = circle_pt(cx, cy, r, 120); // lower-left
-  const C = circle_pt(cx, cy, r, 240-120); // = 120 symmetric → lower-right at -120° from top = 240°? 
-  // Actually: PA tangent at A (A at top), BC ∥ PA means BC is horizontal
-  // A at top (0°), tangent PA is horizontal. BC ∥ PA → B and C at same height
-  // B at 120°, C at 60° (symmetric about vertical axis through A)
-  const Ap = circle_pt(cx, cy, r, 0);   // A at top
-  const Bp = circle_pt(cx, cy, r, 130); // B lower-left  
-  const Cp = circle_pt(cx, cy, r, -130 + 360); // C lower-right = 230°
-  // D on minor arc BC (bottom)
-  const Dp = circle_pt(cx, cy, r, 180); // D at bottom
+  const Ap = circle_pt(cx, cy, r, 0);   // A fixed at top → tangent PA horizontal
+
+  // Respect AI's angle_B but enforce the parallel constraint:
+  // normalize to [0,360), take its angular distance from the top,
+  // clamp to a visually sensible range, mirror to get C.
+  let rawB = Number(s.angle_B);
+  if (!Number.isFinite(rawB)) rawB = 130;
+  let distFromTop = ((rawB % 360) + 360) % 360;
+  if (distFromTop > 180) distFromTop = 360 - distFromTop;
+  distFromTop = Math.min(165, Math.max(95, distFromTop));
+  const Bp = circle_pt(cx, cy, r, distFromTop);            // lower-left side
+  const Cp = circle_pt(cx, cy, r, 360 - distFromTop);      // mirrored → BC horizontal ∥ PA
+
+  // D on minor arc BC (the bottom arc between B and C), clamped inside it
+  let rawD = Number(s.angle_D);
+  if (!Number.isFinite(rawD)) rawD = 180;
+  rawD = ((rawD % 360) + 360) % 360;
+  const Dp = circle_pt(cx, cy, r,
+    Math.min(360 - distFromTop - 12, Math.max(distFromTop + 12, rawD)));
   // P external: tangent at A is horizontal, P is to the left
   const Pp = pt(Ap.x - 100, Ap.y);
 
@@ -92,8 +101,36 @@ function render_circle_with_tangent_chord(s: SceneJSON): string {
 function render_cyclic_quadrilateral(s: SceneJSON): string {
   // ABCD inscribed in circle, possible diagonals, extension point E
   const cx = CX, cy = CY, r = R;
-  const angles = (s.angles as number[]) || [200, 290, 20, 110];
   const labels = (s.labels as string[]) || ["A","B","C","D"];
+
+  // ── Normalize angles so ABCD is ALWAYS a proper (non self-intersecting)
+  //    cyclic quadrilateral, even if AI gives them in a bad order. ──
+  let angles = (Array.isArray(s.angles) ? (s.angles as any[]).map(Number) : []);
+  if (angles.length !== 4 || angles.some(a => !Number.isFinite(a))) {
+    angles = [200, 290, 20, 110];
+  }
+  angles = angles.map(a => ((a % 360) + 360) % 360).sort((x, y) => x - y);
+  // enforce minimum angular separation of 25° between consecutive vertices
+  for (let i = 1; i < 4; i++) {
+    if (angles[i] - angles[i-1] < 25) angles[i] = angles[i-1] + 25;
+  }
+  if (angles[3] - angles[0] > 334) angles[3] = angles[0] + 334;
+  angles = angles.map(a => ((a % 360) + 360) % 360);
+
+  // ── Optional "diameter":"AB" / "AC" / "BD" / "AD" / "BC" / "CD" ──
+  // Forces the two named vertices to be exactly antipodal (180° apart)
+  // while keeping A→B→C→D in clockwise cyclic order.
+  const dia = typeof s.diameter === 'string' ? (s.diameter as string).toUpperCase() : '';
+  const DIA_LAYOUTS: Record<string, number[]> = {
+    AB: [250, 70, 130, 190],
+    AC: [250, 340, 70, 160],
+    BD: [250, 340, 80, 160],
+    AD: [250, 310, 10, 70],
+    BC: [250, 340, 160, 205],
+    CD: [225, 290, 20, 200],
+  };
+  if (DIA_LAYOUTS[dia]) angles = DIA_LAYOUTS[dia];
+
   const pts = angles.map(a => circle_pt(cx, cy, r, a));
   const elems: string[] = [];
   elems.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${GRAY}" stroke-width="1.5"/>`);
@@ -227,26 +264,30 @@ function render_right_triangle_with_circle(s: SceneJSON): string {
 
 function render_circle_diameter_points(s: SceneJSON): string {
   // Circle with diameter AB, points C/D on arc
+  // ANGLE CONVENTION (same as all other scenes): 0 = top of circle, clockwise.
   const cx = CX, cy = CY, r = R;
   const Ap = pt(cx - r, cy); // A left
   const Bp = pt(cx + r, cy); // B right
-  const angle_C = s.angle_C ?? -60; // C on upper arc
-  const angle_D = s.angle_D ?? -120;
-  const Cp = circle_pt(cx, cy, r, angle_C + 90);
-  const Dp = circle_pt(cx, cy, r, angle_D + 90);
+  const angle_C = Number.isFinite(Number(s.angle_C)) ? Number(s.angle_C) : -60; // upper-left
+  const angle_D = Number.isFinite(Number(s.angle_D)) ? Number(s.angle_D) : 60;  // upper-right
+  const Cp = circle_pt(cx, cy, r, angle_C);
+  const Dp = circle_pt(cx, cy, r, angle_D);
   const elems: string[] = [];
   elems.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${GRAY}" stroke-width="1.5"/>`);
   elems.push(line(Ap.x, Ap.y, Bp.x, Bp.y, GRAY, 1.5, DASH));
   // Connect points per s.segments
   const pts: Record<string, {x:number,y:number}> = {A:Ap,B:Bp,C:Cp,D:Dp};
-  const segs: string[] = s.segments ?? ["AC","BC","AD","BD"];
+  const segs: string[] = s.segments ?? ["AC","BC"];
   for (const seg of segs) {
     const p1 = pts[seg[0]], p2 = pts[seg[1]];
     if (p1 && p2) elems.push(line(p1.x, p1.y, p2.x, p2.y));
   }
+  // Only show D if the problem actually uses it (angle_D given or a segment mentions D)
+  const usesD = Number.isFinite(Number(s.angle_D)) || segs.some(seg => seg.includes('D'));
   elems.push(dot(cx, cy, GRAY));
   elems.push(text(cx, cy+18, "O"));
   for (const [key, lbl] of [["A","A"],["B","B"],["C","C"],["D","D"]] as [string,string][]) {
+    if (key === 'D' && !usesD) continue;
     const p = pts[key];
     elems.push(dot(p.x, p.y));
     const lo = label_offset(p.x, p.y, cx, cy);

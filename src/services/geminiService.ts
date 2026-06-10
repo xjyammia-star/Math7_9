@@ -12,14 +12,15 @@ const ARK_MODEL =
 async function safeGenerate(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
   jsonMode = false,
-  maxTokens = 800
+  maxTokens = 800,
+  temperature = 0.7
 ): Promise<string> {
   try {
     const body: Record<string, any> = {
       model: ARK_MODEL,
       messages,
       max_tokens: maxTokens,
-      temperature: 0.7,
+      temperature,
       top_p: 0.95,
     };
     if (jsonMode) {
@@ -139,159 +140,157 @@ RUNG 5 — APPLICATION & EXTENSION
 
 STRICT PRINCIPLES:
 1. Socratic Method: Never give answers. Always ask questions that lead to student discovery.
-2. Selective Visualization (CRITICAL): Do NOT include a diagram for every problem.
-   - INCLUDE diagram if ANY of the following apply:
-     * Named geometric shapes appear (triangle, rectangle, circle, parallelogram, rhombus, trapezoid, etc.)
-     * Problem mentions specific named points on figures (e.g. "点D在AB边上", "点G是△ABC的重心")
-     * Coordinate points or axes are involved (e.g. "点A(-2,3)", "坐标系中")
-     * Number lines are needed
-     * Parallel lines with a transversal (平行线被截线)
-     * Midpoints, centroids, medians, angle bisectors on figures
-     * Geometric transformations (translation/rotation/reflection/dilation 平移/旋转/翻折/放大)
-     * Problem says "如图" or "as shown"
-   - OMIT diagram only if: pure algebra with NO geometric figures, pure angle arithmetic with no figure reference, pure number theory, pure statistics.
-   - MANDATORY: If you say "如图" or "as shown", you MUST include a diagram block.
-   - MANDATORY: If the problem names specific points (e.g. A, B, C, D, G, H) on geometric figures, you MUST include a diagram even if the answer is purely computational.
-   - TEMPLATE SELECTION RULES (critical):
-     * Circle problems (弦、切线、圆心、半径) → use circle_chord or circle_tangent templates. NEVER use linear_function or quadratic_function for circle geometry.
-     * 圆内接四边形 (cyclic quadrilateral, inscribed polygon ABCD in circle) → ALWAYS use circle_cyclic_quadrilateral template. NEVER use coordinate_points for this.
-     * 圆内接四边形 with extension line (F on extension of CD, or similar) → use circle_cyclic_quadrilateral with label_E for intersection point; add show_extension_to_E and label_E fields.
-     * 直径 + points on circle (AB is diameter, C/D on arc) → use circle_diameter_points template.
-     * Two chords intersecting inside circle → use circle_intersecting_chords template.
-     * Tangent line at A + chord BC parallel to tangent + point D on arc + connect BD/CD
-       (切线交A，弦BC平行切线，D在弧上) → use circle_chord_tangent template.
-       Set label_P for external point, label_A/B for tangent/chord endpoints, label_C for arc point D.
-     * Circle inscribed in / tangent to sides of a triangle (圆与三角形两边相切, 地上圆O在斜边上) → ALWAYS use coordinate_points with axes:false.
-       Include a "circle" field with cx/cy/r. Place the right angle vertex at the correct corner.
-       NEVER use right_triangle for problems involving a circle tangent to two sides.
-     * right_triangle template: ONLY use when the problem has NO circle and just shows a plain right triangle with side labels.
-     * Pure geometry (no coordinate grid in problem) → ALWAYS set axes:false. Use right_triangle / triangle / rectangle / coordinate_points with axes:false.
-     * Only use axes:true when the problem explicitly mentions a coordinate system (坐标系/坐标轴/函数图象).
+2. WHEN TO INCLUDE A DIAGRAM:
+   - INCLUDE exactly ONE diagram block per problem if it involves ANY of: named
+     geometric shapes (triangle, rectangle, circle, parallelogram, trapezoid...),
+     named points on figures (e.g. "点D在AB边上"), coordinate points or axes,
+     number lines, folding/rotation/translation, or the phrase "如图"/"as shown".
+   - OMIT the diagram only for pure algebra / equations / number theory /
+     statistics with no geometric figure.
+   - If you write "如图" or "as shown", a diagram block is MANDATORY.
 
-3. DIAGRAM FORMAT — SCENE JSON (CRITICAL):
+3. DIAGRAM FORMAT (CRITICAL — READ CAREFULLY):
+   You NEVER compute SVG coordinates and NEVER output raw SVG.
+   For each problem that needs a figure, output exactly ONE single-line JSON
+   object inside a fenced block, placed AFTER the problem's full text:
 
-   PHILOSOPHY: Describe the geometric scene. The frontend computes exact coordinates.
-   DO NOT compute SVG coordinates yourself. DO NOT output raw SVG.
-   Instead, output a Scene JSON inside a fenced math-diagram block.
-
-   OUTPUT FORMAT:
    ${BT}math-diagram
-   {"template":"scene","scene":"<scene_name>", ... scene parameters ... }
+   {"template":"...", ...}
    ${BT}
 
-   AVAILABLE SCENES — pick the one that matches the problem:
+   STEP 1 — Is the figure about a CIRCLE (⊙O, 弦, 切线, 直径, 圆周角, 内接...)?
+     YES → use "template":"scene" and pick exactly ONE scene from CIRCLE SCENES.
+     NO  → pick exactly ONE template from CLASSIC TEMPLATES.
 
-   ── SCENE 1: circle_tangent_parallel_chord ────────────────────────────────
-   Use when: tangent line at A, chord BC parallel to tangent, point D on arc.
-   Example problem: "PA切⊙O于A，弦BC∥PA，D在劣弧BC上，连BD、CD"
-   Parameters:
-     angle_B: degrees of B on circle (0=top, clockwise). Default 130.
-     angle_C: degrees of C on circle. Default 230.
-     angle_D: degrees of D on circle (minor arc between B and C). Default 180.
+   ═══════════ CIRCLE SCENES ("template":"scene") ═══════════
+   Angle convention for ALL scenes: 0 = TOP of circle, increases CLOCKWISE.
+
+   ── circle_tangent_parallel_chord ──
+   Use when: PA tangent at A, chord BC ∥ PA, point D on minor arc BC.
+   "PA切⊙O于A，弦BC∥PA，D在劣弧BC上，连BD、CD"
    ${BT}math-diagram
-   {"template":"scene","scene":"circle_tangent_parallel_chord","angle_B":130,"angle_C":230,"angle_D":180}
+   {"template":"scene","scene":"circle_tangent_parallel_chord","angle_B":130,"angle_D":180}
    ${BT}
 
-   ── SCENE 2: cyclic_quadrilateral ─────────────────────────────────────────
-   Use when: quadrilateral ABCD inscribed in circle.
-   Example: "圆内接四边形ABCD，AB是⊙O的直径"
-   Parameters:
-     angles: [degA, degB, degC, degD] positions on circle.
-     diagonals: true/false — draw diagonals AC and BD.
-     extension_E: true/false — point E on extension of AB beyond B.
-     CE: true/false — draw segment CE.
+   ── cyclic_quadrilateral ──
+   Use when: quadrilateral ABCD inscribed in circle (NO tangent involved).
+   "圆内接四边形ABCD"。If one side/diagonal is the diameter, set "diameter".
+   Optional: "diagonals":true draws AC and BD; "extension_E":true puts E on
+   extension of AB beyond B; "CE":true draws CE.
    ${BT}math-diagram
-   {"template":"scene","scene":"cyclic_quadrilateral","angles":[200,290,20,110],"diagonals":true}
+   {"template":"scene","scene":"cyclic_quadrilateral","angles":[200,290,20,110],"diameter":"AB","diagonals":true}
    ${BT}
 
-   ── SCENE 3: circle_two_chords ────────────────────────────────────────────
-   Use when: two chords AB and CD intersect at point P inside circle.
-   Example: "⊙O中有两条弦AB和CD相交于圆内一点P，AB⊥CD"
-   Parameters:
-     angleAB: angle of chord AB direction in degrees. Default 30.
-     angleCD: angle of chord CD direction. Default 120 (perpendicular to AB).
-     perpendicular: true if AB⊥CD (draws right angle mark).
+   ── circle_two_chords ──
+   Use when: two chords AB and CD intersect at point P inside the circle.
+   "⊙O中两弦AB、CD相交于圆内一点P". Set "perpendicular":true if AB⊥CD.
    ${BT}math-diagram
    {"template":"scene","scene":"circle_two_chords","angleAB":30,"angleCD":120,"perpendicular":true}
    ${BT}
 
-   ── SCENE 4: right_triangle_inscribed_circle ─────────────────────────────
-   Use when: right triangle with circle O on hypotenuse tangent to two legs.
-   Example: "Rt△ABC，∠C=90°，AC=12，BC=9，点O在斜边AB上，⊙O与AC、BC相切于D、E"
-   Parameters:
-     AC: length of vertical leg. BC: length of horizontal leg.
-     show_F: true if there's a second tangent point F from vertex A.
+   ── right_triangle_inscribed_circle ──
+   Use when: Rt△ABC with ∠C=90°, circle O centered ON hypotenuse AB, tangent
+   to legs AC and BC at D, E. "show_F":true adds second tangent point F from A.
    ${BT}math-diagram
    {"template":"scene","scene":"right_triangle_inscribed_circle","AC":12,"BC":9,"show_F":true}
    ${BT}
 
-   ── SCENE 5: circle_diameter_points ──────────────────────────────────────
-   Use when: circle with diameter AB, one or two more points on arc.
-   Example: "AB是⊙O的直径，C是⊙O上一点"
-   Parameters:
-     angle_C: position of C on circle (degrees from top). Default -60.
-     angle_D: position of D (if present). segments: which to draw.
+   ── circle_diameter_points ──
+   Use when: AB is the diameter, plus one or two more points on the arc.
+   "AB是⊙O的直径，C是⊙O上一点". angle_C/angle_D: position from top
+   (negative = counter-clockwise, e.g. -60 = upper-left, 60 = upper-right).
+   List ONLY the segments the problem actually draws. Omit angle_D if no D.
    ${BT}math-diagram
    {"template":"scene","scene":"circle_diameter_points","angle_C":-60,"segments":["AC","BC"]}
    ${BT}
 
-   ── SCENE 6: generic_circle ──────────────────────────────────────────────
-   Use when: none of the above fit. Circle with named points at specific positions.
-   Parameters:
-     points: object mapping label -> angle (0=top, clockwise in degrees).
-     center: label for circle center (e.g. "O").
-     external_points: object mapping label -> {x, y} in SVG pixels (0-400 range).
-     segments: array of 2-char strings like ["AB","BC"] — solid lines.
-     dashed_segments: array of 2-char strings — dashed helper lines.
+   ── cyclic_quad_tangent_extension ──
+   Use when: ABCD inscribed in circle, AB is diameter, CD is TANGENT to the
+   circle at D, extensions of AD and BC meet at external point E.
+   "四边形ABCD内接于⊙O，AB是直径，CD与⊙O相切于D，延长AD、BC交于E"
    ${BT}math-diagram
-   {"template":"scene","scene":"generic_circle",
-    "points":{"A":0,"B":120,"C":240},
-    "center":"O",
-    "segments":["AB","BC","CA"],
-    "dashed_segments":["OA","OB"]}
+   {"template":"scene","scene":"cyclic_quad_tangent_extension","angle_D":55}
    ${BT}
 
-   ── SCENE 7: cyclic_quad_tangent_extension ────────────────────
-   Use when: ABCD inscribed in circle, AB is diameter, CD tangent to circle at D,
-   extensions of AD and BC meet at external point E.
-   Example: "四边形ABCD内接于⊙O，AB是⊙O的直径，CD与⊙O相切于D，延长AD、BC交于E"
+   ── external_two_tangents ──
+   Use when: external point P, tangents PA and PB touch circle at A and B,
+   C on arc AB, tangent at C meets PA at D and PB at E.
+   C on 劣弧 (minor arc near P): "angle_C":0. C on 优弧 (far side): "angle_C":180.
    ${BT}math-diagram
-   {"template":"scene","scene":"cyclic_quad_tangent_extension","angle_C":-50,"angle_D":60}
-   ${BT}
-
-   ── SCENE 8: external_two_tangents ────────────────────
-   Use when: P is an external point, PA and PB are tangents to circle at A and B,
-   C is on minor arc AB, tangent at C meets PA at D and PB at E.
-   Example: "PA、PB分别是⊙O的两条切线，切点为A、B，点C在劣弧AB上，过点C作⊙O的切线，分别交PA于D、交PB于E"
-   ${BT}math-diagram
-   // ANGLE CONVENTION: 0=top of circle, increases clockwise.
-   // Minor arc AB = short arc NEAR P (top area) = angle_C around 0
-   // Major arc AB = long arc AWAY from P (bottom) = angle_C around 180
-   // C on 劣弧 (minor arc, near P): use angle_C:0
-   // C on 优弧 (major arc, away from P): use angle_C:180
    {"template":"scene","scene":"external_two_tangents","angle_A":50,"angle_B":310,"angle_C":0}
    ${BT}
 
-   SELECTION GUIDE:
-   - Tangent + parallel chord + arc point D → scene 1
-   - Quadrilateral in circle → scene 2
-   - Two chords intersecting inside → scene 3
-   - Right triangle + circle on hypotenuse → scene 4
-   - Diameter + points on arc → scene 5
-   - Everything else circle-related → scene 6
+   ── generic_circle ──
+   Use ONLY when no scene above fits. Named points at angles on the circle,
+   "center" label, solid "segments" and dashed "dashed_segments" (2-letter strings).
+   ${BT}math-diagram
+   {"template":"scene","scene":"generic_circle","points":{"A":0,"B":120,"C":240},"center":"O","segments":["AB","BC","CA"],"dashed_segments":["OA","OB"]}
+   ${BT}
 
-   RULES:
-   - OUTPUT ORDER: ALWAYS write the full question text FIRST, then the diagram JSON block on its OWN LINE at the END. NEVER put the diagram before the question text.
-   - Example correct order:
-     1. 在图中，$PA$、$PB$分别是$\odot O$的两条切线，... (题目文字全部写完)
-     {"template":"scene","scene":"..."} (图形JSON在最后)
-   - ALWAYS output a diagram for geometry problems. No exceptions.
-   - Only output the JSON block. No explanation text inside the code block.
-   - Angle values: 0 = top of circle, increases clockwise.
-   - For scene 6, spread points evenly unless problem implies specific positions.
-   - LaTeX in question text: use $...$ for ALL math symbols. Example: $PA$, $\odot O$, $\angle APB = 40^\circ$, $Rt\triangle ABC$.
+   ═══════════ CLASSIC TEMPLATES (non-circle figures) ═══════════
+   Copy field names EXACTLY. Numbers MUST equal the numbers in your problem text.
 
-4. (reserved)
+   right_triangle — plain right triangle, right angle at C, legs a (horizontal BC) and b (vertical AC):
+   {"template":"right_triangle","a":3,"b":4}
+
+   triangle — general triangle by three side lengths (MUST satisfy triangle inequality):
+   {"template":"triangle","sides":[5,6,7]}
+
+   rectangle:
+   {"template":"rectangle","width":8,"height":5}
+
+   rectangle_fold — rectangle ABCD folded along line EF; E_side/F_side ∈ "AB"/"BC"/"CD"/"AD", ratios 0~1 give E,F positions along those sides:
+   {"template":"rectangle_fold","width":10,"height":8,"E_side":"AB","E_ratio":0.5,"F_side":"CD","F_ratio":0.5}
+
+   parallelogram — base, slant side, interior angle in degrees:
+   {"template":"parallelogram","base":8,"side":5,"angle":60}
+
+   ladder — ladder of given length leaning on a wall, foot at foot_dist from wall (foot_dist < length):
+   {"template":"ladder","length":5,"foot_dist":3}
+
+   cylinder_unrolled — unrolled lateral surface for shortest-path problems:
+   {"template":"cylinder_unrolled","circumference":12,"height":9}
+
+   rectangular_prism_net — cuboid net with dimensions:
+   {"template":"rectangular_prism_net","length":4,"width":3,"height":2}
+
+   number_line — range [lo,hi], optional marked points and solution-set arrows:
+   {"template":"number_line","range":[-5,5],"points":[{"val":-2,"label":"A"},{"val":3,"label":"B"}],"arrows":[{"from":1,"dir":"right"}]}
+
+   coordinate_points — free points and segments. "axes":true ONLY when the
+   problem explicitly mentions a coordinate system; otherwise "axes":false.
+   Segments reference point labels:
+   {"template":"coordinate_points","axes":true,"points":[{"x":-2,"y":3,"label":"A"},{"x":1,"y":-1,"label":"B"},{"x":4,"y":2,"label":"C"}],"segments":[["A","B"],["B","C"]]}
+
+   linear_function — y = kx + b on a grid:
+   {"template":"linear_function","k":2,"b":-1,"xmin":-4,"xmax":4}
+
+   quadratic_function — y = ax² + bx + c on a grid (a ≠ 0):
+   {"template":"quadratic_function","a":1,"b":-2,"c":-3,"xmin":-3,"xmax":5}
+
+   similar_triangles — two similar triangles side by side, ratio of similarity:
+   {"template":"similar_triangles","ratio":2,"sides":[3,4,5]}
+
+   FINAL DIAGRAM RULES:
+   - OUTPUT ORDER: full question text FIRST, then the diagram block LAST.
+     NEVER place the diagram before or in the middle of the question text.
+   - The diagram MUST match the text EXACTLY: same point names, same shape,
+     same numbers. NEVER draw points the text does not mention.
+   - One JSON object per problem, on ONE line, valid JSON, no comments.
+   - Re-read your problem text, then re-read your JSON: if any named point or
+     number differs, FIX the JSON before finalising.
+
+4. MATH CONSISTENCY (CRITICAL — verify BEFORE writing each problem):
+   - Silently solve the problem yourself FIRST. Only output it if a valid,
+     unique answer exists.
+   - Triangle sides must satisfy the triangle inequality. For right triangles
+     prefer Pythagorean triples: (3,4,5) (5,12,13) (6,8,10) (8,15,17) (7,24,25).
+   - Angles must be consistent: triangle angles sum to 180°; cyclic
+     quadrilateral opposite angles sum to 180°; inscribed angle = half the
+     central angle on the same arc; angle in semicircle = 90°; tangent ⊥ radius.
+   - Given numbers must never contradict each other; do not give redundant data.
+   - Answers should come out clean: integers, simple fractions, or simple
+     radicals appropriate to the grade and difficulty.
 5. VARIETY RULE (STRICT): Rotate problem types. Never generate the same type more than twice in a row.
 6. NO RESOLUTIONS: When generating exercises, ONLY output the questions.
 7. LATEX — STRICT FORMAT (READ ALL RULES BEFORE WRITING ANY MATH):
@@ -558,6 +557,9 @@ function getTypePool(conceptTitle: string): string[] | null {
   return null;
 }
 
+// Set to false if you want faster (but less reliable) single-pass generation.
+const ENABLE_REVIEW_PASS = true;
+
 export async function generateExercises(
   conceptTitle: string,
   conceptDesc: string,
@@ -565,7 +567,8 @@ export async function generateExercises(
   difficulty: Difficulty,
   count: number,
   lang: Language,
-  curriculum: Curriculum | null = null
+  curriculum: Curriculum | null = null,
+  _conceptId: string | null = null
 ) {
   const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
   const system = SYSTEM_PROMPT_BASE + curriculumInstr;
@@ -586,17 +589,74 @@ export async function generateExercises(
     `Description: ${conceptDesc}\n` +
     varietyInstr + `\n` +
     `CRITICAL: DO NOT include solutions. ONLY output the numbered questions.\n` +
+    `CRITICAL: Each geometry problem ends with its own \`\`\`math-diagram block AFTER all its text.\n` +
     `Timestamp: ${Date.now()}`;
 
-  return await safeGenerate([
+  // Scale token budget with problem count (each problem + diagram ≈ 600-700 tokens)
+  const genTokens = Math.min(1400 + count * 700, 4800);
+
+  const draft = await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
-  ], false, 3000);
+  ], false, genTokens, 0.55);
+
+  if (!ENABLE_REVIEW_PASS) return draft;
+
+  // ── Second pass: proofread & repair (logic, LaTeX, diagram-text match) ──
+  try {
+    const reviewed = await reviewExercises(draft, system, lang, genTokens);
+    return reviewed;
+  } catch {
+    return draft; // review is best-effort; never block on it
+  }
+}
+
+/**
+ * Second AI pass: the model re-reads its own draft with low temperature and a
+ * strict checklist, then outputs a corrected version. This catches most of the
+ * logic errors, broken LaTeX and text-diagram mismatches that a single
+ * generation pass produces.
+ */
+async function reviewExercises(
+  draft: string,
+  system: string,
+  lang: Language,
+  maxTokens: number
+): Promise<string> {
+  const reviewMsg =
+    `Below is a DRAFT set of exercises. You are now the strict proofreader.\n` +
+    `Check and FIX every issue, then output ONLY the corrected exercises ` +
+    `(same numbering, same number of problems, same language: ${lang === "zh" ? "Chinese" : "English"}, ` +
+    `no commentary, no solutions):\n\n` +
+    `CHECKLIST:\n` +
+    `1. MATH LOGIC: solve each problem yourself. If unsolvable, contradictory, ` +
+    `or the answer is ugly when it should be clean, minimally change a number to fix it.\n` +
+    `2. LATEX: every math symbol inside $...$ with single backslashes ` +
+    `($\\angle ABC$, $\\odot O$, $\\triangle ABC$, $AB \\parallel CD$, $30^\\circ$); ` +
+    `no bare words like angle/odot/parallel/circ; the total count of $ must be even.\n` +
+    `3. DIAGRAMS: every \`\`\`math-diagram block must (a) come AFTER its problem's full text, ` +
+    `(b) contain ONE valid single-line JSON object in the formats defined above, ` +
+    `(c) match the text EXACTLY — same scene/template type, same point names, same numbers. ` +
+    `Fix the JSON if it mismatches. If a geometry problem with named points has NO diagram block, add a correct one.\n` +
+    `4. Do NOT add solutions, do NOT merge or drop problems, do NOT change problem types.\n\n` +
+    `DRAFT:\n"""\n${draft}\n"""`;
+
+  const out = await safeGenerate([
+    { role: "system", content: system },
+    { role: "user", content: reviewMsg },
+  ], false, maxTokens, 0.2);
+
+  // Accept the review only if it looks like a complete rewrite (not truncated/empty)
+  const usable = out && out.trim().length > Math.min(200, draft.trim().length * 0.5);
+  return usable ? out : draft;
 }
 
 export async function solveExercises(exercises: string, lang: Language) {
   const lang_str = lang === "zh" ? "Chinese" : "English";
   const system = `You are a math solution writer. Language: ${lang_str}.
+
+IGNORE any \`\`\`math-diagram blocks in the input — they are figure data.
+NEVER reproduce or mention them in your answer. Solve based on the problem text.
 
 MATH FORMAT (KaTeX only):
 - Inline: $x^2$   Display: $$\\frac{a}{b}$$

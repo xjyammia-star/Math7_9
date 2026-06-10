@@ -39,14 +39,72 @@ interface PracticeCenterProps {
   onSelectTopic?: (query: string) => Promise<void>;
 }
 
-// Wrap any inline raw_svg JSON into a fenced code block
-// so sanitizeMath cannot mangle its contents
+// Wrap any inline diagram JSON ({"template": ...}) into a fenced code block
+// so sanitizeMath cannot mangle its contents.
+// v2: works for ALL templates (scene / raw_svg / classic), tolerates leading
+// or trailing text/whitespace on the same line, and skips content already
+// inside ``` fences.
 function protectDiagramBlocks(text: string): string {
-  // Match both raw_svg and scene template JSON blocks on their own line
-  return text.replace(
-    /^(\{\s*"template"\s*:\s*"(?:raw_svg|scene)"[^\r\n]*\})$/gm,
-    (_m: string, p1: string) => '\n```math-diagram\n' + p1 + '\n```\n'
-  );
+  const parts = text.split(/(```[\s\S]*?```)/g);
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i].startsWith('```')) continue; // already fenced — leave alone
+    parts[i] = parts[i]
+      .split('\n')
+      .map((line: string) => {
+        if (!line.includes('"template"') && !line.includes('"scene"')) return line;
+        const start = line.indexOf('{');
+        const end = line.lastIndexOf('}');
+        if (start === -1 || end <= start) return line;
+        const jsonStr = line.slice(start, end + 1);
+        const prefix = line.slice(0, start).trim();
+        const suffix = line.slice(end + 1).trim();
+        return (
+          (prefix ? prefix + '\n' : '') +
+          '\n```math-diagram\n' + jsonStr + '\n```\n' +
+          (suffix ? suffix + '\n' : '')
+        );
+      })
+      .join('\n');
+  }
+  return parts.join('');
+}
+
+// Within each numbered problem, move every ```math-diagram block to the END
+// of that problem, so the figure always appears after the question text even
+// when the AI ignores the ordering rule.
+function reorderDiagramsToEnd(text: string): string {
+  const lines = text.split('\n');
+  const startRe = /^\s*(?:\*\*)?(?:第\s*\d+\s*题|\d+\s*[.、)．])/;
+  const starts: number[] = [];
+  let inFence = false;
+  lines.forEach((l: string, i: number) => {
+    if (l.trim().startsWith('```')) inFence = !inFence;
+    else if (!inFence && startRe.test(l)) starts.push(i);
+  });
+  if (starts.length === 0) return text;
+
+  const chunks: string[] = [];
+  chunks.push(lines.slice(0, starts[0]).join('\n')); // preamble (may be empty)
+  for (let i = 0; i < starts.length; i++) {
+    const end = i + 1 < starts.length ? starts[i + 1] : lines.length;
+    chunks.push(lines.slice(starts[i], end).join('\n'));
+  }
+
+  const out: string[] = [chunks[0]];
+  for (let i = 1; i < chunks.length; i++) {
+    const seg = chunks[i];
+    const fences: string[] = [];
+    const rest = seg.replace(/```math-diagram[\s\S]*?```/g, (m: string) => {
+      fences.push(m);
+      return '';
+    });
+    if (fences.length === 0) {
+      out.push(seg);
+    } else {
+      out.push(rest.replace(/\n{3,}/g, '\n\n').trimEnd() + '\n\n' + fences.join('\n\n') + '\n');
+    }
+  }
+  return out.join('\n');
 }
 
 const PracticeCenter: React.FC<PracticeCenterProps> = ({
@@ -390,7 +448,7 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
                     rehypePlugins={[rehypeKatex]}
                     components={mdComponents}
                   >
-                    {sanitizeMath(protectDiagramBlocks(showSolution ? (solution || '') : exercises))}
+                    {sanitizeMath(reorderDiagramsToEnd(protectDiagramBlocks(showSolution ? (solution || '') : exercises)))}
                   </ReactMarkdown>
                 </div>
 

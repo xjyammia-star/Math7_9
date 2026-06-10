@@ -3,11 +3,26 @@
 /**
  * Sanitizes LaTeX math expressions for safe rendering with KaTeX/rehype-katex.
  * Also auto-wraps bare LaTeX commands outside math delimiters.
+ *
+ * v2 changes:
+ *  - ALL fenced code blocks (``` ... ```) are extracted FIRST and restored LAST,
+ *    so diagram JSON can never be mangled by any fixing step.
+ *  - "angle" keyword fix now requires an uppercase point name (or digit) and a
+ *    word boundary on the left, so English words like "rectangle" / "angles"
+ *    are never corrupted.
+ *  - Added fixes for: cong / sim, frac, sqrt{...}, N^circ outside math,
+ *    unicode math symbols inside $...$ (∠ △ ⊙ ∥ ⊥ ° ≌ ∽ ≤ ≥ ≠ × ÷ π),
+ *    and merging of split relations like "$AB$∥$CD$" -> "$AB \parallel CD$".
  */
 export function sanitizeMath(content: string): string {
   if (!content) return '';
 
-  let result = content;
+  // ── Step 0: extract ALL fenced code blocks so nothing below can touch them ──
+  const fences: string[] = [];
+  let result = content.replace(/```[\s\S]*?```/g, (m) => {
+    fences.push(m);
+    return `\x01F${fences.length - 1}\x01`;
+  });
 
   // Fix escaped brackets used as math delimiters
   result = result.replace(/\\\[/g, '$$').replace(/\\\]/g, '$$');
@@ -22,11 +37,14 @@ export function sanitizeMath(content: string): string {
   // Step 1b: Fix AI bare-keyword errors outside $...$ (odotO -> $\odot O$, etc.)
   result = fixBareKeywords(result);
 
-  // Step 2: Fix bare keywords INSIDE $...$  (AI writes $angle APB$ without backslash)
+  // Step 2: Fix bare keywords / unicode INSIDE $...$  ($angle APB$, $△ABC$ ...)
   result = fixInsideMath(result);
 
   // Step 3: Auto-wrap bare LaTeX commands not yet in $...$
   result = autoWrapBareLaTeX(result);
+
+  // Step 4: Merge relations split across two math regions: "$AB$ ∥ $CD$" -> "$AB \parallel CD$"
+  result = mergeSplitRelations(result);
 
   // Normalize display math blocks (remove extra spaces inside $$...$$)
   result = result.replace(/\$\$\s*([\s\S]*?)\s*\$\$/g, (_, math) => `$$${math.trim()}$$`);
@@ -34,7 +52,28 @@ export function sanitizeMath(content: string): string {
   // Normalize inline math (remove extra spaces inside $...$)
   result = result.replace(/\$([^$\n]+?)\$/g, (_, math) => `$${math.trim()}$`);
 
+  // ── Final step: restore fenced code blocks untouched ──
+  result = result.replace(/\x01F(\d+)\x01/g, (_, i) => fences[Number(i)] ?? '');
+
   return result;
+}
+
+/**
+ * Merges relations that were split across two adjacent math regions,
+ * e.g. "$AB$∥$CD$" or "$\triangle ABC$ cong $\triangle DEF$".
+ * The pattern "...$ <op> $..." removes the inner pair of $ and inserts
+ * the proper LaTeX command, producing a single balanced math region.
+ */
+function mergeSplitRelations(text: string): string {
+  const MERGE: Record<string, string> = {
+    '∥': '\\parallel', '⊥': '\\perp', '≌': '\\cong', '∽': '\\sim',
+    'parallel': '\\parallel', 'perp': '\\perp', 'cong': '\\cong', 'sim': '\\sim',
+    '=': '=', '≠': '\\neq', '>': '>', '<': '<', '≥': '\\geq', '≤': '\\leq',
+  };
+  return text.replace(
+    /\$\s*(∥|⊥|≌|∽|≠|≥|≤|=|>|<|parallel|perp|cong|sim)\s*\$/g,
+    (_m: string, op: string) => ` ${MERGE[op] ?? op} `
+  );
 }
 
 /**
@@ -68,28 +107,20 @@ function autoWrapBareLaTeX(text: string): string {
 function wrapBareLaTeXInSegment(segment: string): string {
   if (!segment) return segment;
 
-  // Pattern: match sequences that look like LaTeX math expressions
-  // Covers: \cmd, \cmd{...}, expressions with ^, _, fractions, etc.
-  // We look for runs that start with \ or contain ^ _ and have no spaces between tokens
-  
-  // Specific patterns to auto-wrap:
   const patterns = [
-    // \odot, \angle, \triangle, \parallel, \perp, \sim, \cong etc. followed by optional letter
-    /\\(?:odot|angle|triangle|parallel|perp|sim|cong|because|therefore|cdots|ldots|infty|pi|alpha|beta|gamma|theta|lambda|mu|sigma|omega)\s*[A-Za-z]?/g,
+    // \odot, \angle, \triangle, \parallel, \perp, \sim, \cong etc. followed by optional letters
+    /\\(?:odot|angle|triangle|parallel|perp|sim|cong|because|therefore|cdots|ldots|infty|pi|alpha|beta|gamma|theta|lambda|mu|sigma|omega)\s*[A-Za-z]{0,4}/g,
     // \frac{...}{...}
     /\\frac\{[^{}]*\}\{[^{}]*\}/g,
     // \sqrt{...}
     /\\sqrt\{[^{}]*\}/g,
     // Expressions like ∠EAD = 25° or ∠C = 40° — angle with unicode symbol
-    /[∠△⊙]\s*[A-Za-z]+(?:\s*=\s*[\d°]+)?/g,
+    /[∠△⊙]\s*[A-Za-z0-9]+(?:\s*=\s*[\d.]+\s*°?)?/g,
   ];
 
   let result = segment;
   for (const pattern of patterns) {
-    result = result.replace(pattern, (match) => {
-      // Don't double-wrap
-      return `$${match.trim()}$`;
-    });
+    result = result.replace(pattern, (match) => `$${match.trim()}$`);
   }
 
   return result;
@@ -101,8 +132,9 @@ function wrapBareLaTeXInSegment(segment: string): string {
  * or ABperpCD instead of $AB \perp CD$, or sqrt10 instead of $\sqrt{10}$.
  */
 function fixBareKeywords(text: string): string {
-  // Protect existing math regions and code blocks from being double-processed
-  const protectedRegex = /(```[\s\S]*?```|\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g;
+  // Protect existing math regions from being double-processed
+  // (code fences were already extracted in sanitizeMath step 0)
+  const protectedRegex = /(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g;
   const parts: string[] = [];
   let lastIndex = 0;
   let m: RegExpExecArray | null;
@@ -123,7 +155,11 @@ function fixKeywordsInSegment(seg: string): string {
   // ── triangle / Rt triangle (MUST run BEFORE angle regex!) ───────────────
   // "triangle" contains "angle" at position 3, so triangle must be replaced first
   // RtriangleABC / Rt TriangleABC -> $Rt\triangle ABC$
-  s = s.replace(/Rt\s*[Tt]riangle\s*([A-Za-z]{2,4})/g,
+  s = s.replace(/Rt\s*[Tt]?riangle\s*([A-Za-z]{2,4})/g,
+    (_: string, pts: string) => `$Rt\\triangle ${pts}$`
+  );
+  // Rt△ABC -> $Rt\triangle ABC$
+  s = s.replace(/Rt\s*[△]\s*([A-Za-z]{2,4})/g,
     (_: string, pts: string) => `$Rt\\triangle ${pts}$`
   );
   // △rianglePDE (AI omitted 't') or △PDE -> $\triangle PDE$
@@ -131,7 +167,9 @@ function fixKeywordsInSegment(seg: string): string {
     (_: string, pts: string) => `$\\triangle ${pts}$`
   );
   // triangleABC / TriangleABC -> $\triangle ABC$
-  s = s.replace(/[Tt]riangle\s*([A-Za-z]{2,4})/g,
+  // (requires point letters immediately after, so "equilateral triangle" in
+  //  prose is untouched)
+  s = s.replace(/(?<![A-Za-z\\$])[Tt]riangle\s*([A-Z][A-Za-z]{1,3})/g,
     (_: string, pts: string) => `$\\triangle ${pts}$`
   );
   // riangleABC (AI dropped the 't' entirely, no △ prefix) -> $\triangle ABC$
@@ -140,18 +178,20 @@ function fixKeywordsInSegment(seg: string): string {
   );
 
   // ── odot ──────────────────────────────────────────────────────────────────
-  // odotO / odot O (no \b since may follow Chinese characters)
-  s = s.replace(/odot\s*([A-Za-z])/g, (_: string, p: string) => `$\\odot ${p}$`);
+  // odotO / odot O (no \b on right since may be followed by Chinese)
+  s = s.replace(/(?<![A-Za-z\\$])odot\s*([A-Za-z])/g, (_: string, p: string) => `$\\odot ${p}$`);
 
   // ── angle with degree value (must run BEFORE bare-angle) ──────────────────
-  // angleCDE = 56°irc / anglePAD = 62°irc / angleACB = 90° / angleACB = 90circ
-  s = s.replace(/angle([A-Za-z]{1,4})\s*=\s*(\d+)\s*(°irc|°\s*irc|circ|°)/g,
+  // angleCDE = 56°irc / anglePAD = 62°irc / angleACB = 90° / angleACB = 90circ / angle1 = 30°
+  // Requires UPPERCASE point name or a digit, plus a left word boundary, so
+  // "rectangle", "angles", "Bangle" etc. can never be corrupted.
+  s = s.replace(/(?<![A-Za-z\\$])angle\s*([A-Z][A-Za-z]{0,3}|\d)\s*=\s*(\d+(?:\.\d+)?)\s*(°irc|°\s*irc|circ|°)/g,
     (_: string, pts: string, deg: string) => `$\\angle ${pts} = ${deg}^\\circ$`
   );
 
   // ── bare angle (no degree value) ──────────────────────────────────────────
-  // angleABC / angle ABC / angleE
-  s = s.replace(/angle([A-Za-z]{1,4})(?!\s*=)/g,
+  // angleABC / angle ABC / angleE / angle1
+  s = s.replace(/(?<![A-Za-z\\$])angle\s*([A-Z][A-Za-z]{0,3}|\d)(?!\s*=)/g,
     (_: string, pts: string) => `$\\angle ${pts}$`
   );
 
@@ -159,46 +199,116 @@ function fixKeywordsInSegment(seg: string): string {
   s = s.replace(/([A-Za-z]{1,3})\s*perp\s*([A-Za-z]{1,3})/g,
     (_: string, a: string, b: string) => `$${a} \\perp ${b}$`
   );
+  // unicode ⊥ between two plain segment names: AB⊥CD
+  s = s.replace(/([A-Z]{1,3})\s*⊥\s*([A-Z]{1,3})/g,
+    (_: string, a: string, b: string) => `$${a} \\perp ${b}$`
+  );
 
   // ── parallel ──────────────────────────────────────────────────────────────
   s = s.replace(/([A-Za-z]{1,3})\s*parallel\s*([A-Za-z]{1,3})/g,
     (_: string, a: string, b: string) => `$${a} \\parallel ${b}$`
   );
-  s = s.replace(/parallel\s*([A-Za-z]{1,3})/g,
+  s = s.replace(/(?<![A-Za-z\\$])parallel\s*([A-Za-z]{1,3})/g,
     (_: string, b: string) => `$\\parallel ${b}$`
+  );
+  // unicode ∥ between two plain segment names: AB∥CD
+  s = s.replace(/([A-Z]{1,3})\s*∥\s*([A-Z]{1,3})/g,
+    (_: string, a: string, b: string) => `$${a} \\parallel ${b}$`
+  );
+
+  // ── cong (≌) and sim (∽) between point groups ────────────────────────────
+  // Note: triangles were already converted above, so this catches leftovers
+  // like "ABC cong DEF". The merge step handles "$...$ cong $...$".
+  s = s.replace(/([A-Z]{2,4})\s*cong\s*([A-Z]{2,4})/g,
+    (_: string, a: string, b: string) => `$${a} \\cong ${b}$`
+  );
+  s = s.replace(/([A-Z]{2,4})\s*sim\s*([A-Z]{2,4})/g,
+    (_: string, a: string, b: string) => `$${a} \\sim ${b}$`
+  );
+
+  // ── frac ──────────────────────────────────────────────────────────────────
+  // frac{a}{b} without backslash, outside $
+  s = s.replace(/(?<![A-Za-z\\$])frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g,
+    (_: string, a: string, b: string) => `$\\frac{${a}}{${b}}$`
   );
 
   // ── sqrt ──────────────────────────────────────────────────────────────────
-  s = s.replace(/sqrt\s*\(?([0-9.]+)\)?/g,
+  s = s.replace(/(?<![A-Za-z\\$])sqrt\s*\{([^{}]+)\}/g,
+    (_: string, n: string) => `$\\sqrt{${n}}$`
+  );
+  s = s.replace(/(?<![A-Za-z\\$])sqrt\s*\(?([0-9.]+)\)?/g,
     (_: string, n: string) => `$\\sqrt{${n}}$`
   );
 
   // ── degree variants ───────────────────────────────────────────────────────
-  s = s.replace(/(\d+)\s*circ\b/g, (_: string, n: string) => `$${n}^\\circ$`);
-  s = s.replace(/(\d+)°irc\b/g, (_: string, n: string) => `$${n}^\\circ$`);
-  s = s.replace(/(\d+)°(?![^$]*?\})/g, (_: string, n: string) => `$${n}^\\circ$`);
+  // 45^circ / 45^{circ} WITHOUT backslash, outside math (run before plain "Ncirc").
+  // NOTE: must NOT match an already-correct "25^\circ" produced by earlier rules.
+  s = s.replace(/(\d+(?:\.\d+)?)\s*\^\s*\{?circ\}?/g,
+    (_: string, n: string) => `$${n}^\\circ$`);
+  s = s.replace(/(\d+(?:\.\d+)?)\s*circ\b/g, (_: string, n: string) => `$${n}^\\circ$`);
+  s = s.replace(/(\d+(?:\.\d+)?)°irc\b/g, (_: string, n: string) => `$${n}^\\circ$`);
+  s = s.replace(/(\d+(?:\.\d+)?)°/g, (_: string, n: string) => `$${n}^\\circ$`);
 
   return s;
 }
 
 
 /**
- * Fixes bare LaTeX keywords INSIDE existing $...$ delimiters.
- * AI sometimes writes $angle APB$ or $odot O$ without backslashes,
- * which KaTeX cannot render. This fixes them without double-wrapping.
+ * Fixes bare LaTeX keywords AND unicode math symbols INSIDE existing $...$
+ * delimiters. AI sometimes writes $angle APB$, $△ABC$ or $25°$, which KaTeX
+ * cannot render. This fixes them without double-wrapping.
  */
 function fixInsideMath(text: string): string {
   return text.replace(/\$([^$\n]+?)\$/g, (_: string, inner: string) => {
     let s = inner;
-    // Fix bare keywords (not preceded by backslash or letter - to avoid firing on \triangle etc.)
+
+    // ── unicode -> LaTeX (KaTeX cannot render most of these in math mode) ──
+    s = s.replace(/∠\s*/g, '\\angle ');
+    s = s.replace(/△\s*/g, '\\triangle ');
+    s = s.replace(/⊙\s*/g, '\\odot ');
+    s = s.replace(/∥/g, ' \\parallel ');
+    s = s.replace(/⊥/g, ' \\perp ');
+    s = s.replace(/≌/g, ' \\cong ');
+    s = s.replace(/∽/g, ' \\sim ');
+    s = s.replace(/≥/g, ' \\geq ');
+    s = s.replace(/≤/g, ' \\leq ');
+    s = s.replace(/≠/g, ' \\neq ');
+    s = s.replace(/×/g, ' \\times ');
+    s = s.replace(/÷/g, ' \\div ');
+    s = s.replace(/π/g, '\\pi ');
+    s = s.replace(/°/g, '^\\circ ');
+
+    // ── bare keywords (not preceded by backslash or letter) ──
+    // Rt triangle inside math: Rt triangleABC / RtriangleABC
+    s = s.replace(/Rt\s*[Tt]?riangle\b/g, 'Rt\\triangle');
+    s = s.replace(/(?<![A-Za-z\\])triangle\b/g, '\\triangle');
     s = s.replace(/(?<!\\)odot\b/g, '\\odot');
     s = s.replace(/(?<![A-Za-z\\])angle\b/g, '\\angle');
     s = s.replace(/(?<![A-Za-z\\])parallel\b/g, '\\parallel');
     s = s.replace(/(?<![A-Za-z\\])perp\b/g, '\\perp');
+    s = s.replace(/(?<![A-Za-z\\])cong\b/g, '\\cong');
+    s = s.replace(/(?<![A-Za-z\\])sim\b/g, '\\sim');
+    s = s.replace(/(?<![A-Za-z\\])sqrt\s*\{/g, '\\sqrt{');
+    s = s.replace(/(?<![A-Za-z\\])sqrt\s*(\d+(?:\.\d+)?)/g, '\\sqrt{$1}');
+    s = s.replace(/(?<![A-Za-z\\])frac\s*\{/g, '\\frac{');
+    s = s.replace(/(?<![A-Za-z\\])times\b/g, '\\times');
+    s = s.replace(/(?<![A-Za-z\\])cdot\b/g, '\\cdot');
+    s = s.replace(/(?<![A-Za-z\\])leq\b/g, '\\leq');
+    s = s.replace(/(?<![A-Za-z\\])geq\b/g, '\\geq');
+    s = s.replace(/(?<![A-Za-z\\])neq\b/g, '\\neq');
+    s = s.replace(/(?<![A-Za-z\\])pi\b/g, '\\pi');
+
     // Fix circ variants: ^circ ^{circ} bare circ -> ^\circ
-    s = s.replace(/\^\{?circ\}?/g, '^\\circ');
+    s = s.replace(/\^\s*\\?\{?circ\}?/g, '^\\circ');
     s = s.replace(/(?<!\^)(?<!\\)\bcirc\b/g, '^\\circ');
-    return `$${s}$`;
+
+    // Double backslash inside math -> single (\\angle -> \angle)
+    s = s.replace(/\\\\(angle|odot|triangle|parallel|perp|cong|sim|frac|sqrt|circ|times|cdot|pi|leq|geq|neq)/g, '\\$1');
+
+    // Collapse accidental double spaces created above
+    s = s.replace(/\s{2,}/g, ' ');
+
+    return `$${s.trim()}$`;
   });
 }
 
@@ -217,10 +327,13 @@ function fixBareBackslashCommands(text: string): string {
   });
 
   // \angle XYZ = N^\circ  ->  $\angle XYZ = N^\circ$
-  safe = safe.replace(/\\angle\s*([A-Za-z]{1,4})\s*=\s*(\d+)\s*\^\s*\\circ/g,
+  safe = safe.replace(/\\angle\s*([A-Za-z]{1,4}|\d)\s*=\s*(\d+(?:\.\d+)?)\s*\^?\s*\\?circ/g,
+    (_: string, pts: string, deg: string) => `$\\angle ${pts} = ${deg}^\\circ$`);
+  // \angle XYZ = N°  ->  $\angle XYZ = N^\circ$
+  safe = safe.replace(/\\angle\s*([A-Za-z]{1,4}|\d)\s*=\s*(\d+(?:\.\d+)?)\s*°/g,
     (_: string, pts: string, deg: string) => `$\\angle ${pts} = ${deg}^\\circ$`);
   // bare \angle XYZ
-  safe = safe.replace(/\\angle\s*([A-Za-z]{1,4})(?!\s*=)/g,
+  safe = safe.replace(/\\angle\s*([A-Za-z]{1,4}|\d)(?!\s*=)/g,
     (_: string, pts: string) => `$\\angle ${pts}$`);
   // \odot X
   safe = safe.replace(/\\odot\s*([A-Za-z])/g,
@@ -237,6 +350,15 @@ function fixBareBackslashCommands(text: string): string {
   // \triangle XYZ
   safe = safe.replace(/\\triangle\s*([A-Za-z]{2,4})/g,
     (_: string, pts: string) => `$\\triangle ${pts}$`);
+  // bare 45^\circ (backslash present, $ missing)
+  safe = safe.replace(/(\d+(?:\.\d+)?)\s*\^\s*\\circ/g,
+    (_: string, n: string) => `$${n}^\\circ$`);
+  // \sqrt{...}
+  safe = safe.replace(/\\sqrt\s*\{([^{}]+)\}/g,
+    (_: string, n: string) => `$\\sqrt{${n}}$`);
+  // \frac{...}{...}
+  safe = safe.replace(/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g,
+    (_: string, a: string, b: string) => `$\\frac{${a}}{${b}}$`);
 
   // Restore protected blocks
   protected_.forEach((p, i) => { safe = safe.replace(`\x00${i}\x00`, p); });
