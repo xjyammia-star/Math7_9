@@ -259,6 +259,14 @@ STRICT PRINCIPLES:
    {"template":"scene","scene":"cyclic_quad_tangent_extension","angle_C":-50,"angle_D":60}
    ${BT}
 
+   ── SCENE 8: external_two_tangents ────────────────────
+   Use when: P is an external point, PA and PB are tangents to circle at A and B,
+   C is on minor arc AB, tangent at C meets PA at D and PB at E.
+   Example: "PA、PB分别是⊙O的两条切线，切点为A、B，点C在劣弧AB上，过点C作⊙O的切线，分别交PA于D、交PB于E"
+   ${BT}math-diagram
+   {"template":"scene","scene":"external_two_tangents","angle_A":50,"angle_B":310,"angle_C":180}
+   ${BT}
+
    SELECTION GUIDE:
    - Tangent + parallel chord + arc point D → scene 1
    - Quadrilateral in circle → scene 2

@@ -117,11 +117,14 @@ function fixKeywordsInSegment(seg: string): string {
   // ── triangle / Rt triangle (MUST run BEFORE angle regex!) ───────────────
   // "triangle" contains "angle" at position 3, so triangle must be replaced first
   // RtriangleABC / Rt triangleABC -> $Rt\triangle ABC$
-  s = s.replace(/Rt\s*triangle\s*([A-Za-z]{2,4})/g,
+  s = s.replace(/Rt\s*[Tt]riangle\s*([A-Za-z]{2,4})/g,
     (_: string, pts: string) => `$Rt\\triangle ${pts}$`
   );
-  // triangleABC / triangle ABC -> $\triangle ABC$
-  s = s.replace(/triangle\s*([A-Za-z]{2,4})/g,
+  // triangleABC / Triangle ABC / △ABC -> $\triangle ABC$
+  s = s.replace(/[△]\s*([A-Za-z]{2,4})/g,
+    (_: string, pts: string) => `$\\triangle ${pts}$`
+  );
+  s = s.replace(/[Tt]riangle\s*([A-Za-z]{2,4})/g,
     (_: string, pts: string) => `$\\triangle ${pts}$`
   );
 

@@ -7,8 +7,8 @@ export interface SceneJSON {
   [key: string]: any;
 }
 
-const W = 400, H = 400, CX = 200, CY = 200;
-const R = 130; // default circle radius in pixels
+const W = 360, H = 360, CX = 180, CY = 180;
+const R = 110; // default circle radius in pixels
 const GOLD = "#f59e0b";
 const GRAY = "#94a3b8";
 const WHITE = "#f8fafc";
@@ -317,6 +317,9 @@ export function renderScene(sceneJson: SceneJSON): string | null {
     if (scene === "generic_circle") {
       return render_generic_circle(sceneJson);
     }
+    if (scene === "external_two_tangents" || scene === "tangent_two_points_external") {
+      return render_external_tangent_two_points(sceneJson);
+    }
     return null;
   } catch (e) {
     console.error("sceneRenderer error:", e);
@@ -377,4 +380,88 @@ function render_cyclic_quad_tangent_extension(s: SceneJSON): string {
     elems.push(text(lo.x, lo.y, lbl, anchor));
   }
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${elems.join("")}</svg>`;
+}
+
+function render_external_tangent_two_points(s: SceneJSON): string {
+  // P is external point above circle. PA and PB are tangents touching circle at A and B.
+  // C is on minor arc AB. Tangent at C meets PA at D and PB at E.
+  // Triangle PAB (or PDE) with circle inscribed-like configuration.
+  
+  // Layout: circle center O at (200, 260), radius R, P above at (200, 260-R-80)
+  const r = 110;
+  const ocx = 200, ocy = 265;
+  // PA=PB by symmetry. Place A and B symmetric about vertical axis.
+  // Tangent from P touches at A,B. If half-angle at O is theta, sin(theta) = r/OP
+  // Choose angle_A (from top, clockwise) e.g. A at 50° right, B at -50° = 310° left
+  const angle_A = s.angle_A ?? 50;   // A on right side of circle
+  const angle_B = s.angle_B ?? -50;  // B on left side (symmetric)
+  const angle_C = s.angle_C ?? 180;  // C at bottom of minor arc AB
+
+  function cp(deg: number) {
+    const rad = (deg - 90) * Math.PI / 180;
+    return { x: ocx + r * Math.cos(rad), y: ocy + r * Math.sin(rad) };
+  }
+
+  const Ap = cp(angle_A);
+  const Bp = cp(angle_B < 0 ? angle_B + 360 : angle_B);
+  const Cp = cp(angle_C);
+
+  // Tangent at A is perpendicular to OA. Line from P is tangent to circle.
+  // P = intersection of tangent-at-A and tangent-at-B
+  // Tangent at A: direction perpendicular to OA
+  function tangent_line_at(p: {x:number,y:number}): [number,number,number] {
+    // ax + by = c where (a,b) = (px-ocx, py-ocy)/r
+    const a = (p.x - ocx) / r, b = (p.y - ocy) / r;
+    const c = a * p.x + b * p.y;
+    return [a, b, c];
+  }
+  function intersect_lines(
+    [a1,b1,c1]: [number,number,number],
+    [a2,b2,c2]: [number,number,number]
+  ): {x:number,y:number} {
+    const det = a1*b2 - a2*b1;
+    return { x: (c1*b2 - c2*b1)/det, y: (a1*c2 - a2*c1)/det };
+  }
+
+  const tA = tangent_line_at(Ap);
+  const tB = tangent_line_at(Bp);
+  const tC = tangent_line_at(Cp);
+  const Pp = intersect_lines(tA, tB);
+  const Dp = intersect_lines(tA, tC);  // tangent at C meets PA at D
+  const Ep = intersect_lines(tB, tC);  // tangent at C meets PB at E
+
+  const elems: string[] = [];
+  // Viewbox will be computed to fit all points
+  elems.push(`<circle cx="${ocx}" cy="${ocy}" r="${r}" fill="none" stroke="${GRAY}" stroke-width="1.5"/>`);
+  // Main segments: PA, PB
+  elems.push(line(Pp.x, Pp.y, Ap.x, Ap.y));
+  elems.push(line(Pp.x, Pp.y, Bp.x, Bp.y));
+  // Tangent at C: D to E
+  elems.push(line(Dp.x, Dp.y, Ep.x, Ep.y));
+  // OA, OB, OC dashed
+  elems.push(line(ocx, ocy, Ap.x, Ap.y, GRAY, 1.5, DASH));
+  elems.push(line(ocx, ocy, Bp.x, Bp.y, GRAY, 1.5, DASH));
+  elems.push(line(ocx, ocy, Cp.x, Cp.y, GRAY, 1.5, DASH));
+
+  // Points and labels
+  const allPts: [typeof Pp, string][] = [
+    [Pp,"P"],[Ap,"A"],[Bp,"B"],[Cp,"C"],[Dp,"D"],[Ep,"E"]
+  ];
+  for (const [p, lbl] of allPts) {
+    elems.push(dot(p.x, p.y));
+    const lo = label_offset(p.x, p.y, ocx, ocy, 18);
+    const anchor = p.x < ocx - 10 ? "end" : p.x > ocx + 10 ? "start" : "middle";
+    elems.push(text(lo.x, lo.y, lbl, anchor));
+  }
+  elems.push(dot(ocx, ocy, GRAY));
+  elems.push(text(ocx + 12, ocy + 5, "O", "start"));
+
+  // Compute tight viewBox
+  const allX = [Pp,Ap,Bp,Cp,Dp,Ep].map(p=>p.x);
+  const allY = [Pp,Ap,Bp,Cp,Dp,Ep].map(p=>p.y);
+  const minX = Math.min(...allX) - 30, maxX = Math.max(...allX) + 30;
+  const minY = Math.min(...allY) - 30, maxY = Math.max(...allY) + 30;
+  const vw = maxX - minX, vh = maxY - minY;
+
+  return `<svg viewBox="${minX.toFixed(0)} ${minY.toFixed(0)} ${vw.toFixed(0)} ${vh.toFixed(0)}" xmlns="http://www.w3.org/2000/svg">${elems.join("")}</svg>`;
 }
