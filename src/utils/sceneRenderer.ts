@@ -395,7 +395,7 @@ function render_external_tangent_two_points(s: SceneJSON): string {
   // Choose angle_A (from top, clockwise) e.g. A at 50° right, B at -50° = 310° left
   const angle_A = s.angle_A ?? 50;   // A on right side of circle
   const angle_B = s.angle_B ?? -50;  // B on left side (symmetric)
-  const angle_C = s.angle_C ?? 180;  // C at bottom of minor arc AB
+  const angle_C = s.angle_C ?? 0;   // C at top = minor arc AB (short arc near P)
 
   function cp(deg: number) {
     const rad = (deg - 90) * Math.PI / 180;

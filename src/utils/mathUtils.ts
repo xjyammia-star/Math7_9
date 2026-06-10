@@ -116,15 +116,20 @@ function fixKeywordsInSegment(seg: string): string {
 
   // ── triangle / Rt triangle (MUST run BEFORE angle regex!) ───────────────
   // "triangle" contains "angle" at position 3, so triangle must be replaced first
-  // RtriangleABC / Rt triangleABC -> $Rt\triangle ABC$
+  // RtriangleABC / Rt TriangleABC -> $Rt\triangle ABC$
   s = s.replace(/Rt\s*[Tt]riangle\s*([A-Za-z]{2,4})/g,
     (_: string, pts: string) => `$Rt\\triangle ${pts}$`
   );
-  // triangleABC / Triangle ABC / △ABC -> $\triangle ABC$
-  s = s.replace(/[△]\s*([A-Za-z]{2,4})/g,
+  // △rianglePDE (AI omitted 't') or △PDE -> $\triangle PDE$
+  s = s.replace(/[△]\s*(?:riangle\s*)?([A-Za-z]{2,4})/g,
     (_: string, pts: string) => `$\\triangle ${pts}$`
   );
+  // triangleABC / TriangleABC -> $\triangle ABC$
   s = s.replace(/[Tt]riangle\s*([A-Za-z]{2,4})/g,
+    (_: string, pts: string) => `$\\triangle ${pts}$`
+  );
+  // riangleABC (AI dropped the 't' entirely, no △ prefix) -> $\triangle ABC$
+  s = s.replace(/(?<![A-Za-z$\\])riangle\s*([A-Za-z]{2,4})/g,
     (_: string, pts: string) => `$\\triangle ${pts}$`
   );
 

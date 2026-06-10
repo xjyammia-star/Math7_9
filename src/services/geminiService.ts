@@ -264,7 +264,12 @@ STRICT PRINCIPLES:
    C is on minor arc AB, tangent at C meets PA at D and PB at E.
    Example: "PA、PB分别是⊙O的两条切线，切点为A、B，点C在劣弧AB上，过点C作⊙O的切线，分别交PA于D、交PB于E"
    ${BT}math-diagram
-   {"template":"scene","scene":"external_two_tangents","angle_A":50,"angle_B":310,"angle_C":180}
+   // ANGLE CONVENTION: 0=top of circle, increases clockwise.
+   // Minor arc AB = short arc NEAR P (top area) = angle_C around 0
+   // Major arc AB = long arc AWAY from P (bottom) = angle_C around 180
+   // C on 劣弧 (minor arc, near P): use angle_C:0
+   // C on 优弧 (major arc, away from P): use angle_C:180
+   {"template":"scene","scene":"external_two_tangents","angle_A":50,"angle_B":310,"angle_C":0}
    ${BT}
 
    SELECTION GUIDE:
