@@ -26,6 +26,7 @@
  */
 
 import React from 'react';
+import { renderScene } from '../utils/sceneRenderer';
 import { coerceCircleScenePayload, normalizeCircleScene, validateCircleScene } from '../utils/circleSceneSchema.js';
 import { explicitLabel } from '../utils/diagramLabelPolicy';
 import { getLinearFunctionAnnotations, getQuadraticFunctionAnnotations } from '../utils/functionDiagramPolicy';
@@ -2805,6 +2806,18 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
         dangerouslySetInnerHTML={{ __html: parsed.svg }}
       />
     );
+  }
+
+  // scene template: AI describes geometry, frontend computes exact SVG
+  if (parsed?.template === 'scene' && parsed?.scene) {
+    const svgStr = renderScene(parsed);
+    if (svgStr) {
+      return (
+        <div className="my-6 flex justify-center bg-slate-900/40 p-4 rounded-3xl border border-white/5 backdrop-blur-sm"
+          dangerouslySetInnerHTML={{ __html: svgStr }}
+        />
+      );
+    }
   }
 
   let template: string = String(parsed?.template ?? parsed?.type ?? '').trim();

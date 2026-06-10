@@ -42,8 +42,9 @@ interface PracticeCenterProps {
 // Wrap any inline raw_svg JSON into a fenced code block
 // so sanitizeMath cannot mangle its contents
 function protectDiagramBlocks(text: string): string {
+  // Match both raw_svg and scene template JSON blocks on their own line
   return text.replace(
-    /^(\{\s*"template"\s*:\s*"raw_svg".*\})$/gm,
+    /^(\{\s*"template"\s*:\s*"(?:raw_svg|scene)"[^\r\n]*\})$/gm,
     (_m: string, p1: string) => '\n```math-diagram\n' + p1 + '\n```\n'
   );
 }

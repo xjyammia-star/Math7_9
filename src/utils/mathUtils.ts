@@ -132,6 +132,10 @@ function fixKeywordsInSegment(seg: string): string {
   s = s.replace(/([A-Za-z]{1,3})\s*parallel\s*([A-Za-z]{1,3})/g,
     (_: string, a: string, b: string) => `$${a} \\parallel ${b}$`
   );
+  // standalone parallelXX (no left segment given by AI)
+  s = s.replace(/\bparallel\s*([A-Za-z]{1,3})/g,
+    (_: string, b: string) => `$\\parallel ${b}$`
+  );
 
   // triangleABC / triangle ABC -> $\triangle ABC$
   s = s.replace(/\btriangle\s*([A-Za-z]{2,4})/g,
