@@ -251,6 +251,14 @@ STRICT PRINCIPLES:
     "dashed_segments":["OA","OB"]}
    ${BT}
 
+   ── SCENE 7: cyclic_quad_tangent_extension ────────────────────
+   Use when: ABCD inscribed in circle, AB is diameter, CD tangent to circle at D,
+   extensions of AD and BC meet at external point E.
+   Example: "四边形ABCD内接于⊙O，AB是⊙O的直径，CD与⊙O相切于D，延长AD、BC交于E"
+   ${BT}math-diagram
+   {"template":"scene","scene":"cyclic_quad_tangent_extension","angle_C":-50,"angle_D":60}
+   ${BT}
+
    SELECTION GUIDE:
    - Tangent + parallel chord + arc point D → scene 1
    - Quadrilateral in circle → scene 2

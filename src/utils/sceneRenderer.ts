@@ -299,6 +299,9 @@ export function renderScene(sceneJson: SceneJSON): string | null {
     if (scene === "circle_tangent_parallel_chord" || scene === "circle_with_tangent_chord") {
       return render_circle_with_tangent_chord(sceneJson);
     }
+    if (scene === "cyclic_quad_tangent_extension" || scene === "cyclic_quadrilateral_tangent") {
+      return render_cyclic_quad_tangent_extension(sceneJson);
+    }
     if (scene === "cyclic_quadrilateral") {
       return render_cyclic_quadrilateral(sceneJson);
     }
@@ -319,4 +322,59 @@ export function renderScene(sceneJson: SceneJSON): string | null {
     console.error("sceneRenderer error:", e);
     return null;
   }
+}
+
+function render_cyclic_quad_tangent_extension(s: SceneJSON): string {
+  // ABCD inscribed in circle, AB is diameter, CD tangent at D,
+  // extensions of AD and BC meet at E outside the circle
+  const cx = CX, cy = CY, r = R;
+  const Ap = pt(cx - r, cy);   // A: left end of diameter
+  const Bp = pt(cx + r, cy);   // B: right end of diameter
+  const angle_C = s.angle_C ?? -50;  // C upper-right
+  const angle_D = s.angle_D ?? 60;   // D lower-right (tangent point)
+  const Cp = circle_pt(cx, cy, r, angle_C);
+  const Dp = circle_pt(cx, cy, r, angle_D);
+
+  // E = intersection of line AD extended beyond D, and line BC extended beyond C
+  function line_intersect(
+    ax: number, ay: number, bx: number, by: number,
+    cx2: number, cy2: number, dx2: number, dy2: number
+  ): {x:number,y:number} {
+    const denom = (ax-bx)*(cy2-dy2) - (ay-by)*(cx2-dx2);
+    if (Math.abs(denom) < 0.001) return pt(cx+r*1.4, cy+r*0.9);
+    const t = ((ax-cx2)*(cy2-dy2) - (ay-cy2)*(cx2-dx2)) / denom;
+    return pt(ax + t*(bx-ax), ay + t*(by-ay));
+  }
+  const Ep = line_intersect(Ap.x, Ap.y, Dp.x, Dp.y, Bp.x, Bp.y, Cp.x, Cp.y);
+
+  const elems: string[] = [];
+  elems.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${GRAY}" stroke-width="1.5"/>`);
+  // Quadrilateral sides ABCD
+  elems.push(line(Ap.x, Ap.y, Bp.x, Bp.y, GOLD, 2.5));
+  elems.push(line(Bp.x, Bp.y, Cp.x, Cp.y, GOLD, 2.5));
+  elems.push(line(Cp.x, Cp.y, Dp.x, Dp.y, GOLD, 2.5));
+  elems.push(line(Dp.x, Dp.y, Ap.x, Ap.y, GOLD, 2.5));
+  // Diagonals (dashed)
+  elems.push(line(Ap.x, Ap.y, Cp.x, Cp.y, GRAY, 1.5, DASH));
+  elems.push(line(Bp.x, Bp.y, Dp.x, Dp.y, GRAY, 1.5, DASH));
+  // Extensions to E
+  elems.push(line(Dp.x, Dp.y, Ep.x, Ep.y, GOLD, 2));
+  elems.push(line(Cp.x, Cp.y, Ep.x, Ep.y, GOLD, 2));
+  // Tangent at D
+  const od_angle = Math.atan2(Dp.y - cy, Dp.x - cx);
+  const tx = -Math.sin(od_angle)*45, ty = Math.cos(od_angle)*45;
+  elems.push(line(Dp.x-tx, Dp.y-ty, Dp.x+tx, Dp.y+ty, GRAY, 1.5, DASH));
+  // Center O
+  elems.push(dot(cx, cy, GRAY));
+  elems.push(text(cx+12, cy+6, "O", "start"));
+  // All points
+  for (const [p, lbl] of [
+    [Ap,"A"],[Bp,"B"],[Cp,"C"],[Dp,"D"],[Ep,"E"]
+  ] as [{x:number,y:number}, string][]) {
+    elems.push(dot(p.x, p.y));
+    const lo = label_offset(p.x, p.y, cx, cy);
+    const anchor = p.x < cx-10 ? "end" : p.x > cx+10 ? "start" : "middle";
+    elems.push(text(lo.x, lo.y, lbl, anchor));
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${elems.join("")}</svg>`;
 }

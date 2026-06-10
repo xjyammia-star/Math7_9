@@ -114,53 +114,56 @@ function fixKeywordsInSegment(seg: string): string {
   if (!seg) return seg;
   let s = seg;
 
-  // odotO / odot O  -> $\odot O$
-  s = s.replace(/\bodot\s*([A-Za-z])/g, (_: string, p: string) => `$\\odot ${p}$`);
+  // ── odot ──────────────────────────────────────────────────────────────────
+  // odotO / odot O (may be preceded by Chinese, so no \b)
+  s = s.replace(/odot\s*([A-Za-z])/g, (_: string, p: string) => `$\\odot ${p}$`);
 
-  // angleABC / angle ABC / angleACB = 90circ -> $\angle ABC$ or $\angle ACB = 90^\circ$
-  s = s.replace(/\bangle\s*([A-Za-z]{1,4})(?:\s*=\s*(\d+)\s*(?:circ|°|\\circ)?)?/g,
-    (_: string, pts: string, deg?: string) =>
-      deg ? `$\\angle ${pts} = ${deg}^\\circ$` : `$\\angle ${pts}$`
+  // ── angle with degree value (must run BEFORE bare-angle) ──────────────────
+  // angleCDE = 56°irc / anglePAD = 62°irc / angleACB = 90° / angleACB = 90circ
+  s = s.replace(/angle([A-Za-z]{1,4})\s*=\s*(\d+)\s*(°irc|°\s*irc|circ|°)/g,
+    (_: string, pts: string, deg: string) => `$\\angle ${pts} = ${deg}^\\circ$`
   );
 
+  // ── bare angle (no degree value) ──────────────────────────────────────────
+  // angleABC / angle ABC / angleE
+  s = s.replace(/angle([A-Za-z]{1,4})(?!\s*=)/g,
+    (_: string, pts: string) => `$\\angle ${pts}$`
+  );
+
+  // ── perp ──────────────────────────────────────────────────────────────────
   // ABperpCD / AB perp CD -> $AB \perp CD$
   s = s.replace(/([A-Za-z]{1,3})\s*perp\s*([A-Za-z]{1,3})/g,
     (_: string, a: string, b: string) => `$${a} \\perp ${b}$`
   );
 
-  // ABparallelCD / AB parallel CD -> $AB \parallel CD$
+  // ── parallel ──────────────────────────────────────────────────────────────
+  // BCparallelPA / BC parallel PA -> $BC \parallel PA$
   s = s.replace(/([A-Za-z]{1,3})\s*parallel\s*([A-Za-z]{1,3})/g,
     (_: string, a: string, b: string) => `$${a} \\parallel ${b}$`
   );
-  // standalone parallelXX (no left segment given by AI)
-  s = s.replace(/\bparallel\s*([A-Za-z]{1,3})/g,
+  // standalone parallelXX (AI forgot left segment)
+  s = s.replace(/parallel\s*([A-Za-z]{1,3})/g,
     (_: string, b: string) => `$\\parallel ${b}$`
   );
 
-  // triangleABC / triangle ABC -> $\triangle ABC$
-  s = s.replace(/\btriangle\s*([A-Za-z]{2,4})/g,
+  // ── triangle ──────────────────────────────────────────────────────────────
+  s = s.replace(/triangle\s*([A-Za-z]{2,4})/g,
     (_: string, pts: string) => `$\\triangle ${pts}$`
   );
 
-  // sqrt10 / sqrt(10) / sqrt 10 -> $\sqrt{10}$
-  s = s.replace(/\bsqrt\s*\(?([0-9.]+)\)?/g,
+  // ── sqrt ──────────────────────────────────────────────────────────────────
+  s = s.replace(/sqrt\s*\(?([0-9.]+)\)?/g,
     (_: string, n: string) => `$\\sqrt{${n}}$`
   );
 
-  // 25circ / 90circ (number directly followed by "circ") -> $25^\circ$
-  s = s.replace(/\b(\d+)\s*circ\b/g,
-    (_: string, n: string) => `$${n}^\\circ$`
-  );
-
-  // 60°irc (degree sign + 'irc', AI splits ° from circ) -> $60^\circ$
-  s = s.replace(/(\d+)°irc\b/g,
-    (_: string, n: string) => `$${n}^\\circ$`
-  );
-
-  // standalone ° after number not already in $...$: 60° -> $60^\circ$
-  s = s.replace(/(\d+)°(?!\})/g,
-    (_: string, n: string) => `$${n}^\\circ$`
-  );
+  // ── degree variants not caught above ─────────────────────────────────────
+  // 25circ / 90circ
+  s = s.replace(/(\d+)\s*circ\b/g, (_: string, n: string) => `$${n}^\\circ$`);
+  // 60°irc
+  s = s.replace(/(\d+)°irc\b/g, (_: string, n: string) => `$${n}^\\circ$`);
+  // standalone 60° (not already inside $...})
+  s = s.replace(/(\d+)°(?![^$]*?\})/g, (_: string, n: string) => `$${n}^\\circ$`);
 
   return s;
 }
+
