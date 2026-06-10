@@ -114,8 +114,19 @@ function fixKeywordsInSegment(seg: string): string {
   if (!seg) return seg;
   let s = seg;
 
+  // ── triangle / Rt triangle (MUST run BEFORE angle regex!) ───────────────
+  // "triangle" contains "angle" at position 3, so triangle must be replaced first
+  // RtriangleABC / Rt triangleABC -> $Rt\triangle ABC$
+  s = s.replace(/Rt\s*triangle\s*([A-Za-z]{2,4})/g,
+    (_: string, pts: string) => `$Rt\\triangle ${pts}$`
+  );
+  // triangleABC / triangle ABC -> $\triangle ABC$
+  s = s.replace(/triangle\s*([A-Za-z]{2,4})/g,
+    (_: string, pts: string) => `$\\triangle ${pts}$`
+  );
+
   // ── odot ──────────────────────────────────────────────────────────────────
-  // odotO / odot O (may be preceded by Chinese, so no \b)
+  // odotO / odot O (no \b since may follow Chinese characters)
   s = s.replace(/odot\s*([A-Za-z])/g, (_: string, p: string) => `$\\odot ${p}$`);
 
   // ── angle with degree value (must run BEFORE bare-angle) ──────────────────
@@ -131,24 +142,16 @@ function fixKeywordsInSegment(seg: string): string {
   );
 
   // ── perp ──────────────────────────────────────────────────────────────────
-  // ABperpCD / AB perp CD -> $AB \perp CD$
   s = s.replace(/([A-Za-z]{1,3})\s*perp\s*([A-Za-z]{1,3})/g,
     (_: string, a: string, b: string) => `$${a} \\perp ${b}$`
   );
 
   // ── parallel ──────────────────────────────────────────────────────────────
-  // BCparallelPA / BC parallel PA -> $BC \parallel PA$
   s = s.replace(/([A-Za-z]{1,3})\s*parallel\s*([A-Za-z]{1,3})/g,
     (_: string, a: string, b: string) => `$${a} \\parallel ${b}$`
   );
-  // standalone parallelXX (AI forgot left segment)
   s = s.replace(/parallel\s*([A-Za-z]{1,3})/g,
     (_: string, b: string) => `$\\parallel ${b}$`
-  );
-
-  // ── triangle ──────────────────────────────────────────────────────────────
-  s = s.replace(/triangle\s*([A-Za-z]{2,4})/g,
-    (_: string, pts: string) => `$\\triangle ${pts}$`
   );
 
   // ── sqrt ──────────────────────────────────────────────────────────────────
@@ -156,12 +159,9 @@ function fixKeywordsInSegment(seg: string): string {
     (_: string, n: string) => `$\\sqrt{${n}}$`
   );
 
-  // ── degree variants not caught above ─────────────────────────────────────
-  // 25circ / 90circ
+  // ── degree variants ───────────────────────────────────────────────────────
   s = s.replace(/(\d+)\s*circ\b/g, (_: string, n: string) => `$${n}^\\circ$`);
-  // 60°irc
   s = s.replace(/(\d+)°irc\b/g, (_: string, n: string) => `$${n}^\\circ$`);
-  // standalone 60° (not already inside $...})
   s = s.replace(/(\d+)°(?![^$]*?\})/g, (_: string, n: string) => `$${n}^\\circ$`);
 
   return s;
