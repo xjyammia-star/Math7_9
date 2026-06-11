@@ -167,9 +167,12 @@ STRICT PRINCIPLES:
 
    ── circle_tangent_parallel_chord ──
    Use when: PA tangent at A, chord BC ∥ PA, point D on minor arc BC.
-   "PA切⊙O于A，弦BC∥PA，D在劣弧BC上，连BD、CD"
+   "segments": list EXACTLY the segments your problem text draws (letters from
+   A,B,C,D,P). PA is always drawn automatically. Default: ["AB","AC","BC","BD","CD"].
+   "show_E":true marks E = the intersection of AD and BC (use it whenever your
+   text says "AD交BC于点E"; include "AD" and "BC" in segments).
    ${BT}math-diagram
-   {"template":"scene","scene":"circle_tangent_parallel_chord","angle_B":130,"angle_D":180}
+   {"template":"scene","scene":"circle_tangent_parallel_chord","angle_B":130,"angle_D":180,"segments":["AB","BC","BD","AD","CD"],"show_E":true}
    ${BT}
 
    ── cyclic_quadrilateral ──
@@ -225,6 +228,16 @@ STRICT PRINCIPLES:
    "center" label, solid "segments" and dashed "dashed_segments" (2-letter strings).
    ${BT}math-diagram
    {"template":"scene","scene":"generic_circle","points":{"A":0,"B":120,"C":240},"center":"O","segments":["AB","BC","CA"],"dashed_segments":["OA","OB"]}
+   ${BT}
+
+   ── TWO CIRCLE EXCEPTIONS that use CLASSIC templates instead of a scene ──
+   弧长 / 扇形面积 (arc length / sector area):
+   ${BT}math-diagram
+   {"template":"circle_sector","radius":6,"angle":120}
+   ${BT}
+   垂径定理 (perpendicular from center bisects chord; chord length problems):
+   ${BT}math-diagram
+   {"template":"circle_chord","radius":5,"chord":8}
    ${BT}
 
    ═══════════ CLASSIC TEMPLATES (non-circle figures) ═══════════
@@ -291,7 +304,16 @@ STRICT PRINCIPLES:
    - Given numbers must never contradict each other; do not give redundant data.
    - Answers should come out clean: integers, simple fractions, or simple
      radicals appropriate to the grade and difficulty.
-5. VARIETY RULE (STRICT): Rotate problem types. Never generate the same type more than twice in a row.
+5. VARIETY RULE (STRICT):
+   - The "Use when" descriptions and example JSON in the scene/template docs are
+     FORMAT references ONLY. NEVER copy, translate, or lightly rephrase them as
+     your generated problems. In particular, do NOT default to the tangent +
+     parallel-chord configuration ("PA切⊙O于A，弦BC∥PA") unless the assigned
+     problem type explicitly calls for it.
+   - When the user message assigns a 题型 (problem type) to each problem, you
+     MUST follow that assignment exactly — choose the scene/template that fits
+     THAT type, not the first scene in the list.
+   - Vary the named points, given values and asked quantity between problems.
 6. NO RESOLUTIONS: When generating exercises, ONLY output the questions.
 7. LATEX — STRICT FORMAT (READ ALL RULES BEFORE WRITING ANY MATH):
 
@@ -577,9 +599,9 @@ export async function generateExercises(
   const pickedTypes = pool ? pickRandom(pool, Math.max(count, 3)) : null;
   const varietyInstr = pickedTypes
     ? (lang === "zh"
-        ? `\n本次必须从以下题型中选取（每种最多用一次，禁止重复）：\n${pickedTypes.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}`
-        : `\nFor this batch, use these problem types (each at most once):\n${pickedTypes.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}`)
-    : `\nVARIETY: Rotate problem types. Never use the same scenario twice in one batch.`;
+        ? `\n题型分配（强制执行，每道题必须严格采用为它指定的题型）：\n${Array.from({ length: count }, (_, i) => `  第${i + 1}题题型：${pickedTypes[i % pickedTypes.length]}`).join('\n')}\n注意：系统提示中的场景示例题（如"PA切⊙O于A，弦BC∥PA"）仅用于说明JSON格式，严禁照搬或改写为生成的题目。`
+        : `\nPROBLEM TYPE ASSIGNMENT (mandatory — each problem MUST use its assigned type):\n${Array.from({ length: count }, (_, i) => `  Problem ${i + 1}: ${pickedTypes[i % pickedTypes.length]}`).join('\n')}\nNote: the example problems in the scene docs are FORMAT references only. Never copy or rephrase them.`)
+    : `\nVARIETY: Rotate problem types. Never use the same scenario twice in one batch. Never copy the example problems from the scene docs.`;
 
   const userMsg =
     `Task: Generate ${count} mathematics exercise(s) for "${conceptTitle}".\n` +

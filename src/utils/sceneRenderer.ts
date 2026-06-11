@@ -69,31 +69,57 @@ function render_circle_with_tangent_chord(s: SceneJSON): string {
   // P external: tangent at A is horizontal, P is to the left
   const Pp = pt(Ap.x - 100, Ap.y);
 
+  // ── Configurable segments: draw EXACTLY what the problem describes ──
+  const ptsMap: Record<string, {x:number,y:number}> = { P: Pp, A: Ap, B: Bp, C: Cp, D: Dp };
+  const DEFAULT_SEGS = ["AB", "AC", "BC", "BD", "CD"];
+  let segs: string[] = Array.isArray(s.segments)
+    ? (s.segments as any[])
+        .map(x => String(x).toUpperCase())
+        .filter(seg => seg.length === 2 && ptsMap[seg[0]] && ptsMap[seg[1]])
+    : DEFAULT_SEGS;
+  if (segs.length === 0) segs = DEFAULT_SEGS;
+
+  // E = intersection of AD and BC, when requested or implied
+  const wantsE = s.show_E === true ||
+    (segs.includes("AD") && (segs.includes("BC") || segs.includes("CB")));
+  let Ep: {x:number,y:number} | null = null;
+  if (wantsE) {
+    // BC is horizontal at y = Bp.y; AD runs from A (top) to D (bottom arc)
+    const t = (Bp.y - Ap.y) / (Dp.y - Ap.y || 1);
+    Ep = pt(Ap.x + t * (Dp.x - Ap.x), Bp.y);
+    ptsMap.E = Ep;
+  }
+
   const elems: string[] = [];
   // Circle
   elems.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${GRAY}" stroke-width="1.5"/>`);
   // Tangent line PA (dashed extension)
   elems.push(line(Pp.x, Pp.y, Ap.x + 60, Ap.y, GRAY, 1.5, DASH));
-  // Segment PA (solid)
+  // Segment PA (solid, always — it defines the scene)
   elems.push(line(Pp.x, Pp.y, Ap.x, Ap.y, GOLD, 2.5));
-  // Chord AB, AC
-  elems.push(line(Ap.x, Ap.y, Bp.x, Bp.y, GOLD, 2.5));
-  elems.push(line(Ap.x, Ap.y, Cp.x, Cp.y, GOLD, 2.5));
-  // Chord BC
-  elems.push(line(Bp.x, Bp.y, Cp.x, Cp.y, GOLD, 2.5));
-  // BD, CD
-  elems.push(line(Bp.x, Bp.y, Dp.x, Dp.y, GOLD, 2.5));
-  elems.push(line(Cp.x, Cp.y, Dp.x, Dp.y, GOLD, 2.5));
+  // Problem-specific segments
+  for (const seg of segs) {
+    const p1 = ptsMap[seg[0]], p2 = ptsMap[seg[1]];
+    elems.push(line(p1.x, p1.y, p2.x, p2.y, GOLD, 2.5));
+  }
   // Center O
   elems.push(dot(cx, cy, GRAY));
-  // Points
-  for (const [p, lbl] of [[Pp,"P"],[Ap,"A"],[Bp,"B"],[Cp,"C"],[Dp,"D"]] as [typeof Pp, string][]) {
+  // Points: P and A always; B/C/D always (they define the scene); E if computed
+  const labeled: [{x:number,y:number}, string][] = [
+    [Pp, "P"], [Ap, "A"], [Bp, "B"], [Cp, "C"], [Dp, "D"],
+  ];
+  if (Ep) labeled.push([Ep, "E"]);
+  for (const [p, lbl] of labeled) {
     elems.push(dot(p.x, p.y));
+    if (lbl === "E") {
+      // E is inside the circle — offset label up-right so it doesn't overlap BC
+      elems.push(text(p.x + 10, p.y - 8, "E", "start"));
+      continue;
+    }
     const lo = label_offset(p.x, p.y, p === Pp ? Ap.x : cx, p === Pp ? Ap.y : cy);
     const anchor = p.x < cx - 10 ? "end" : p.x > cx + 10 ? "start" : "middle";
     elems.push(text(lo.x, lo.y, lbl, anchor));
   }
-  const lo = label_offset(cx, cy, cx + 20, cy);
   elems.push(text(cx + 14, cy + 5, "O", "start"));
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${elems.join("")}</svg>`;
 }
