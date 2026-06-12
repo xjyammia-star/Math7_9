@@ -339,6 +339,17 @@ function render_generic_circle(s: SceneJSON): string {
       pts[lbl] = pt(coord.x, coord.y);
     }
   }
+  // Optional: tangent line at a named circle point, e.g. "tangent_at":"C"
+  // Drawn as a thin line through that point, perpendicular to the radius,
+  // labeled with "tangent_label" (default "l").
+  if (typeof s.tangent_at === 'string' && pts[s.tangent_at as string] && pointDefs[s.tangent_at as string] !== undefined) {
+    const T = pts[s.tangent_at as string];
+    const tdx = -(T.y - cy) / r, tdy = (T.x - cx) / r; // unit tangent direction
+    const ext = 95;
+    elems.push(line(T.x - ext * tdx, T.y - ext * tdy, T.x + ext * tdx, T.y + ext * tdy, GRAY, 1.5));
+    const lbl = (s.tangent_label as string) || 'l';
+    elems.push(text(T.x + (ext + 12) * tdx, T.y + (ext + 12) * tdy, lbl, "middle"));
+  }
   const segs: string[] = s.segments ?? [];
   const dashedSegs: string[] = s.dashed_segments ?? [];
   for (const seg of segs) {
@@ -353,6 +364,94 @@ function render_generic_circle(s: SceneJSON): string {
     elems.push(dot(p.x, p.y, lbl === s.center ? GRAY : GOLD));
     const lo = label_offset(p.x, p.y, cx, cy);
     const anchor = p.x < cx-10 ? "end" : p.x > cx+10 ? "start" : "middle";
+    elems.push(text(lo.x, lo.y, lbl, anchor));
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${elems.join("")}</svg>`;
+}
+
+function render_circle_tangent_perpendicular(s: SceneJSON): string {
+  // Classic configuration:
+  //   AB is the diameter of circle O. Line l is tangent to the circle at C.
+  //   From A, draw AD ⊥ l with foot D. Line AD meets the circle again at E.
+  //   (Standard problem: ∠DAC = ∠CAB etc.)
+  // All of l, D, E are computed EXACTLY:
+  //   - tangent direction at C = perpendicular to radius OC
+  //   - D = foot of perpendicular from A onto line l
+  //   - E = second intersection of line AD with the circle
+  const cx = CX, cy = CY, r = R;
+  const Ap = pt(cx, cy + r);   // A at bottom
+  const Bp = pt(cx, cy - r);   // B at top (AB vertical diameter)
+
+  // C on the circle; clamp away from A and B so the construction stays valid
+  let angC = Number(s.angle_C);
+  if (!Number.isFinite(angC)) angC = 100;
+  angC = ((angC % 360) + 360) % 360;
+  // keep C at least 30° away from top (0) and bottom (180)
+  if (angC < 30) angC = 30;
+  if (angC > 330) angC = 330;
+  if (Math.abs(angC - 180) < 30) angC = angC < 180 ? 150 : 210;
+  const Cp = circle_pt(cx, cy, r, angC);
+
+  // Unit tangent direction at C (perpendicular to OC)
+  const tdx = -(Cp.y - cy) / r;
+  const tdy = (Cp.x - cx) / r;
+
+  // D = foot of perpendicular from A onto tangent line l
+  const apcx = Ap.x - Cp.x, apcy = Ap.y - Cp.y;
+  const proj = apcx * tdx + apcy * tdy;
+  const Dp = pt(Cp.x + proj * tdx, Cp.y + proj * tdy);
+
+  // E = second intersection of line A→D with the circle.
+  // A is on the circle, so with unit direction d: s = -2 (A−O)·d
+  const adLen = Math.hypot(Dp.x - Ap.x, Dp.y - Ap.y) || 1;
+  const ddx = (Dp.x - Ap.x) / adLen, ddy = (Dp.y - Ap.y) / adLen;
+  const sE = -2 * ((Ap.x - cx) * ddx + (Ap.y - cy) * ddy);
+  const Ep = pt(Ap.x + sE * ddx, Ap.y + sE * ddy);
+
+  const ptsMap: Record<string, {x:number,y:number}> = { A: Ap, B: Bp, C: Cp, D: Dp, E: Ep, O: pt(cx, cy) };
+
+  const elems: string[] = [];
+  // Circle
+  elems.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${GRAY}" stroke-width="1.5"/>`);
+  // Tangent line l through C, extended in both directions far enough to include D
+  const e1 = pt(Cp.x + (Math.max(proj, 0) + 45) * tdx, Cp.y + (Math.max(proj, 0) + 45) * tdy);
+  const e2 = pt(Cp.x + (Math.min(proj, 0) - 45) * tdx, Cp.y + (Math.min(proj, 0) - 45) * tdy);
+  elems.push(line(e1.x, e1.y, e2.x, e2.y, GRAY, 1.5));
+  // Label "l" at the end of the tangent away from D
+  const lEnd = Math.abs(proj) > 1 ? (proj > 0 ? e2 : e1) : e1;
+  elems.push(text(lEnd.x + 8 * tdx, lEnd.y + 8 * tdy + 4, (s.tangent_label as string) || "l", "middle"));
+
+  // Diameter AB (dashed, defines the setup)
+  elems.push(line(Ap.x, Ap.y, Bp.x, Bp.y, GRAY, 1.5, DASH));
+  // AD (solid — the perpendicular through E to foot D)
+  elems.push(line(Ap.x, Ap.y, Dp.x, Dp.y, GOLD, 2.5));
+  // Right-angle mark at D
+  const m = 9;
+  const ndx = (Ap.x - Dp.x) / adLen, ndy = (Ap.y - Dp.y) / adLen; // direction D→A
+  const sgn = proj >= 0 ? -1 : 1;
+  elems.push(`<path d="M ${Dp.x + sgn * m * tdx} ${Dp.y + sgn * m * tdy} L ${Dp.x + sgn * m * tdx + m * ndx} ${Dp.y + sgn * m * tdy + m * ndy} L ${Dp.x + m * ndx} ${Dp.y + m * ndy}" fill="none" stroke="${GRAY}" stroke-width="1.2"/>`);
+
+  // Problem-specific segments (default: AC, CE, BC)
+  const DEFAULT_SEGS = ["AC", "CE", "BC"];
+  let segs: string[] = Array.isArray(s.segments)
+    ? (s.segments as any[])
+        .map(x => String(x).toUpperCase())
+        .filter(seg => seg.length === 2 && ptsMap[seg[0]] && ptsMap[seg[1]])
+    : DEFAULT_SEGS;
+  if (segs.length === 0) segs = DEFAULT_SEGS;
+  for (const seg of segs) {
+    const p1 = ptsMap[seg[0]], p2 = ptsMap[seg[1]];
+    const isRadius = seg.includes("O");
+    elems.push(line(p1.x, p1.y, p2.x, p2.y, isRadius ? GRAY : GOLD, isRadius ? 1.5 : 2.5, isRadius ? DASH : undefined));
+  }
+
+  // Center + labels
+  elems.push(dot(cx, cy, GRAY));
+  elems.push(text(cx - 12, cy + 5, "O", "end"));
+  for (const [lbl, p] of Object.entries({ A: Ap, B: Bp, C: Cp, D: Dp, E: Ep })) {
+    elems.push(dot(p.x, p.y));
+    const lo = label_offset(p.x, p.y, cx, cy);
+    const anchor = p.x < cx - 10 ? "end" : p.x > cx + 10 ? "start" : "middle";
     elems.push(text(lo.x, lo.y, lbl, anchor));
   }
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${elems.join("")}</svg>`;
@@ -383,6 +482,9 @@ export function renderScene(sceneJson: SceneJSON): string | null {
     }
     if (scene === "generic_circle") {
       return render_generic_circle(sceneJson);
+    }
+    if (scene === "circle_tangent_perpendicular" || scene === "tangent_perpendicular" || scene === "diameter_tangent_perpendicular") {
+      return render_circle_tangent_perpendicular(sceneJson);
     }
     if (scene === "external_two_tangents" || scene === "tangent_two_points_external") {
       return render_external_tangent_two_points(sceneJson);

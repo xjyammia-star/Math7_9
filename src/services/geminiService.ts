@@ -207,6 +207,17 @@ STRICT PRINCIPLES:
    {"template":"scene","scene":"circle_diameter_points","angle_C":-60,"segments":["AC","BC"]}
    ${BT}
 
+   ── circle_tangent_perpendicular ──
+   Use when: AB is the diameter, line l is TANGENT to the circle at C, a
+   perpendicular is drawn from A to l with foot D, and AD meets the circle
+   again at E. "AB是⊙O的直径，直线l切⊙O于点C，过A作AD⊥l，垂足为D，AD交⊙O于点E"
+   The renderer computes l, D and E exactly — never use generic_circle for this.
+   "segments": the extra segments your text connects (default ["AC","CE","BC"]).
+   Add "OC" to show the radius to the tangent point (drawn dashed).
+   ${BT}math-diagram
+   {"template":"scene","scene":"circle_tangent_perpendicular","angle_C":100,"segments":["AC","CE","BC"]}
+   ${BT}
+
    ── cyclic_quad_tangent_extension ──
    Use when: ABCD inscribed in circle, AB is diameter, CD is TANGENT to the
    circle at D, extensions of AD and BC meet at external point E.
@@ -226,8 +237,12 @@ STRICT PRINCIPLES:
    ── generic_circle ──
    Use ONLY when no scene above fits. Named points at angles on the circle,
    "center" label, solid "segments" and dashed "dashed_segments" (2-letter strings).
+   Optional "tangent_at":"C" draws the tangent line at that point, labeled "l"
+   (or "tangent_label"). generic_circle CANNOT draw perpendicular feet or
+   intersection points — if your problem needs them, use a dedicated scene or
+   change the problem.
    ${BT}math-diagram
-   {"template":"scene","scene":"generic_circle","points":{"A":0,"B":120,"C":240},"center":"O","segments":["AB","BC","CA"],"dashed_segments":["OA","OB"]}
+   {"template":"scene","scene":"generic_circle","points":{"A":0,"B":120,"C":240},"center":"O","segments":["AB","BC","CA"],"dashed_segments":["OA","OB"],"tangent_at":"C"}
    ${BT}
 
    ── TWO CIRCLE EXCEPTIONS that use CLASSIC templates instead of a scene ──
@@ -284,11 +299,21 @@ STRICT PRINCIPLES:
    similar_triangles — two similar triangles side by side, ratio of similarity:
    {"template":"similar_triangles","ratio":2,"sides":[3,4,5]}
 
-   FINAL DIAGRAM RULES:
+   FINAL DIAGRAM RULES (apply to EVERY diagram, circles AND non-circles):
    - OUTPUT ORDER: full question text FIRST, then the diagram block LAST.
      NEVER place the diagram before or in the middle of the question text.
-   - The diagram MUST match the text EXACTLY: same point names, same shape,
-     same numbers. NEVER draw points the text does not mention.
+   - COMPLETENESS: EVERY geometric object the text mentions — every named
+     point, segment, line (e.g. 直线l), tangent, perpendicular, foot of
+     perpendicular (垂足), intersection point, fold line — MUST be visible in
+     the figure. Before finalising, list each object in your text and confirm
+     the chosen scene/template can draw it.
+   - NO EXTRAS: NEVER draw points, lines or labels the text does not mention.
+   - NO ANSWER IN FIGURE: the quantity the problem asks for must NOT be shown
+     or labeled with its value in the figure.
+   - IF NOTHING FITS: when no scene/template can represent ALL objects of your
+     intended problem, CHANGE THE PROBLEM so it fits an available figure.
+     A correct figure with a different problem is always better than a
+     mismatched figure.
    - One JSON object per problem, on ONE line, valid JSON, no comments.
    - Re-read your problem text, then re-read your JSON: if any named point or
      number differs, FIX the JSON before finalising.
@@ -658,7 +683,11 @@ async function reviewExercises(
     `no bare words like angle/odot/parallel/circ; the total count of $ must be even.\n` +
     `3. DIAGRAMS: every \`\`\`math-diagram block must (a) come AFTER its problem's full text, ` +
     `(b) contain ONE valid single-line JSON object in the formats defined above, ` +
-    `(c) match the text EXACTLY — same scene/template type, same point names, same numbers. ` +
+    `(c) match the text EXACTLY — same scene/template type, same point names, same numbers, ` +
+    `(d) show EVERY object the text mentions (tangent lines, perpendiculars, feet, intersections) ` +
+    `and NOTHING the text does not mention; the asked quantity must not appear in the figure. ` +
+    `If the chosen scene cannot draw an object the text requires, either switch to a scene that can ` +
+    `or minimally rewrite the problem text so figure and text match perfectly. ` +
     `Fix the JSON if it mismatches. If a geometry problem with named points has NO diagram block, add a correct one.\n` +
     `4. Do NOT add solutions, do NOT merge or drop problems, do NOT change problem types.\n\n` +
     `DRAFT:\n"""\n${draft}\n"""`;
