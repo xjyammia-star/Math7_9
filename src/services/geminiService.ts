@@ -199,12 +199,21 @@ STRICT PRINCIPLES:
    ${BT}
 
    ── circle_diameter_points ──
-   Use when: AB is the diameter, plus one or two more points on the arc.
-   "AB是⊙O的直径，C是⊙O上一点". angle_C/angle_D: position from top
-   (negative = counter-clockwise, e.g. -60 = upper-left, 60 = upper-right).
-   List ONLY the segments the problem actually draws. Omit angle_D if no D.
+   Use when: AB is the diameter (A left, B right), plus one or two more points
+   C/D on the arc.
+   POSITIONING (IMPORTANT): when the problem GIVES an inscribed angle value,
+   pass that EXACT value and the renderer places the point precisely:
+     "angle_CAB":20 → C placed so ∠CAB = 20° (vertex A) — use when text gives ∠CAB
+     "angle_CBA":35 → C placed so ∠CBA = 35° (vertex B)
+     "angle_DAB":40 → D placed so ∠DAB = 40° (vertex A)
+     "angle_DBA":30 → D placed so ∠DBA = 30° (vertex B)
+   "side_C"/"side_D": "upper" (default) or "lower" — set one to "lower" when
+   the text says C、D 在AB异侧 (opposite sides of AB).
+   Only when NO inscribed angle is given, use raw positions "angle_C"/"angle_D"
+   (degrees from top, negative = counter-clockwise).
+   List ONLY the segments the problem actually draws. Omit D params if no D.
    ${BT}math-diagram
-   {"template":"scene","scene":"circle_diameter_points","angle_C":-60,"segments":["AC","BC"]}
+   {"template":"scene","scene":"circle_diameter_points","angle_CAB":20,"angle_DBA":30,"segments":["AC","BC","AD","BD"]}
    ${BT}
 
    ── circle_tangent_perpendicular ──
@@ -308,6 +317,10 @@ STRICT PRINCIPLES:
      the figure. Before finalising, list each object in your text and confirm
      the chosen scene/template can draw it.
    - NO EXTRAS: NEVER draw points, lines or labels the text does not mention.
+   - ANGLES MUST LOOK RIGHT: when the text gives angle values, pass them via
+     the scene's angle parameters (e.g. "angle_CAB":20) so point positions in
+     the figure match the given values. Never invent raw positions that
+     contradict the given angles.
    - NO ANSWER IN FIGURE: the quantity the problem asks for must NOT be shown
      or labeled with its value in the figure.
    - IF NOTHING FITS: when no scene/template can represent ALL objects of your
@@ -685,7 +698,9 @@ async function reviewExercises(
     `(b) contain ONE valid single-line JSON object in the formats defined above, ` +
     `(c) match the text EXACTLY — same scene/template type, same point names, same numbers, ` +
     `(d) show EVERY object the text mentions (tangent lines, perpendiculars, feet, intersections) ` +
-    `and NOTHING the text does not mention; the asked quantity must not appear in the figure. ` +
+    `and NOTHING the text does not mention; the asked quantity must not appear in the figure, ` +
+    `(e) when the text gives angle values, the JSON must pass them through the scene's angle ` +
+    `parameters (e.g. "angle_CAB":20) so the drawn positions match the given values. ` +
     `If the chosen scene cannot draw an object the text requires, either switch to a scene that can ` +
     `or minimally rewrite the problem text so figure and text match perfectly. ` +
     `Fix the JSON if it mismatches. If a geometry problem with named points has NO diagram block, add a correct one.\n` +

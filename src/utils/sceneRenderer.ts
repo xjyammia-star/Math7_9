@@ -291,13 +291,42 @@ function render_right_triangle_with_circle(s: SceneJSON): string {
 function render_circle_diameter_points(s: SceneJSON): string {
   // Circle with diameter AB, points C/D on arc
   // ANGLE CONVENTION (same as all other scenes): 0 = top of circle, clockwise.
+  // A = left end (270), B = right end (90).
+  //
+  // POSITIONING BY GIVEN INSCRIBED ANGLES (preferred):
+  // The AI passes the problem's OWN given values and we place points EXACTLY
+  // via the inscribed angle theorem (inscribed angle = half its arc):
+  //   angle_CAB / angle_DAB : inscribed angle at vertex A → point measured from B
+  //   angle_CBA / angle_DBA : inscribed angle at vertex B → point measured from A
+  //   side_C / side_D       : "upper" (default) | "lower"
+  // Fallback: raw positions angle_C / angle_D (degrees from top, cw).
   const cx = CX, cy = CY, r = R;
   const Ap = pt(cx - r, cy); // A left
   const Bp = pt(cx + r, cy); // B right
-  const angle_C = Number.isFinite(Number(s.angle_C)) ? Number(s.angle_C) : -60; // upper-left
-  const angle_D = Number.isFinite(Number(s.angle_D)) ? Number(s.angle_D) : 60;  // upper-right
-  const Cp = circle_pt(cx, cy, r, angle_C);
-  const Dp = circle_pt(cx, cy, r, angle_D);
+
+  const resolvePos = (
+    givenAtA: unknown, givenAtB: unknown, raw: unknown, side: unknown, fallback: number
+  ): { angle: number; explicit: boolean } => {
+    const lower = String(side ?? 'upper').toLowerCase() === 'lower';
+    const aA = Number(givenAtA), aB = Number(givenAtB), rw = Number(raw);
+    if (Number.isFinite(aA) && aA > 0 && aA < 90) {
+      // ∠?AB = aA at A subtends arc (point→B) of 2·aA
+      const ang = lower ? 90 + 2 * aA : 90 - 2 * aA;
+      return { angle: ((ang % 360) + 360) % 360, explicit: true };
+    }
+    if (Number.isFinite(aB) && aB > 0 && aB < 90) {
+      // ∠?BA = aB at B subtends arc (A→point) of 2·aB
+      const ang = lower ? 270 - 2 * aB : 270 + 2 * aB;
+      return { angle: ((ang % 360) + 360) % 360, explicit: true };
+    }
+    if (Number.isFinite(rw)) return { angle: rw, explicit: true };
+    return { angle: fallback, explicit: false };
+  };
+
+  const Cres = resolvePos(s.angle_CAB, s.angle_CBA, s.angle_C, s.side_C, -60);
+  const Dres = resolvePos(s.angle_DAB, s.angle_DBA, s.angle_D, s.side_D, 60);
+  const Cp = circle_pt(cx, cy, r, Cres.angle);
+  const Dp = circle_pt(cx, cy, r, Dres.angle);
   const elems: string[] = [];
   elems.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${GRAY}" stroke-width="1.5"/>`);
   elems.push(line(Ap.x, Ap.y, Bp.x, Bp.y, GRAY, 1.5, DASH));
@@ -309,7 +338,7 @@ function render_circle_diameter_points(s: SceneJSON): string {
     if (p1 && p2) elems.push(line(p1.x, p1.y, p2.x, p2.y));
   }
   // Only show D if the problem actually uses it (angle_D given or a segment mentions D)
-  const usesD = Number.isFinite(Number(s.angle_D)) || segs.some(seg => seg.includes('D'));
+  const usesD = Dres.explicit || segs.some(seg => seg.includes('D'));
   elems.push(dot(cx, cy, GRAY));
   elems.push(text(cx, cy+18, "O"));
   for (const [key, lbl] of [["A","A"],["B","B"],["C","C"],["D","D"]] as [string,string][]) {
