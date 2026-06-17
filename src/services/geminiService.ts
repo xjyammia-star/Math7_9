@@ -1,13 +1,36 @@
 import { Concept, Curriculum, Difficulty, Language, Grade, Message } from "../types";
 import { KNOWLEDGE_GRAPH } from "../data/knowledgeGraph";
 
-const ARK_BASE_URL =
-  (import.meta as any).env?.VITE_DOUBAO_BASE_URL ||
+// ─── Model configuration ──────────────────────────────────────────────────
+// The model (GLM-4.7) is accessed THROUGH Volcengine Ark, NOT Zhipu directly.
+// So the base URL is Ark's (same as the old Doubao setup) and the "model" value
+// must be the Ark ENDPOINT ID (ep-xxxxxxxx-xxxxx) you created in the Ark
+// console for GLM — not the literal string "glm-4.7".
+//
+// Env var priority: VITE_GLM_* first, then legacy VITE_DOUBAO_* as fallback.
+const env: any = (import.meta as any).env || {};
+
+const LLM_BASE_URL =
+  env.VITE_GLM_BASE_URL ||
+  env.VITE_DOUBAO_BASE_URL ||
   "https://ark.cn-beijing.volces.com/api/v3";
-const ARK_API_KEY = (import.meta as any).env?.VITE_DOUBAO_API_KEY || "";
-const ARK_MODEL =
-  (import.meta as any).env?.VITE_DOUBAO_MODEL ||
-  "doubao-seed-2-0-lite-250615";
+
+const LLM_API_KEY =
+  env.VITE_GLM_API_KEY ||
+  env.VITE_DOUBAO_API_KEY ||
+  "";
+
+// This should be your Ark endpoint ID (e.g. "ep-20250528xxxxxx-xxxxx").
+const LLM_MODEL =
+  env.VITE_GLM_MODEL ||
+  env.VITE_DOUBAO_MODEL ||
+  "";
+
+// Deep-thinking toggle. GLM-4.7 reasons better on geometry with thinking ON,
+// but third-party access via Ark may not accept the "thinking" field the same
+// way Zhipu's native API does. Default OFF for maximum compatibility; flip the
+// env var VITE_GLM_THINKING to "on" once you've confirmed it works.
+const ENABLE_THINKING = String(env.VITE_GLM_THINKING || "").toLowerCase() === "on";
 
 async function safeGenerate(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
@@ -17,7 +40,7 @@ async function safeGenerate(
 ): Promise<string> {
   try {
     const body: Record<string, any> = {
-      model: ARK_MODEL,
+      model: LLM_MODEL,
       messages,
       max_tokens: maxTokens,
       temperature,
@@ -26,29 +49,42 @@ async function safeGenerate(
     if (jsonMode) {
       body.response_format = { type: "json_object" };
     }
+    // Optional deep thinking (see ENABLE_THINKING above). Off by default so the
+    // request stays compatible with Ark's third-party model access. When on,
+    // GLM reasons more carefully on geometry; the reasoning text is returned
+    // separately and we never include it in the problem output.
+    if (ENABLE_THINKING) {
+      body.thinking = { type: "enabled" };
+    }
 
-    const res = await fetch(`${ARK_BASE_URL}/chat/completions`, {
+    // Zhipu's path already ends in /paas/v4; Ark ends in /api/v3. Either way we
+    // append /chat/completions. Guard against a trailing slash.
+    const base = LLM_BASE_URL.replace(/\/+$/, "");
+    const res = await fetch(`${base}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${ARK_API_KEY}`,
+        Authorization: `Bearer ${LLM_API_KEY}`,
       },
       body: JSON.stringify(body),
     });
 
     if (!res.ok) {
       const errText = await res.text();
-      if (res.status === 429 || errText.includes("rate_limit") || errText.includes("quota")) {
+      if (res.status === 429 || errText.includes("rate_limit") || errText.includes("quota") || errText.includes("1302") || errText.includes("1113")) {
         throw new Error("QUOTA_EXHAUSTED");
       }
       if (res.status >= 500) {
         throw new Error("AI_INTERNAL_ERROR");
       }
-      throw new Error(`ARK_API_ERROR: ${res.status} ${errText}`);
+      throw new Error(`LLM_API_ERROR: ${res.status} ${errText}`);
     }
 
     const data = await res.json();
-    return data.choices?.[0]?.message?.content || "";
+    const msg = data.choices?.[0]?.message;
+    // Some GLM responses may include a reasoning_content field; we deliberately
+    // ignore it and return ONLY the final answer content.
+    return (msg?.content ?? "") || "";
   } catch (error: any) {
     if (
       error.message === "QUOTA_EXHAUSTED" ||
@@ -56,7 +92,7 @@ async function safeGenerate(
     ) {
       throw error;
     }
-    console.error("ARK API Error:", error);
+    console.error("LLM API Error:", error);
     throw error;
   }
 }
@@ -160,6 +196,15 @@ STRICT PRINCIPLES:
 
    STEP 1 — Is the figure about a CIRCLE (⊙O, 弦, 切线, 直径, 圆周角, 内接...)?
      YES → use "template":"scene" and pick exactly ONE scene from CIRCLE SCENES.
+     NO  → go to STEP 2.
+
+   STEP 2 — Does the figure show LINES/RAYS THROUGH A COMMON POINT with angle
+     relationships (相交直线、对顶角、邻补角、角平分线、射线 from one vertex)?
+     Trigger words: 相交于点O / 直线AB与CD相交 / OE平分∠… / 射线 / 对顶角 /
+     邻补角 / 余角 / 补角 with a vertex figure / 角的度数 around one point.
+     YES → use "template":"scene","scene":"intersecting_lines_rays"
+           (see its entry below — you only declare the structure, the renderer
+            computes every ray/bisector direction; NEVER place rays yourself).
      NO  → pick exactly ONE template from CLASSIC TEMPLATES.
 
    ═══════════ CIRCLE SCENES ("template":"scene") ═══════════
@@ -287,15 +332,25 @@ STRICT PRINCIPLES:
      "base_angles": OPTIONAL fixed directions in math degrees (0°=right/east,
         90°=up, 180°=left, -40°=lower-right). Only pin down what the text fixes;
         the renderer makes each line's two endpoints exactly opposite (180° apart).
-     "rays": extra rays from O. For an angle bisector use
-        {"name":"E","bisects":["B","D"]}  meaning OE bisects ∠BOD.
-        Bisectors may reference earlier rays: {"name":"F","bisects":["C","E"]}.
-        For a fixed-direction ray use {"name":"P","angle":30}.
+     "rays": extra rays from O. Several kinds:
+        • angle bisector:  {"name":"E","bisects":["B","D"]}  (OE bisects ∠BOD)
+          Bisectors may reference earlier rays: {"name":"F","bisects":["C","E"]}.
+        • ray inside an angle (方向由题目条件决定，但你算不准时用这个):
+          {"name":"E","in_angle":["B","D"]}  places OE inside ∠BOD.
+          Optionally bias it with "frac" 0–1 (fraction from the first arm):
+          {"name":"E","in_angle":["B","D"],"frac":0.3}  (closer to OB).
+        • fixed direction:  {"name":"P","angle":30}.
    IMPORTANT: do NOT pass any of the problem's unknown/answer angle values into
-   the figure — only the structural facts (which lines, which bisects which).
-   Example — "直线AB与CD相交于O，OE平分∠BOD，OF平分∠COE，求∠AOF":
+   the figure — only the structural facts (which lines, which bisects/inside which).
+   The figure only needs to look qualitatively right (correct side / region);
+   exact degrees are solved in the written solution, not drawn.
+   Example A — "直线AB与CD相交于O，OE平分∠BOD，OF平分∠COE，求∠AOF":
    ${BT}math-diagram
    {"template":"scene","scene":"intersecting_lines_rays","lines":[["A","B"],["C","D"]],"base_angles":{"B":0,"D":-40},"rays":[{"name":"E","bisects":["B","D"]},{"name":"F","bisects":["C","E"]}],"center":"O"}
+   ${BT}
+   Example B — "直线AB与CD相交于O，OE在∠BOD内部，OG平分∠AOE，求∠BOG的补角":
+   ${BT}math-diagram
+   {"template":"scene","scene":"intersecting_lines_rays","lines":[["A","B"],["C","D"]],"base_angles":{"B":0,"D":-90},"rays":[{"name":"E","in_angle":["B","D"]},{"name":"G","bisects":["A","E"]}],"center":"O"}
    ${BT}
 
    Copy field names EXACTLY. Numbers MUST equal the numbers in your problem text.
@@ -486,7 +541,7 @@ export async function startFeynmanSession(
   return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
-  ], false, 400);
+  ], false, 2000);
 }
 
 export async function guideExercise(
@@ -519,7 +574,7 @@ EXERCISE GUIDANCE MODE:
   return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
-  ], false, 500);
+  ], false, 2000);
 }
 
 export async function guideExerciseStep(
@@ -690,8 +745,9 @@ export async function generateExercises(
     `CRITICAL: Each geometry problem ends with its own \`\`\`math-diagram block AFTER all its text.\n` +
     `Timestamp: ${Date.now()}`;
 
-  // Scale token budget with problem count (each problem + diagram ≈ 600-700 tokens)
-  const genTokens = Math.min(1400 + count * 700, 4800);
+  // Scale token budget with problem count. Headroom covers GLM's hidden
+  // reasoning tokens when VITE_GLM_THINKING is on (you only pay for what's used).
+  const genTokens = Math.min(2000 + count * 900, 12000);
 
   const draft = await safeGenerate([
     { role: "system", content: system },
@@ -785,7 +841,7 @@ $$独立公式$$
   return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: exercises },
-  ], false, 2048);
+  ], false, 8000);
 }
 
 export async function identifyTopic(query: string, lang: Language) {

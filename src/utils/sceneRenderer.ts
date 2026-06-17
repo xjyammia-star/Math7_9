@@ -651,6 +651,15 @@ function render_intersecting_lines_rays(s: SceneJSON): string {
       if (Array.isArray(rd.bisects) && rd.bisects.length === 2) {
         const a = dirs[String(rd.bisects[0])], b = dirs[String(rd.bisects[1])];
         if (a !== undefined && b !== undefined) dirs[name] = bisect(a, b);
+      } else if (Array.isArray(rd.in_angle) && rd.in_angle.length === 2) {
+        // Place ray inside ∠(arm1 O arm2). Walk the SHORT way from arm1 to arm2
+        // by a fraction (default 0.5 = roughly centred).
+        const a = dirs[String(rd.in_angle[0])], b = dirs[String(rd.in_angle[1])];
+        if (a !== undefined && b !== undefined) {
+          let diff = ((b - a + 540) % 360) - 180; // signed shortest delta a→b
+          const frac = Number.isFinite(Number(rd.frac)) ? Math.min(0.85, Math.max(0.15, Number(rd.frac))) : 0.5;
+          dirs[name] = a + diff * frac;
+        }
       } else if (Number.isFinite(Number(rd.angle))) {
         dirs[name] = Number(rd.angle);
       }
