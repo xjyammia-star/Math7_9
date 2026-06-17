@@ -325,31 +325,88 @@ function render_circle_diameter_points(s: SceneJSON): string {
 
   const Cres = resolvePos(s.angle_CAB, s.angle_CBA, s.angle_C, s.side_C, -60);
   const Dres = resolvePos(s.angle_DAB, s.angle_DBA, s.angle_D, s.side_D, 60);
+  // E = optional extra arc point (e.g. 点E在下半圆弧上). Same positioning rules.
+  let Eres = resolvePos(s.angle_EAB, s.angle_EBA, s.angle_E, s.side_E ?? 'lower', 180);
+  // "E_bisector_from_C": true → CE bisects ∠ACB ⇒ arc AE = arc EB ⇒ E is the
+  // midpoint of the semicircle on the OPPOSITE side of C (computed exactly).
+  if (s.E_bisector_from_C === true) {
+    const cAng = ((Cres.angle % 360) + 360) % 360;
+    const cIsUpper = cAng > 270 || cAng < 90;
+    Eres = { angle: cIsUpper ? 180 : 0, explicit: true };
+  }
   const Cp = circle_pt(cx, cy, r, Cres.angle);
   const Dp = circle_pt(cx, cy, r, Dres.angle);
+  const Ep = circle_pt(cx, cy, r, Eres.angle);
+
   const elems: string[] = [];
   elems.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${GRAY}" stroke-width="1.5"/>`);
   elems.push(line(Ap.x, Ap.y, Bp.x, Bp.y, GRAY, 1.5, DASH));
-  // Connect points per s.segments
-  const pts: Record<string, {x:number,y:number}> = {A:Ap,B:Bp,C:Cp,D:Dp};
-  const segs: string[] = s.segments ?? ["AC","BC"];
+  const pts: Record<string, {x:number,y:number}> = {A:Ap,B:Bp,C:Cp,D:Dp,E:Ep,O:pt(cx,cy)};
+  const segs: string[] = (Array.isArray(s.segments) ? (s.segments as any[]).map(x => String(x).toUpperCase()) : ["AC","BC"])
+    .filter(seg => seg.length === 2 && pts[seg[0]] && pts[seg[1]]);
+
+  // ── Optional tangent line at A or B ("tangent_at":"A"), labeled l ──
+  // The tangent at a diameter endpoint is VERTICAL (⊥ AB).
+  const tangentAt = s.tangent_at === 'A' || s.tangent_at === 'B' ? (s.tangent_at as string) : null;
+  const tx = tangentAt === 'A' ? Ap.x : tangentAt === 'B' ? Bp.x : null;
+
+  // ── Optional intersection D: "D_from":"BE" → extend line through those two
+  //    named points until it meets the tangent line; label the hit point D. ──
+  let Dhit: {x:number,y:number} | null = null;
+  let DfromSeg: [{x:number,y:number},{x:number,y:number}] | null = null;
+  const dFrom = typeof s.D_from === 'string' ? (s.D_from as string).toUpperCase() : '';
+  if (tx !== null && dFrom.length === 2 && pts[dFrom[0]] && pts[dFrom[1]]) {
+    const p1 = pts[dFrom[0]], p2 = pts[dFrom[1]];
+    if (Math.abs(p2.x - p1.x) > 0.5) {
+      const t = (tx - p1.x) / (p2.x - p1.x);
+      Dhit = pt(tx, p1.y + t * (p2.y - p1.y));
+      DfromSeg = [p1, p2];
+      pts.D = Dhit; // D now refers to the intersection, not an arc point
+    }
+  }
+
+  // Draw the tangent line, extended to cover D if present
+  if (tx !== null) {
+    let yTop = cy - r - 35, yBot = cy + r + 35;
+    if (Dhit) { yTop = Math.min(yTop, Dhit.y - 25); yBot = Math.max(yBot, Dhit.y + 25); }
+    elems.push(line(tx, yTop, tx, yBot, GRAY, 1.5));
+    elems.push(text(tx - 10, yTop + 12, (s.tangent_label as string) || "l", "end"));
+  }
+  // Draw the extended line p1→D (e.g. 连接BE并延长交l于D)
+  if (Dhit && DfromSeg) {
+    elems.push(line(DfromSeg[0].x, DfromSeg[0].y, Dhit.x, Dhit.y, GOLD, 2.5));
+  }
+
   for (const seg of segs) {
     const p1 = pts[seg[0]], p2 = pts[seg[1]];
     if (p1 && p2) elems.push(line(p1.x, p1.y, p2.x, p2.y));
   }
-  // Only show D if the problem actually uses it (angle_D given or a segment mentions D)
-  const usesD = Dres.explicit || segs.some(seg => seg.includes('D'));
+
+  // Visibility: arc point D only when used AND not replaced by intersection D;
+  // E only when explicitly placed or referenced.
+  const usesArcD = !Dhit && (Dres.explicit || segs.some(seg => seg.includes('D')));
+  const usesE = Eres.explicit || segs.some(seg => seg.includes('E')) || dFrom.includes('E');
   elems.push(dot(cx, cy, GRAY));
   elems.push(text(cx, cy+18, "O"));
-  for (const [key, lbl] of [["A","A"],["B","B"],["C","C"],["D","D"]] as [string,string][]) {
-    if (key === 'D' && !usesD) continue;
-    const p = pts[key];
+  const shown: [string, {x:number,y:number}][] = [["A",Ap],["B",Bp],["C",Cp]];
+  if (usesArcD) shown.push(["D", Dp]);
+  if (usesE) shown.push(["E", Ep]);
+  if (Dhit) shown.push(["D", Dhit]);
+  for (const [lbl, p] of shown) {
     elems.push(dot(p.x, p.y));
     const lo = label_offset(p.x, p.y, cx, cy);
     const anchor = p.x < cx-10 ? "end" : p.x > cx+10 ? "start" : "middle";
     elems.push(text(lo.x, lo.y, lbl, anchor));
   }
-  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${elems.join("")}</svg>`;
+
+  // Dynamic viewBox: expand to include the tangent line / external D
+  let minX = 0, minY = 0, maxX = W, maxY = H;
+  for (const [, p] of shown) {
+    minX = Math.min(minX, p.x - 35); maxX = Math.max(maxX, p.x + 35);
+    minY = Math.min(minY, p.y - 30); maxY = Math.max(maxY, p.y + 30);
+  }
+  if (tx !== null) { minX = Math.min(minX, tx - 30); }
+  return `<svg viewBox="${minX.toFixed(0)} ${minY.toFixed(0)} ${(maxX - minX).toFixed(0)} ${(maxY - minY).toFixed(0)}" xmlns="http://www.w3.org/2000/svg">${elems.join("")}</svg>`;
 }
 
 function render_generic_circle(s: SceneJSON): string {

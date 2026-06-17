@@ -199,19 +199,32 @@ STRICT PRINCIPLES:
    ${BT}
 
    ── circle_diameter_points ──
-   Use when: AB is the diameter (A left, B right), plus one or two more points
-   C/D on the arc.
+   Use when: AB is the diameter (A left, B right), plus more points on the arc.
    POSITIONING (IMPORTANT): when the problem GIVES an inscribed angle value,
    pass that EXACT value and the renderer places the point precisely:
      "angle_CAB":20 → C placed so ∠CAB = 20° (vertex A) — use when text gives ∠CAB
      "angle_CBA":35 → C placed so ∠CBA = 35° (vertex B)
-     "angle_DAB":40 → D placed so ∠DAB = 40° (vertex A)
-     "angle_DBA":30 → D placed so ∠DBA = 30° (vertex B)
-   "side_C"/"side_D": "upper" (default) or "lower" — set one to "lower" when
-   the text says C、D 在AB异侧 (opposite sides of AB).
-   Only when NO inscribed angle is given, use raw positions "angle_C"/"angle_D"
+     "angle_DAB":40 / "angle_DBA":30 → same for an arc point D
+     "angle_EAB":25 / "angle_EBA":25 / "angle_E":180 → an extra point E
+   "side_C"/"side_D": "upper" (default) | "lower"; "side_E": "lower" (default) | "upper".
+   Use "lower" when the text says the point is on the lower semicircle (下半圆弧)
+   or on the opposite side (异侧).
+   Only when NO inscribed angle is given, use raw positions "angle_C"/"angle_D"/"angle_E"
    (degrees from top, negative = counter-clockwise).
-   List ONLY the segments the problem actually draws. Omit D params if no D.
+   SPECIAL CONSTRUCTIONS (computed exactly by the renderer):
+     "E_bisector_from_C":true → E placed exactly so that CE bisects ∠ACB
+       (use when text says "CE平分∠ACB")
+     "tangent_at":"A" → draws tangent line l touching the circle at A (or "B")
+       (use when text says "直线l切⊙O于点A")
+     "D_from":"BE" → D = intersection of line B→E EXTENDED with tangent l;
+       draws B–E–D and labels D (use when text says "连接BE并延长，交直线l于点D").
+       When "D_from" is used, D means this intersection — do NOT also give angle_D.
+   List ONLY the segments the problem actually draws. Omit params for unused points.
+   Example — "直线l切⊙O于A，C在上半弧，E在下半弧，CE平分∠ACB，连接BE并延长交l于D，∠CAB=35°":
+   ${BT}math-diagram
+   {"template":"scene","scene":"circle_diameter_points","angle_CAB":35,"E_bisector_from_C":true,"tangent_at":"A","D_from":"BE","segments":["AC","BC","CE"]}
+   ${BT}
+   Example — plain: "AB是直径，∠CAB=20°，∠DBA=30°，连接AC、BC、AD、BD":
    ${BT}math-diagram
    {"template":"scene","scene":"circle_diameter_points","angle_CAB":20,"angle_DBA":30,"segments":["AC","BC","AD","BD"]}
    ${BT}
