@@ -278,6 +278,26 @@ STRICT PRINCIPLES:
    ${BT}
 
    ═══════════ CLASSIC TEMPLATES (non-circle figures) ═══════════
+   ── intersecting_lines_rays (非圆：相交直线 + 角平分线/射线) ──
+   Use when: two (or more) straight lines cross at a point O, plus extra rays
+   such as angle bisectors. Examples: "直线AB与CD相交于O，OE平分∠BOD，OF平分∠COE".
+   YOU DO NOT COMPUTE ANY ANGLES. Just declare the structure; the renderer
+   solves every ray direction (including bisectors) exactly.
+     "lines": list each straight line as a 2-letter endpoint pair, e.g. [["A","B"],["C","D"]].
+     "base_angles": OPTIONAL fixed directions in math degrees (0°=right/east,
+        90°=up, 180°=left, -40°=lower-right). Only pin down what the text fixes;
+        the renderer makes each line's two endpoints exactly opposite (180° apart).
+     "rays": extra rays from O. For an angle bisector use
+        {"name":"E","bisects":["B","D"]}  meaning OE bisects ∠BOD.
+        Bisectors may reference earlier rays: {"name":"F","bisects":["C","E"]}.
+        For a fixed-direction ray use {"name":"P","angle":30}.
+   IMPORTANT: do NOT pass any of the problem's unknown/answer angle values into
+   the figure — only the structural facts (which lines, which bisects which).
+   Example — "直线AB与CD相交于O，OE平分∠BOD，OF平分∠COE，求∠AOF":
+   ${BT}math-diagram
+   {"template":"scene","scene":"intersecting_lines_rays","lines":[["A","B"],["C","D"]],"base_angles":{"B":0,"D":-40},"rays":[{"name":"E","bisects":["B","D"]},{"name":"F","bisects":["C","E"]}],"center":"O"}
+   ${BT}
+
    Copy field names EXACTLY. Numbers MUST equal the numbers in your problem text.
 
    right_triangle — plain right triangle, right angle at C, legs a (horizontal BC) and b (vertical AC):
@@ -334,6 +354,11 @@ STRICT PRINCIPLES:
      the scene's angle parameters (e.g. "angle_CAB":20) so point positions in
      the figure match the given values. Never invent raw positions that
      contradict the given angles.
+   - DERIVED RAYS / BISECTORS: never try to compute the direction of an angle
+     bisector or other derived ray yourself. Use a scene that solves them for
+     you (e.g. intersecting_lines_rays with "bisects") and pass only the
+     STRUCTURE ("OE bisects ∠BOD" → {"name":"E","bisects":["B","D"]}). The
+     renderer computes the exact direction so the figure is always self-consistent.
    - NO ANSWER IN FIGURE: the quantity the problem asks for must NOT be shown
      or labeled with its value in the figure.
    - IF NOTHING FITS: when no scene/template can represent ALL objects of your

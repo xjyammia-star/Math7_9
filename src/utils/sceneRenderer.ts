@@ -575,11 +575,131 @@ export function renderScene(sceneJson: SceneJSON): string | null {
     if (scene === "external_two_tangents" || scene === "tangent_two_points_external") {
       return render_external_tangent_two_points(sceneJson);
     }
+    if (scene === "intersecting_lines_rays" || scene === "intersecting_lines" || scene === "angle_bisector_rays") {
+      return render_intersecting_lines_rays(sceneJson);
+    }
     return null;
   } catch (e) {
     console.error("sceneRenderer error:", e);
     return null;
   }
+}
+
+function render_intersecting_lines_rays(s: SceneJSON): string {
+  // Two straight lines crossing at O, plus any number of extra rays from O.
+  // The AI only declares the configuration; this renderer computes EVERY ray
+  // direction exactly, so angle bisectors land in the geometrically correct spot.
+  //
+  // Inputs:
+  //   "lines": [["A","B"],["C","D"]]   each pair = one straight line through O
+  //                                    (its two endpoints are opposite rays, 180 apart)
+  //   "base_angles": {"A":180,"B":0,"C":140,"D":-40}   OPTIONAL explicit ray
+  //       directions in math degrees (0=right, CCW positive). A line's two
+  //       endpoints are forced 180 apart automatically.
+  //   "rays": [                          extra rays solved by the renderer:
+  //       {"name":"E","bisects":["B","D"]},     OE bisects angle BOD
+  //       {"name":"F","bisects":["C","E"]}      OF bisects angle COE (may depend on E)
+  //       {"name":"P","angle":30}               OP at a fixed direction
+  //     ]
+  //   "center": "O"  (default "O")
+  const cx = CX, cy = CY;
+  const rayLen = 95;
+  const center = (s.center as string) || "O";
+
+  const dirs: Record<string, number> = {}; // ray name -> math-degrees (CCW, 0=right)
+
+  // 1. Seed directions from explicit base_angles
+  const base = (s.base_angles as Record<string, number>) || {};
+  for (const [k, v] of Object.entries(base)) {
+    if (Number.isFinite(Number(v))) dirs[k] = Number(v);
+  }
+
+  // 2. Lines: ensure each pair is 180 apart; supply defaults if missing
+  const lines: string[][] = Array.isArray(s.lines) && s.lines.length
+    ? (s.lines as any[]).map((l: any) => [String(l[0]), String(l[1])])
+    : [["A", "B"], ["C", "D"]];
+  const DEFAULT_LINE_DIRS = [
+    [180, 0],
+    [140, -40],
+    [110, -70],
+  ];
+  lines.forEach((ln, i) => {
+    const [p, q] = ln;
+    const def = DEFAULT_LINE_DIRS[i] || [120 - i * 30, -60 - i * 30];
+    if (dirs[p] === undefined && dirs[q] === undefined) {
+      dirs[p] = def[0]; dirs[q] = def[1];
+    } else if (dirs[p] === undefined) {
+      dirs[p] = dirs[q] + 180;
+    } else if (dirs[q] === undefined) {
+      dirs[q] = dirs[p] + 180;
+    } else {
+      dirs[q] = dirs[p] + 180;
+    }
+  });
+
+  // 3. Solve extra rays (bisectors may depend on earlier-solved rays)
+  const bisect = (a: number, b: number): number => {
+    const ax = Math.cos(a * Math.PI / 180), ay = Math.sin(a * Math.PI / 180);
+    const bx = Math.cos(b * Math.PI / 180), by = Math.sin(b * Math.PI / 180);
+    return Math.atan2(ay + by, ax + bx) * 180 / Math.PI;
+  };
+  const rayDefs: any[] = Array.isArray(s.rays) ? (s.rays as any[]) : [];
+  for (let pass = 0; pass < 4; pass++) {
+    for (const rd of rayDefs) {
+      const name = String(rd.name);
+      if (dirs[name] !== undefined) continue;
+      if (Array.isArray(rd.bisects) && rd.bisects.length === 2) {
+        const a = dirs[String(rd.bisects[0])], b = dirs[String(rd.bisects[1])];
+        if (a !== undefined && b !== undefined) dirs[name] = bisect(a, b);
+      } else if (Number.isFinite(Number(rd.angle))) {
+        dirs[name] = Number(rd.angle);
+      }
+    }
+  }
+
+  // 4. Draw. Math angle -> SVG point (SVG y grows downward, so negate sine).
+  const ptAt = (deg: number, len: number) =>
+    pt(cx + len * Math.cos(deg * Math.PI / 180), cy - len * Math.sin(deg * Math.PI / 180));
+
+  const elems: string[] = [];
+
+  for (const ln of lines) {
+    const [p, q] = ln;
+    if (dirs[p] === undefined || dirs[q] === undefined) continue;
+    const a = ptAt(dirs[p], rayLen);
+    const b = ptAt(dirs[q], rayLen);
+    elems.push(line(a.x, a.y, b.x, b.y, GOLD, 2.5));
+  }
+
+  const lineEndpoints = new Set(lines.flat());
+  for (const rd of rayDefs) {
+    const name = String(rd.name);
+    if (dirs[name] === undefined || lineEndpoints.has(name)) continue;
+    const e = ptAt(dirs[name], rayLen);
+    elems.push(line(cx, cy, e.x, e.y, GOLD, 2.5));
+  }
+
+  elems.push(dot(cx, cy, GRAY));
+
+  const allNames = new Set<string>([...lineEndpoints, ...rayDefs.map((r: any) => String(r.name))]);
+  for (const name of allNames) {
+    if (dirs[name] === undefined) continue;
+    const e = ptAt(dirs[name], rayLen);
+    elems.push(dot(e.x, e.y));
+    const lp = ptAt(dirs[name], rayLen + 16);
+    elems.push(text(lp.x, lp.y + 4, name, "middle"));
+  }
+  elems.push(text(cx - 13, cy - 9, center, "middle"));
+
+  let minX = 0, minY = 0, maxX = W, maxY = H;
+  for (const name of allNames) {
+    if (dirs[name] === undefined) continue;
+    const lp = ptAt(dirs[name], rayLen + 24);
+    minX = Math.min(minX, lp.x); maxX = Math.max(maxX, lp.x);
+    minY = Math.min(minY, lp.y); maxY = Math.max(maxY, lp.y);
+  }
+  const pad = 6;
+  return `<svg viewBox="${(minX - pad).toFixed(0)} ${(minY - pad).toFixed(0)} ${(maxX - minX + 2 * pad).toFixed(0)} ${(maxY - minY + 2 * pad).toFixed(0)}" xmlns="http://www.w3.org/2000/svg">${elems.join("")}</svg>`;
 }
 
 function render_cyclic_quad_tangent_extension(s: SceneJSON): string {
