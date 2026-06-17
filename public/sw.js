@@ -3,7 +3,7 @@
 //   • App shell (HTML / JS / CSS / icons) → Cache-first, update in background
 //   • API calls (Volcano Engine / Ark) → Network-only (never cache AI responses)
 
-const CACHE_NAME = 'math79-v1';
+const CACHE_NAME = 'math79-v2';
 const PRECACHE = [
   '/',
   '/manifest.json',
@@ -31,6 +31,12 @@ self.addEventListener('activate', (event) => {
 
 // ── Fetch: cache-first for static assets, network-only for API ───────────
 self.addEventListener('fetch', (event) => {
+  // Only GET requests can be cached. POST (AI calls) and HEAD must pass through
+  // untouched — trying to cache them throws "Request method ... is unsupported".
+  if (event.request.method !== 'GET') {
+    return; // let the browser handle it normally; do NOT call respondWith
+  }
+
   const url = new URL(event.request.url);
 
   // Never intercept AI API calls or cross-origin requests
@@ -51,16 +57,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for everything else (JS, CSS, fonts, icons)
+  // Cache-first for everything else (JS, CSS, fonts, icons) — GET only
   event.respondWith(
     caches.match(event.request).then(cached => {
       const network = fetch(event.request).then(resp => {
-        if (resp.ok) {
+        // Only cache successful, basic (same-origin) GET responses.
+        if (resp && resp.ok && resp.type === 'basic') {
           const clone = resp.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          caches.open(CACHE_NAME)
+            .then(cache => cache.put(event.request, clone))
+            .catch(() => { /* ignore cache write errors silently */ });
         }
         return resp;
-      });
+      }).catch(() => cached); // network failed → fall back to cache if present
       return cached || network;
     })
   );
