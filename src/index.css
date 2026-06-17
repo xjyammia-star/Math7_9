@@ -13,11 +13,46 @@
   --color-brand-accent-hover: #b88617;
   --color-brand-muted: #64748b;
   --color-brand-border: #1e293b;
+
+  /* Extra small breakpoint, used to hide tab labels on very narrow phones
+     while keeping icons visible (e.g. iPhone SE at 375px). */
+  --breakpoint-xs: 420px;
+}
+
+/* Prevent the iOS/Android pull-to-refresh bounce from fighting with the
+   app's own scroll containers, and respect the safe-area insets on
+   notched phones (iPhone) when running as an installed PWA. */
+html, body {
+  height: 100%;
+  overscroll-behavior-y: none;
+}
+
+#root {
+  height: 100%;
 }
 
 body {
   background-color: var(--color-brand-bg);
   color: #f8fafc;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Hide scrollbars on the horizontally-scrollable mobile tab bar, while
+   keeping the area scrollable by touch/drag. */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Ensure tap targets feel native-sized on touch devices. */
+@media (pointer: coarse) {
+  button, a {
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 .prose-serif {
@@ -34,6 +69,22 @@ body {
 
 .markdown-body p {
   margin-bottom: 1rem;
+}
+
+/* Long display-math lines ($$...$$) can be wider than a phone screen.
+   Let them scroll horizontally inside their own line instead of forcing
+   the whole page to overflow. */
+.markdown-body .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+}
+
+/* Diagrams (inline SVG from math-diagram blocks) must never exceed the
+   width of their container on any screen size. */
+.markdown-body svg {
+  max-width: 100%;
+  height: auto;
 }
 
 .dark-card {

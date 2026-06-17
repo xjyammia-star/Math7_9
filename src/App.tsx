@@ -15,6 +15,8 @@ import {
   Sparkles,
   FlaskConical,
   LineChart,
+  Menu,
+  X,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { KNOWLEDGE_GRAPH } from './data/knowledgeGraph';
@@ -94,6 +96,7 @@ const App: React.FC = () => {
   const [quotaExceeded, setQuotaExceeded]     = useState(false);
   const [collapsedModules, setCollapsedModules] = useState<Record<string, boolean>>(DEFAULT_COLLAPSED);
   const [curriculum, setCurriculum]           = useState<Curriculum | null>(null);
+  const [mobileNavOpen, setMobileNavOpen]     = useState(false);
 
   const toggleModule = (moduleId: string) => {
     setCollapsedModules(prev => ({ ...prev, [moduleId]: !prev[moduleId] }));
@@ -197,20 +200,46 @@ const App: React.FC = () => {
   const activeCurriculum = curriculum ? CURRICULA.find(c => c.id === curriculum) : null;
 
   return (
-    <div className="flex h-screen bg-[var(--color-brand-bg)] text-slate-100 font-sans">
+    <div className="flex h-screen h-[100dvh] bg-[var(--color-brand-bg)] text-slate-100 font-sans overflow-hidden">
 
-      {/* ── Sidebar ── */}
-      <aside className="w-72 border-r border-[var(--color-brand-border)] bg-[var(--color-brand-bg)] flex flex-col shrink-0">
+      {/* ── Mobile overlay (tap to close drawer) ── */}
+      <AnimatePresence>
+        {mobileNavOpen && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-30 md:hidden"
+            onClick={() => setMobileNavOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Sidebar ──
+          Mobile (<md): fixed off-canvas drawer, slides in from the left, full height.
+          Tablet/Desktop (md+): normal in-flow, always visible, fixed width. */}
+      <aside className={`
+          fixed md:static inset-y-0 left-0 z-40
+          w-[85vw] max-w-[320px] md:w-72
+          border-r border-[var(--color-brand-border)] bg-[var(--color-brand-bg)]
+          flex flex-col shrink-0 transition-transform duration-300 ease-out
+          ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
+        `}>
 
         {/* Header */}
-        <div className="p-5 border-b border-[var(--color-brand-border)]">
-          <div className="flex items-center gap-2 mb-1.5">
-            <div className="p-2 bg-[var(--color-brand-accent)] rounded-lg text-brand-bg">
-              <BrainCircuit className="w-5 h-5" />
+        <div className="p-5 border-b border-[var(--color-brand-border)] flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="p-2 bg-[var(--color-brand-accent)] rounded-lg text-brand-bg">
+                <BrainCircuit className="w-5 h-5" />
+              </div>
+              <h1 className="text-base font-bold tracking-tight text-white leading-tight">{t.title}</h1>
             </div>
-            <h1 className="text-base font-bold tracking-tight text-white leading-tight">{t.title}</h1>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.18em]">{t.subtitle}</p>
           </div>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.18em]">{t.subtitle}</p>
+          {/* Close button — mobile drawer only */}
+          <button onClick={() => setMobileNavOpen(false)}
+            className="md:hidden -mr-1 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex-shrink-0">
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Curriculum Selector */}
@@ -226,7 +255,7 @@ const App: React.FC = () => {
               </button>
             )}
           </div>
-          <div className="grid grid-cols-5 gap-1.5">
+          <div className="grid grid-cols-5 gap-1 sm:gap-1.5">
             {CURRICULA.map(c => {
               const isActive = curriculum === c.id;
               return (
@@ -326,6 +355,7 @@ const App: React.FC = () => {
                           if (selectedConcept?.id === concept.id && ((!newFocusZh && !currentFocusZh) || newFocusZh === currentFocusZh)) return;
                           setSelectedConcept(searchQuery ? { ...concept, specificFocus: focus } : concept);
                           setActiveView('knowledge'); // ← switch back to knowledge view when clicking a concept
+                          setMobileNavOpen(false); // ← auto-close drawer on mobile after selection
                         }}
                         className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all flex items-center justify-between group ${
                           selectedConcept?.id === concept.id && activeView === 'knowledge'
@@ -376,53 +406,59 @@ const App: React.FC = () => {
       </aside>
 
       {/* ── Main Content ── */}
-      <main className="flex-1 flex flex-col overflow-hidden bg-[var(--color-brand-bg)]">
+      <main className="flex-1 flex flex-col overflow-hidden bg-[var(--color-brand-bg)] min-w-0">
 
         {/* Tabs + meta bar */}
-        <header className="px-6 py-3 flex items-center justify-between border-b border-[var(--color-brand-border)] bg-[var(--color-brand-bg)]/80 backdrop-blur-md z-10 gap-4">
-          <div className="flex gap-1.5 p-1 bg-[var(--color-brand-card)] rounded-xl border border-[var(--color-brand-border)]">
+        <header className="px-3 sm:px-6 py-3 flex items-center justify-between border-b border-[var(--color-brand-border)] bg-[var(--color-brand-bg)]/80 backdrop-blur-md z-10 gap-2 sm:gap-4">
+          {/* Hamburger — mobile only */}
+          <button onClick={() => setMobileNavOpen(true)}
+            className="md:hidden flex-shrink-0 p-2 -ml-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+            <Menu className="w-5 h-5" />
+          </button>
+
+          <div className="flex gap-1 sm:gap-1.5 p-1 bg-[var(--color-brand-card)] rounded-xl border border-[var(--color-brand-border)] overflow-x-auto scrollbar-hide">
             <button onClick={() => { setActiveTab('learn'); setActiveView('knowledge'); }}
-              className={`px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 sm:px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'learn' && activeView === 'knowledge'
                   ? 'bg-[var(--color-brand-accent)] text-[var(--color-brand-bg)] shadow-lg'
                   : 'text-slate-400 hover:text-slate-200'}`}>
-              <BookOpen className="w-3.5 h-3.5" />
-              {t.learnTab}
+              <BookOpen className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="hidden xs:inline">{t.learnTab}</span>
             </button>
             <button onClick={() => { setActiveTab('practice'); setActiveView('knowledge'); }}
-              className={`px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 sm:px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'practice' && activeView === 'knowledge'
                   ? 'bg-[var(--color-brand-accent)] text-[var(--color-brand-bg)] shadow-lg'
                   : 'text-slate-400 hover:text-slate-200'}`}>
-              <GraduationCap className="w-3.5 h-3.5" />
-              {t.practiceTab}
+              <GraduationCap className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="hidden xs:inline">{t.practiceTab}</span>
             </button>
             <button onClick={() => setActiveView('formula')}
-              className={`px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 sm:px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${
                 activeView === 'formula'
                   ? 'bg-[var(--color-brand-accent)] text-[var(--color-brand-bg)] shadow-lg'
                   : 'text-slate-400 hover:text-slate-200'}`}>
-              <LineChart className="w-3.5 h-3.5" />
-              {t.formulaBtn}
+              <LineChart className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="hidden xs:inline">{t.formulaBtn}</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-3 flex-1 justify-end min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-end min-w-0">
             {activeCurriculum && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border"
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border flex-shrink-0"
                 style={{ color: activeCurriculum.color, borderColor: `${activeCurriculum.color}50`, background: `${activeCurriculum.color}12` }}>
                 <span>{activeCurriculum.flag}</span>
                 <span>{activeCurriculum.label[lang]}</span>
               </div>
             )}
             {selectedConcept && activeView === 'knowledge' && (
-              <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500 bg-[var(--color-brand-card)] border border-[var(--color-brand-border)] px-4 py-1.5 rounded-full uppercase tracking-widest min-w-0 overflow-hidden">
+              <div className="flex items-center gap-2 sm:gap-3 text-[10px] font-bold text-slate-500 bg-[var(--color-brand-card)] border border-[var(--color-brand-border)] px-2.5 sm:px-4 py-1.5 rounded-full uppercase tracking-widest min-w-0 overflow-hidden">
                 <span className="flex items-center gap-1 flex-shrink-0">
                   <Settings2 className="w-3 h-3 text-[var(--color-brand-accent)]" />
                   Lv.{selectedConcept.level}
                 </span>
-                <span className="w-px h-3 bg-slate-700 flex-shrink-0" />
-                <span className="truncate text-slate-400">{selectedConcept.title[lang]}</span>
+                <span className="w-px h-3 bg-slate-700 flex-shrink-0 hidden sm:inline-block" />
+                <span className="truncate text-slate-400 hidden sm:inline">{selectedConcept.title[lang]}</span>
               </div>
             )}
           </div>
@@ -441,13 +477,13 @@ const App: React.FC = () => {
             ) : activeTab === 'learn' ? (
               !selectedConcept ? (
                 <motion.div key="learn-empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  className="h-full flex flex-col items-center justify-center p-12 text-center">
-                  <div className="w-24 h-24 rounded-3xl flex items-center justify-center mb-8 rotate-3 transition-transform hover:rotate-0 dark-card">
-                    <BrainCircuit className="w-12 h-12 text-[var(--color-brand-accent)]" />
+                  className="h-full flex flex-col items-center justify-center p-6 sm:p-12 text-center">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl flex items-center justify-center mb-6 sm:mb-8 rotate-3 transition-transform hover:rotate-0 dark-card">
+                    <BrainCircuit className="w-10 h-10 sm:w-12 sm:h-12 text-[var(--color-brand-accent)]" />
                   </div>
-                  <h2 className="text-3xl font-bold text-white mb-3 tracking-tight">{t.learnTab}</h2>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 tracking-tight">{t.learnTab}</h2>
                   <p className="text-slate-500 max-w-sm text-sm leading-relaxed mb-8">
-                    {lang === 'zh' ? '请在左侧选择课程体系和知识点开始学习。' : 'Select a curriculum and concept on the left to start.'}
+                    {lang === 'zh' ? '请点击左上角菜单选择课程体系和知识点开始学习。' : 'Tap the menu in the top-left to pick a curriculum and concept.'}
                   </p>
                   {searchQuery && (
                     <button onClick={() => handleAiSearch()} disabled={isAiSearching}
