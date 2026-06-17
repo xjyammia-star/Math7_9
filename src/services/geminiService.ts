@@ -386,6 +386,16 @@ STRICT PRINCIPLES:
    problem explicitly mentions a coordinate system; otherwise "axes":false.
    Segments reference point labels:
    {"template":"coordinate_points","axes":true,"points":[{"x":-2,"y":3,"label":"A"},{"x":1,"y":-1,"label":"B"},{"x":4,"y":2,"label":"C"}],"segments":[["A","B"],["B","C"]]}
+   ⚠️ USE coordinate_points ONLY for genuine coordinate-geometry problems that
+   give explicit (x, y) values in the text. DO NOT use it to fake a plain
+   geometry figure by guessing coordinates — you will get the positions wrong
+   and the long JSON often gets truncated. For a triangle with cevians (高/中线/
+   角平分线), feet of perpendiculars, or special points (垂心/重心/内心/外心),
+   prefer the "triangle" template and describe the construction in the TEXT
+   instead of plotting every point. If a figure truly cannot be drawn by any
+   template without inventing coordinates, simplify the PROBLEM so it fits
+   (e.g. give side lengths and ask about those) rather than emitting a fragile
+   coordinate_points blob. Keep every points[] array to at most ~6 points.
 
    linear_function — y = kx + b on a grid:
    {"template":"linear_function","k":2,"b":-1,"xmin":-4,"xmax":4}
@@ -745,9 +755,10 @@ export async function generateExercises(
     `CRITICAL: Each geometry problem ends with its own \`\`\`math-diagram block AFTER all its text.\n` +
     `Timestamp: ${Date.now()}`;
 
-  // Scale token budget with problem count. Headroom covers GLM's hidden
-  // reasoning tokens when VITE_GLM_THINKING is on (you only pay for what's used).
-  const genTokens = Math.min(2000 + count * 900, 12000);
+  // Scale token budget with problem count. Generous headroom so that long
+  // diagram JSON (e.g. coordinate_points with many points) is never truncated
+  // mid-object, and so GLM's hidden reasoning tokens (when thinking is on) fit.
+  const genTokens = Math.min(3500 + count * 1400, 16000);
 
   const draft = await safeGenerate([
     { role: "system", content: system },

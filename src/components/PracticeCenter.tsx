@@ -289,6 +289,18 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
           }
           if (parsed) return <MathDiagram data={parsed} />;
         } catch (e) {}
+        // If we get here, the content LOOKS like a diagram (has "template" etc.)
+        // but could not be parsed — almost always a truncated / malformed JSON.
+        // Never dump the broken JSON as raw text; show a friendly placeholder.
+        const looksLikeDiagram = content.includes('"template"') || content.includes('"scene"') ||
+          content.includes('"points"') || content.trim().startsWith('<svg');
+        if (looksLikeDiagram) {
+          return (
+            <div className="my-4 flex items-center justify-center gap-2 text-xs text-slate-500 bg-slate-900/40 border border-dashed border-white/10 rounded-2xl py-6 px-4">
+              <span>⚠️ {lang === 'zh' ? '图形生成不完整，请点击"重置"后重新生成本题' : 'Diagram incomplete — please regenerate this problem.'}</span>
+            </div>
+          );
+        }
       }
       return <code className={className} {...props}>{children}</code>;
     }
