@@ -1469,9 +1469,13 @@ function Ladder({ data }: { data: any }) {
   const O  = sc({ x: 0, y: 0 });       // corner
   const W_ = sc({ x: 0, y: wallH });   // top of ladder on wall
   const F  = sc({ x: foot, y: 0 });    // foot of ladder
-  const lL = data.label_ladder ?? String(L);
-  const lW = data.label_wall   ?? (Number.isInteger(wallH) ? String(wallH) : '');
-  const lF = data.label_foot   ?? String(foot);
+  // CRITICAL: edge-length labels are OFF by default. Only show a length when
+  // the AI EXPLICITLY provides it as a KNOWN condition. This prevents the
+  // figure from auto-labelling the side that the problem asks the student to
+  // find (e.g. the foot distance) — the answer must NEVER appear in the figure.
+  const lL = explicitLabel(data.label_ladder) ?? '';
+  const lW = explicitLabel(data.label_wall)   ?? '';
+  const lF = explicitLabel(data.label_foot)   ?? '';
 
   return (
     <g>

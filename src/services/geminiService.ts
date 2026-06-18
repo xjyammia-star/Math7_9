@@ -384,6 +384,10 @@ STRICT PRINCIPLES:
 
    ladder — ladder of given length leaning on a wall, foot at foot_dist from wall (foot_dist < length):
    {"template":"ladder","length":5,"foot_dist":3}
+   Edge labels are OFF unless you add them. Add a label ONLY for a GIVEN length:
+   "label_ladder" (the ladder), "label_wall" (height up the wall), "label_foot"
+   (distance along the ground). NEVER add the label for the side being asked for.
+   E.g. "梯长10、离地8、求底端距离": {"template":"ladder","length":10,"foot_dist":6,"label_ladder":"10","label_wall":"8"} — note NO label_foot.
 
    cylinder_unrolled — unrolled lateral surface for shortest-path problems:
    {"template":"cylinder_unrolled","circumference":12,"height":9}
@@ -442,8 +446,20 @@ STRICT PRINCIPLES:
      you (e.g. intersecting_lines_rays with "bisects") and pass only the
      STRUCTURE ("OE bisects ∠BOD" → {"name":"E","bisects":["B","D"]}). The
      renderer computes the exact direction so the figure is always self-consistent.
-   - NO ANSWER IN FIGURE: the quantity the problem asks for must NOT be shown
-     or labeled with its value in the figure.
+   - NO ANSWER IN FIGURE (CRITICAL, ZERO TOLERANCE): the figure must show ONLY
+     the KNOWN/GIVEN quantities. NEVER label a side, angle, segment or length
+     whose value is what the problem asks the student to find — NOR any
+     intermediate value that the student is expected to compute on the way to
+     the answer. Only put a number on the figure if that exact number is stated
+     as GIVEN in the problem text.
+     • Only include label_* fields in the diagram JSON for the GIVEN values.
+       Leave every to-be-found length/angle UNLABELLED (omit its label field).
+     • Example of the ERROR to avoid: "梯子长10，顶端离地8，求底端距离" — here 10
+       and 8 are given, but the foot distance (6) is the answer. The figure must
+       label the ladder 10 and the wall 8, and MUST NOT label the foot side at
+       all. Do NOT pass label_foot.
+     • Before finalising each diagram, re-read "求…/求证…" in the text, identify
+       the asked quantity, and verify NO label in the JSON equals or reveals it.
    - IF NOTHING FITS: when no scene/template can represent ALL objects of your
      intended problem, CHANGE THE PROBLEM so it fits an available figure.
      A correct figure with a different problem is always better than a
@@ -827,7 +843,13 @@ async function reviewExercises(
     `If the chosen scene cannot draw an object the text requires, either switch to a scene that can ` +
     `or minimally rewrite the problem text so figure and text match perfectly. ` +
     `Fix the JSON if it mismatches. If a geometry problem with named points has NO diagram block, add a correct one.\n` +
-    `4. Do NOT add solutions, do NOT merge or drop problems, do NOT change problem types.\n\n` +
+    `4. NO ANSWER LEAK IN FIGURE (CRITICAL): for each problem, identify what "求…/求证…" ` +
+    `asks for. Inspect the diagram JSON: if ANY label_* / numeric annotation equals or ` +
+    `reveals that asked quantity OR a key intermediate value the student must compute, ` +
+    `DELETE that label field from the JSON. The figure may only annotate values stated ` +
+    `as GIVEN in the text. Example: "梯子长10、离地8、求底端距离" → JSON may keep ` +
+    `label_ladder/label_wall but MUST NOT contain label_foot.\n` +
+    `5. Do NOT add solutions, do NOT merge or drop problems, do NOT change problem types.\n\n` +
     `DRAFT:\n"""\n${draft}\n"""`;
 
   const out = await safeGenerate([
