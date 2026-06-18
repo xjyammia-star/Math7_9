@@ -939,12 +939,66 @@ function Triangle({ data }: { data: any }) {
     y: (sA.y + sB.y + sC.y) / 3,
   };
 
+  // ── Optional cevian: a line from one vertex to the opposite side ──
+  // (covers 高 altitude / 中线 median / 角平分线 — we draw the segment and the
+  //  foot point, labelled, so problems like "底边BC上的高AD" show AD and D.)
+  // data.cevian = { from:"A", to:"BC", type:"altitude"|"median"|"bisector",
+  //                 foot_label:"D" }
+  // Also accepts data.altitude_from / data.median_from / data.bisector_from
+  // as shorthands.
+  const vmap: Record<string, Pt> = { A, B, C };
+  let cevianEl: any = null;
+  let footScreen: Pt | null = null;
+  let footLabel = '';
+  const cev = data.cevian
+    || (data.altitude_from && { from: data.altitude_from, type: 'altitude' })
+    || (data.median_from && { from: data.median_from, type: 'median' })
+    || (data.bisector_from && { from: data.bisector_from, type: 'bisector' });
+  if (cev && cev.from && vmap[cev.from]) {
+    const apex = vmap[cev.from];
+    // opposite side = the two vertices that aren't `from`
+    const others = (['A', 'B', 'C'] as const).filter(k => k !== cev.from);
+    const P = vmap[others[0]], Q = vmap[others[1]];
+    let foot: Pt;
+    const type = (cev.type || 'altitude').toLowerCase();
+    if (type === 'median') {
+      foot = { x: (P.x + Q.x) / 2, y: (P.y + Q.y) / 2 };
+    } else if (type === 'bisector') {
+      // angle bisector from apex hits opposite side at ratio |apexP|:|apexQ|
+      const dP = Math.hypot(apex.x - P.x, apex.y - P.y);
+      const dQ = Math.hypot(apex.x - Q.x, apex.y - Q.y);
+      const t = dP / (dP + dQ);
+      foot = { x: P.x + (Q.x - P.x) * t, y: P.y + (Q.y - P.y) * t };
+    } else {
+      // altitude: foot = projection of apex onto line PQ
+      const dx = Q.x - P.x, dy = Q.y - P.y;
+      const len2 = dx * dx + dy * dy || 1;
+      const t = ((apex.x - P.x) * dx + (apex.y - P.y) * dy) / len2;
+      foot = { x: P.x + t * dx, y: P.y + t * dy };
+    }
+    const sApex = sc(apex), sFoot = sc(foot);
+    footScreen = sFoot;
+    footLabel = explicitLabel(cev.foot_label) ?? 'D';
+    cevianEl = (
+      <g>
+        <Seg a={sApex} b={sFoot} stroke={GOLD} sw={2.2} />
+        {type === 'altitude' && <RightAngleMark v={sFoot} a={sApex} b={sc(P)} />}
+        {cev.label && <SegLabel a={sApex} b={sFoot} label={cev.label} color={GOLD} />}
+      </g>
+    );
+  }
+
+  // foot label offset: push it just below the base
+  const footOffset = (): Pt => ({ x: 0, y: 16 });
+
   return (
     <g>
       <Poly pts={[sA, sB, sC]} />
+      {cevianEl}
       <Dot p={sA} label={lA} offset={{ x: -6, y: -14 }} />
       <Dot p={sB} label={lB} offset={{ x: -18, y: 10 }} />
       <Dot p={sC} label={lC} offset={{ x: 8, y: 10 }} />
+      {footScreen && <Dot p={footScreen} label={footLabel} offset={footOffset()} />}
       {lAB && <SegLabel a={sA} b={sB} label={lAB} color={GOLD} />}
       {lBC && <SegLabel a={sB} b={sC} label={lBC} color={GOLD} />}
       {lCA && <SegLabel a={sC} b={sA} label={lCA} color={GOLD} />}

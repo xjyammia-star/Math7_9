@@ -360,6 +360,18 @@ STRICT PRINCIPLES:
 
    triangle — general triangle by three side lengths (MUST satisfy triangle inequality):
    {"template":"triangle","sides":[5,6,7]}
+   For an isosceles/general triangle WITH a cevian from a vertex to the opposite
+   side (高 altitude / 中线 median / 角平分线 bisector), add a "cevian" so the
+   line AND its foot point are drawn and labelled — DO NOT use coordinate_points
+   for this. Vertices are A (top), B (bottom-left), C (bottom-right).
+   "底边BC上的高AD"  (altitude from A onto BC, foot D):
+   {"template":"triangle","sides":[7.2,7.2,8],"cevian":{"from":"A","type":"altitude","foot_label":"D"},"labels":{"A":"A","B":"B","C":"C"}}
+   type can be "altitude" | "median" | "bisector". foot_label is the foot's name (e.g. "D").
+   NOTE on irrational lengths: diagram numeric fields (sides, width …) accept
+   ONLY decimals. If a length is e.g. 2√13, put its decimal value (≈7.2) in the
+   diagram JSON, but keep the exact form $2\sqrt{13}$ in the QUESTION TEXT.
+   Always write square roots in the text as $2\sqrt{13}$ (coefficient INSIDE the
+   dollar signs), never as "2 √13" or "2\sqrt 13".
 
    rectangle:
    {"template":"rectangle","width":8,"height":5}

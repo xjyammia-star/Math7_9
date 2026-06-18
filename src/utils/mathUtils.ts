@@ -233,11 +233,17 @@ function fixKeywordsInSegment(seg: string): string {
   );
 
   // ── sqrt ──────────────────────────────────────────────────────────────────
-  s = s.replace(/(?<![A-Za-z\\$])sqrt\s*\{([^{}]+)\}/g,
-    (_: string, n: string) => `$\\sqrt{${n}}$`
+  // Bare "sqrt" (no backslash), with an optional leading coefficient. Wrap the
+  // whole expression in one $ so "2sqrt13" → $2\sqrt{13}$ (not "2 √13").
+  s = s.replace(/(?<![A-Za-z\\$])(\d+(?:\.\d+)?)?\s*sqrt\s*\{([^{}]+)\}/g,
+    (_: string, coef: string | undefined, n: string) => `$${coef ?? ''}\\sqrt{${n}}$`
   );
-  s = s.replace(/(?<![A-Za-z\\$])sqrt\s*\(?([0-9.]+)\)?/g,
-    (_: string, n: string) => `$\\sqrt{${n}}$`
+  s = s.replace(/(?<![A-Za-z\\$])(\d+(?:\.\d+)?)?\s*sqrt\s*\(?(\d+(?:\.\d+)?)\)?/g,
+    (_: string, coef: string | undefined, n: string) => `$${coef ?? ''}\\sqrt{${n}}$`
+  );
+  // ── unicode √ (with optional coefficient): 2√13 → $2\sqrt{13}$ ──
+  s = s.replace(/(\d+(?:\.\d+)?)?\s*√\s*\{?(\d+(?:\.\d+)?|[A-Za-z])\}?/g,
+    (_: string, coef: string | undefined, n: string) => `$${coef ?? ''}\\sqrt{${n}}$`
   );
 
   // ── degree variants ───────────────────────────────────────────────────────
@@ -277,6 +283,9 @@ function fixInsideMath(text: string): string {
     s = s.replace(/÷/g, ' \\div ');
     s = s.replace(/π/g, '\\pi ');
     s = s.replace(/°/g, '^\\circ ');
+    // unicode √13 / √{13} inside math → \sqrt{13}
+    s = s.replace(/√\s*\{([^{}]+)\}/g, '\\sqrt{$1}');
+    s = s.replace(/√\s*(\d+(?:\.\d+)?|[A-Za-z])/g, '\\sqrt{$1}');
 
     // ── bare keywords (not preceded by backslash or letter) ──
     // Rt triangle inside math: Rt triangleABC / RtriangleABC
@@ -353,9 +362,14 @@ function fixBareBackslashCommands(text: string): string {
   // bare 45^\circ (backslash present, $ missing)
   safe = safe.replace(/(\d+(?:\.\d+)?)\s*\^\s*\\circ/g,
     (_: string, n: string) => `$${n}^\\circ$`);
-  // \sqrt{...}
-  safe = safe.replace(/\\sqrt\s*\{([^{}]+)\}/g,
-    (_: string, n: string) => `$\\sqrt{${n}}$`);
+  // \sqrt with an optional leading coefficient — wrap the WHOLE thing in one $.
+  // Handles: 2\sqrt{13}  \sqrt{13}  2\sqrt13  \sqrt13
+  // (coefficient stays inside the math so it renders as 2√13, not "2 √13")
+  safe = safe.replace(/(\d+(?:\.\d+)?)?\s*\\sqrt\s*(?:\{([^{}]+)\}|(\d+(?:\.\d+)?))/g,
+    (_: string, coef: string | undefined, braced: string | undefined, bare: string | undefined) => {
+      const inner = braced ?? bare ?? '';
+      return `$${coef ?? ''}\\sqrt{${inner}}$`;
+    });
   // \frac{...}{...}
   safe = safe.replace(/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g,
     (_: string, a: string, b: string) => `$\\frac{${a}}{${b}}$`);
