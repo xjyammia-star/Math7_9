@@ -578,6 +578,9 @@ export function renderScene(sceneJson: SceneJSON): string | null {
     if (scene === "intersecting_lines_rays" || scene === "intersecting_lines" || scene === "angle_bisector_rays") {
       return render_intersecting_lines_rays(sceneJson);
     }
+    if (scene === "parallelogram_general" || scene === "rhombus" || scene === "parallelogram_midpoints" || scene === "quadrilateral_midpoints") {
+      return render_parallelogram_general(sceneJson);
+    }
     return null;
   } catch (e) {
     console.error("sceneRenderer error:", e);
@@ -892,4 +895,124 @@ function render_external_tangent_two_points(s: SceneJSON): string {
   const vw = maxX - minX, vh = maxY - minY;
 
   return `<svg viewBox="${minX.toFixed(0)} ${minY.toFixed(0)} ${vw.toFixed(0)} ${vh.toFixed(0)}" xmlns="http://www.w3.org/2000/svg">${elems.join("")}</svg>`;
+}
+
+function render_parallelogram_general(s: SceneJSON): string {
+  // Parallelogram / rhombus ABCD by side lengths + one interior angle, drawn
+  // EXACTLY (so a rhombus is truly equilateral and the given angle is correct).
+  // Vertices order A->B->C->D counter-clockwise, with A at bottom-left.
+  //   "AB": length of side AB (bottom edge).            default 5
+  //   "BC": length of side BC (slant edge).             default = AB (rhombus)
+  //   "angle_B": interior angle at B (∠ABC) in degrees. default 60
+  //   "rhombus": true forces BC = AB.
+  // Optional construction extras:
+  //   "midpoints": [{"name":"E","side":"BC"},{"name":"F","side":"CD"}]
+  //       marks the midpoint of a side and labels it.
+  //   "segments": [["A","E"],["B","F"]]  draws those segments (names may be
+  //       vertices A/B/C/D or any midpoint defined above).
+  //   "intersection": {"name":"G","of":[["A","E"],["B","F"]]}
+  //       computes & marks the intersection of two of the drawn segments.
+  const AB = Number.isFinite(Number(s.AB)) ? Number(s.AB) : 5;
+  const rhombus = s.rhombus === true || s.scene === "rhombus";
+  let BC = Number.isFinite(Number(s.BC)) ? Number(s.BC) : AB;
+  if (rhombus) BC = AB;
+  let angB = Number.isFinite(Number(s.angle_B)) ? Number(s.angle_B) : 60;
+  // clamp to a sane drawable range
+  angB = Math.min(150, Math.max(30, angB));
+
+  // Build in math coordinates (y up). A at origin; B to the right along +x.
+  // Interior angle at B is ∠ABC. The slant side BC rises from B.
+  // A=(0,0), B=(AB,0). At B the interior turns by (180-angB) upward.
+  const A0 = { x: 0, y: 0 };
+  const B0 = { x: AB, y: 0 };
+  const dirBC = Math.PI - (angB * Math.PI / 180); // direction from B to C
+  const C0 = { x: B0.x + BC * Math.cos(dirBC), y: B0.y + BC * Math.sin(dirBC) };
+  const D0 = { x: A0.x + (C0.x - B0.x), y: A0.y + (C0.y - B0.y) }; // D = A + (C-B)
+
+  const verts: Record<string, { x: number; y: number }> = { A: A0, B: B0, C: C0, D: D0 };
+
+  // Midpoints
+  const mids: Record<string, { x: number; y: number }> = {};
+  const midDefs: any[] = Array.isArray(s.midpoints) ? (s.midpoints as any[]) : [];
+  for (const md of midDefs) {
+    const side = String(md.side || "").toUpperCase();
+    const p = verts[side[0]], q = verts[side[1]];
+    if (p && q && md.name) {
+      mids[String(md.name)] = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 };
+    }
+  }
+  const lookup = (name: string) => verts[name] || mids[name];
+
+  // Segments to draw
+  const segDefs: string[][] = Array.isArray(s.segments)
+    ? (s.segments as any[]).map((seg) => [String(seg[0]), String(seg[1])])
+    : [];
+
+  // Intersection
+  let inter: { name: string; pt: { x: number; y: number } } | null = null;
+  const it: any = s.intersection;
+  if (it && it.name && Array.isArray(it.of) && it.of.length === 2) {
+    const [s1, s2] = it.of;
+    const p1 = lookup(String(s1[0])), p2 = lookup(String(s1[1]));
+    const p3 = lookup(String(s2[0])), p4 = lookup(String(s2[1]));
+    if (p1 && p2 && p3 && p4) {
+      const d1x = p2.x - p1.x, d1y = p2.y - p1.y;
+      const d2x = p4.x - p3.x, d2y = p4.y - p3.y;
+      const den = d1x * d2y - d1y * d2x;
+      if (Math.abs(den) > 1e-9) {
+        const t = ((p3.x - p1.x) * d2y - (p3.y - p1.y) * d2x) / den;
+        inter = { name: String(it.name), pt: { x: p1.x + t * d1x, y: p1.y + t * d1y } };
+      }
+    }
+  }
+
+  // ── Map math coords → SVG viewbox with padding ──
+  const allPts = [A0, B0, C0, D0, ...Object.values(mids), ...(inter ? [inter.pt] : [])];
+  const xs = allPts.map((p) => p.x), ys = allPts.map((p) => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const spanX = maxX - minX || 1, spanY = maxY - minY || 1;
+  const pad = 0.18 * Math.max(spanX, spanY);
+  const scale = Math.min((W - 2 * 40) / (spanX + 2 * pad), (H - 2 * 40) / (spanY + 2 * pad));
+  const ox = 40, oy = 40;
+  const SX = (p: { x: number; y: number }) => ox + (p.x - minX + pad) * scale;
+  const SY = (p: { x: number; y: number }) => H - (oy + (p.y - minY + pad) * scale); // flip y
+
+  const elems: string[] = [];
+  // Parallelogram outline A-B-C-D
+  const poly = [A0, B0, C0, D0].map((p) => `${SX(p).toFixed(1)},${SY(p).toFixed(1)}`).join(" ");
+  elems.push(`<polygon points="${poly}" fill="none" stroke="${GOLD}" stroke-width="2.5"/>`);
+
+  // Extra segments
+  for (const seg of segDefs) {
+    const p = lookup(seg[0]), q = lookup(seg[1]);
+    if (p && q) elems.push(line(SX(p), SY(p), SX(q), SY(q), GOLD, 2));
+  }
+
+  // Vertex dots + labels (outward offset)
+  const cxAll = (minX + maxX) / 2, cyAll = (minY + maxY) / 2;
+  const labelFor = (name: string, p: { x: number; y: number }) => {
+    const sx = SX(p), sy = SY(p);
+    const outX = p.x < cxAll ? -1 : 1;
+    const outY = p.y < cyAll ? 1 : -1; // math-y; SVG flips, so + means downward label
+    elems.push(dot(sx, sy));
+    elems.push(text(sx + outX * 14, sy - outY * 12 + 4, name, outX < 0 ? "end" : "start"));
+  };
+  labelFor("A", A0); labelFor("B", B0); labelFor("C", C0); labelFor("D", D0);
+
+  // Midpoint dots + labels
+  for (const [name, p] of Object.entries(mids)) {
+    const sx = SX(p), sy = SY(p);
+    elems.push(dot(sx, sy));
+    elems.push(text(sx + 12, sy - 8, name, "start"));
+  }
+
+  // Intersection dot + label
+  if (inter) {
+    const sx = SX(inter.pt), sy = SY(inter.pt);
+    elems.push(dot(sx, sy));
+    elems.push(text(sx - 12, sy - 8, inter.name, "end"));
+  }
+
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${elems.join("")}</svg>`;
 }

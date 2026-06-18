@@ -395,6 +395,25 @@ STRICT PRINCIPLES:
    parallelogram — base, slant side, interior angle in degrees:
    {"template":"parallelogram","base":8,"side":5,"angle":60}
 
+   parallelogram_general / rhombus (SCENE) — use for a rhombus OR parallelogram
+   ABCD given by a SIDE LENGTH and an INTERIOR ANGLE, ESPECIALLY when the
+   problem also adds midpoints of sides and connecting segments / their
+   intersection. The renderer computes every coordinate EXACTLY (a rhombus
+   comes out truly equilateral and the given angle is correct), so NEVER use
+   coordinate_points for these. Vertices are A,B,C,D in order (A bottom-left).
+     "AB": side length;  "angle_B": interior angle ∠ABC in degrees;
+     "rhombus":true forces all sides equal (or use scene "rhombus").
+     "BC": the slant side length (only if NOT a rhombus).
+     "midpoints":[{"name":"E","side":"BC"},{"name":"F","side":"CD"}] marks midpoints.
+     "segments":[["A","E"],["B","F"]] draws connecting segments (endpoints may be
+        vertices or midpoints defined above).
+     "intersection":{"name":"G","of":[["A","E"],["B","F"]]} marks where two of
+        those segments cross.
+   Example — "菱形ABCD，AB=5，∠ABC=60°，E、F分别是BC、CD中点，连AE、BF交于G，求GE":
+   ${BT}math-diagram
+   {"template":"scene","scene":"rhombus","AB":5,"angle_B":60,"midpoints":[{"name":"E","side":"BC"},{"name":"F","side":"CD"}],"segments":[["A","E"],["B","F"]],"intersection":{"name":"G","of":[["A","E"],["B","F"]]}}
+   ${BT}
+
    ladder — ladder of given length leaning on a wall, foot at foot_dist from wall (foot_dist < length):
    {"template":"ladder","length":5,"foot_dist":3}
    Edge labels are OFF unless you add them. Add a label ONLY for a GIVEN length:
