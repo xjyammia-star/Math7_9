@@ -376,8 +376,21 @@ STRICT PRINCIPLES:
    rectangle:
    {"template":"rectangle","width":8,"height":5}
 
-   rectangle_fold — rectangle ABCD folded along line EF; E_side/F_side ∈ "AB"/"BC"/"CD"/"AD", ratios 0~1 give E,F positions along those sides:
+   rectangle_fold — rectangle ABCD (A top-left, B top-right, C bottom-right,
+   D bottom-left) folded along a crease. The crease has two endpoints (called E
+   and F internally) sitting on two sides; "E_side"/"F_side" ∈ "AB"/"BC"/"CD"/"AD",
+   ratios 0~1 set where on that side. "fold_vertex" is the corner being folded.
+   LABELS: the crease endpoints default to E/F but you MUST rename them to match
+   the text via "label_E"/"label_F"; rename corners via label_A…label_D if the
+   text uses different names. The folded image of fold_vertex defaults to a
+   primed label (e.g. A′).
+   • If the vertex folds onto an EXISTING vertex (e.g. "把A折叠到D处"), the image
+     coincides with that vertex — set "hide_image":true so no spurious A′ is drawn.
+   Generic crease-through-middle example:
    {"template":"rectangle_fold","width":10,"height":8,"E_side":"AB","E_ratio":0.5,"F_side":"CD","F_ratio":0.5}
+   Worked example — "矩形ABCD，AB=8，BC=6，将A折叠到D，折痕交AD于F、交BC于G，求FG":
+   here the crease endpoints are named F (on AD) and G (on BC), and A lands on D:
+   {"template":"rectangle_fold","width":8,"height":6,"fold_vertex":"A","E_side":"AD","E_ratio":0.5,"F_side":"BC","F_ratio":0.5,"label_E":"F","label_F":"G","hide_image":true,"label_EF":"FG"}
 
    parallelogram — base, slant side, interior angle in degrees:
    {"template":"parallelogram","base":8,"side":5,"angle":60}

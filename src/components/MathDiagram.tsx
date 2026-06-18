@@ -1423,8 +1423,10 @@ function RectangleFold({ data }: { data: any }) {
       <Seg a={sE} b={sF} stroke={GOLD} sw={2.2} dash="7,4" />
 
       {/* Folded triangle: E, F, V' (the flipped region) */}
-      <Poly pts={[sE, sF, sVp]}
-        fill="rgba(245,158,11,0.10)" stroke={GOLD} sw={1.6} dash="4,3" />
+      {!data.hide_image && (
+        <Poly pts={[sE, sF, sVp]}
+          fill="rgba(245,158,11,0.10)" stroke={GOLD} sw={1.6} dash="4,3" />
+      )}
 
       {/* Corner labels */}
       <Dot p={sA} label={lA} offset={cornerOffset('A')} />
@@ -1436,9 +1438,12 @@ function RectangleFold({ data }: { data: any }) {
       <Dot p={sE} label={lE} offset={sideOffset(eSide)} />
       <Dot p={sF} label={lF} offset={sideOffset(fSide)} />
 
-      {/* Folded vertex image V' */}
-      <Dot p={sVp} label={lVp} color={GREY}
-        offset={{ x: Vp.x > w / 2 ? 10 : -22, y: Vp.y > h / 2 ? -14 : 12 }} />
+      {/* Folded vertex image V' (hidden when it coincides with an existing
+          vertex, e.g. "A 折到 D" — set hide_image:true) */}
+      {!data.hide_image && (
+        <Dot p={sVp} label={lVp} color={GREY}
+          offset={{ x: Vp.x > w / 2 ? 10 : -22, y: Vp.y > h / 2 ? -14 : 12 }} />
+      )}
 
       {/* Rectangle side lengths */}
       {lAB && <SegLabel a={sA} b={sB} label={lAB} color={GOLD} />}
