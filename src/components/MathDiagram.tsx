@@ -881,9 +881,9 @@ function RightTriangle({ data }: { data: any }) {
   const b: number = data.leg_v ?? data.legs?.[1] ?? data.b ?? 4;
   const hyp = Math.sqrt(a * a + b * b);
   const showRightAngleMark: boolean = data.show_right_angle_mark !== false;
-  const labelA: string = explicitLabel(data.labels?.A ?? data.label_A);
-  const labelB: string = explicitLabel(data.labels?.B ?? data.label_B);
-  const labelC: string = explicitLabel(data.labels?.C ?? data.label_C);
+  const labelA: string = explicitLabel(data.labels?.A ?? data.label_A) ?? 'A';
+  const labelB: string = explicitLabel(data.labels?.B ?? data.label_B) ?? 'B';
+  const labelC: string = explicitLabel(data.labels?.C ?? data.label_C) ?? 'C';
   const labelAB: string = data.labels?.AB ?? data.label_AB ?? String(b);
   const labelBC: string = data.labels?.BC ?? data.label_BC ?? String(a);
   const labelAC: string = data.labels?.AC ?? data.label_AC ?? (
@@ -929,7 +929,7 @@ function Triangle({ data }: { data: any }) {
   const pad = (Math.max(...xs) - Math.min(...xs) + Math.max(...ys) - Math.min(...ys)) * 0.2;
   const sc = makeScaler(Math.min(...xs) - pad, Math.max(...xs) + pad, Math.min(...ys) - pad, Math.max(...ys) + pad);
   const [sA, sB, sC] = [sc(A), sc(B), sc(C)];
-  const lA = explicitLabel(data.labels?.A), lB = explicitLabel(data.labels?.B), lC = explicitLabel(data.labels?.C);
+  const lA = explicitLabel(data.labels?.A) ?? 'A', lB = explicitLabel(data.labels?.B) ?? 'B', lC = explicitLabel(data.labels?.C) ?? 'C';
   const lAB = data.labels?.AB ?? '', lBC = data.labels?.BC ?? '', lCA = data.labels?.CA ?? '';
   const rightAt: string = data.right_angle ?? '';
   const lArea: string = cleanDiagramLabelText(data.label_area ?? '');
@@ -968,6 +968,11 @@ function Rectangle({ data }: { data: any }) {
   const w: number = data.width ?? data.w ?? 6;
   const h: number = data.height ?? data.h ?? 4;
   const labels: string[] = Array.isArray(data.labels) ? data.labels : [];
+  // Default vertex letters so a rectangle is always labelled even if the AI
+  // omits them. Order matches the corners below: A top-left, B bottom-left,
+  // C bottom-right, D top-right.
+  const defRectLabels = ['A', 'B', 'C', 'D'];
+  const rl = (i: number) => explicitLabel(labels[i]) ?? defRectLabels[i];
   const lW: string = data.label_width  ?? String(w);
   const lH: string = data.label_height ?? String(h);
   const pad = Math.max(w, h) * 0.22;
@@ -978,10 +983,10 @@ function Rectangle({ data }: { data: any }) {
   return (
     <g>
       <Poly pts={[A, B, C, D]} />
-      <Dot p={A} label={explicitLabel(labels[0])} offset={{ x: -18, y: -4 }} />
-      <Dot p={B} label={explicitLabel(labels[1])} offset={{ x: -18, y: 12 }} />
-      <Dot p={C} label={explicitLabel(labels[2])} offset={{ x: 8,  y: 12 }} />
-      <Dot p={D} label={explicitLabel(labels[3])} offset={{ x: 8,  y: -4 }} />
+      <Dot p={A} label={rl(0)} offset={{ x: -18, y: -4 }} />
+      <Dot p={B} label={rl(1)} offset={{ x: -18, y: 12 }} />
+      <Dot p={C} label={rl(2)} offset={{ x: 8,  y: 12 }} />
+      <Dot p={D} label={rl(3)} offset={{ x: 8,  y: -4 }} />
       <SegLabel a={A} b={B} label={lH} />
       <SegLabel a={B} b={C} label={lW} />
       {cleanDiagramLabelText(data.label_area ?? '') && (
@@ -1304,14 +1309,24 @@ function RectangleFold({ data }: { data: any }) {
   const sC = sc(rectPts.C), sD = sc(rectPts.D);
   const sE = sc(E), sF = sc(F), sVp = sc(Vp);
 
-  // Label defaults — empty string means "don't show"
-  const lA  = explicitLabel(data.label_A);
-  const lB  = explicitLabel(data.label_B);
-  const lC  = explicitLabel(data.label_C);
-  const lD  = explicitLabel(data.label_D);
-  const lE  = explicitLabel(data.label_E);
-  const lF  = explicitLabel(data.label_F);
-  const lVp = explicitLabel(data.label_Ap ?? data.label_Vp);
+  // Label defaults — every vertex of a folding problem MUST be labelled, so we
+  // fall back to the standard letters A/B/C/D/E/F when the AI doesn't specify.
+  // (Pass an explicit empty string in the JSON only if you truly want it hidden.)
+  const labelOrDefault = (val: unknown, def: string): string => {
+    if (val === undefined || val === null) return def;       // not provided → default
+    const s = String(val).trim();
+    return s.length > 0 ? s : def;                            // empty → still default
+  };
+  const lA  = labelOrDefault(data.label_A, 'A');
+  const lB  = labelOrDefault(data.label_B, 'B');
+  const lC  = labelOrDefault(data.label_C, 'C');
+  const lD  = labelOrDefault(data.label_D, 'D');
+  const lE  = labelOrDefault(data.label_E, 'E');
+  const lF  = labelOrDefault(data.label_F, 'F');
+  // The folded image of the folded vertex defaults to "<vertex>′"
+  // e.g. folding C → image labelled C′ (matches "点C落在...点C′处").
+  const defVpLabel = `${foldVertex}'`;
+  const lVp = labelOrDefault(data.label_Ap ?? data.label_Vp, defVpLabel);
 
   // Smart offsets for corner labels
   const cornerOffset = (key: string) => {

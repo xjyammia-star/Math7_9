@@ -414,6 +414,12 @@ STRICT PRINCIPLES:
      perpendicular (垂足), intersection point, fold line — MUST be visible in
      the figure. Before finalising, list each object in your text and confirm
      the chosen scene/template can draw it.
+   - LABEL EVERY POINT: every vertex / named point in the figure MUST carry its
+     letter label EXACTLY as in the text (A, B, C, D, E, F, O, C′ …). A figure
+     with unlabelled corners is wrong. Most templates auto-label A/B/C/D, but if
+     a template/scene takes a "labels" array or label_* fields, fill them to
+     match the problem's point names (including primed names like C′ for folded
+     images). Never leave a point the text names blank in the figure.
    - NO EXTRAS: NEVER draw points, lines or labels the text does not mention.
    - ANGLES MUST LOOK RIGHT: when the text gives angle values, pass them via
      the scene's angle parameters (e.g. "angle_CAB":20) so point positions in
