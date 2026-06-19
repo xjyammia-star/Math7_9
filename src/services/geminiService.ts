@@ -36,38 +36,49 @@ async function safeGenerate(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
   jsonMode = false,
   maxTokens = 800,
-  temperature = 0.7
+  temperature = 0.7,
+  forceThinking = false
 ): Promise<string> {
   try {
-    const body: Record<string, any> = {
-      model: LLM_MODEL,
-      messages,
-      max_tokens: maxTokens,
-      temperature,
-      top_p: 0.95,
-    };
-    if (jsonMode) {
-      body.response_format = { type: "json_object" };
-    }
-    // Optional deep thinking (see ENABLE_THINKING above). Off by default so the
-    // request stays compatible with Ark's third-party model access. When on,
-    // GLM reasons more carefully on geometry; the reasoning text is returned
-    // separately and we never include it in the problem output.
-    if (ENABLE_THINKING) {
-      body.thinking = { type: "enabled" };
-    }
+    const wantThinking = ENABLE_THINKING || forceThinking;
 
     // Zhipu's path already ends in /paas/v4; Ark ends in /api/v3. Either way we
     // append /chat/completions. Guard against a trailing slash.
     const base = LLM_BASE_URL.replace(/\/+$/, "");
-    const res = await fetch(`${base}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${LLM_API_KEY}`,
-      },
-      body: JSON.stringify(body),
-    });
+
+    // Helper: one POST attempt. withThinking controls the thinking field.
+    const attempt = async (withThinking: boolean): Promise<Response> => {
+      const body: Record<string, any> = {
+        model: LLM_MODEL,
+        messages,
+        max_tokens: maxTokens,
+        temperature,
+        top_p: 0.95,
+      };
+      if (jsonMode) body.response_format = { type: "json_object" };
+      if (withThinking) body.thinking = { type: "enabled" };
+      return fetch(`${base}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${LLM_API_KEY}`,
+        },
+        body: JSON.stringify(body),
+      });
+    };
+
+    let res = await attempt(wantThinking);
+
+    // DEGRADE GRACEFULLY: if the platform rejects the request specifically
+    // because it doesn't accept the "thinking" field (typically a 400), retry
+    // once WITHOUT thinking so the feature still works (just without deep
+    // reasoning) instead of failing outright.
+    if (!res.ok && wantThinking && (res.status === 400 || res.status === 404)) {
+      const peek = await res.clone().text().catch(() => "");
+      if (/thinking|param|unsupported|invalid|unknown|field/i.test(peek)) {
+        res = await attempt(false);
+      }
+    }
 
     if (!res.ok) {
       const errText = await res.text();
@@ -630,27 +641,42 @@ export async function guideExercise(
 
   const system = `You are a patient, Socratic math tutor helping a student work through specific problems.
 
-EXERCISE GUIDANCE MODE:
-1. YOUR ONLY JOB: Guide the student through the SPECIFIC problems shown. Do NOT teach from scratch.
-2. SOCRATIC: Never give the answer. Ask ONE targeted question per reply.
-3. FIRST MESSAGE: Identify the first stumbling block and ask ONE question about it.
-   GOOD: "这道题矩形ABCD中AB=8，AD=10。折叠题的第一步是找出折叠前后相等的线段。你觉得折叠后，哪些线段的长度是不变的？"
+═══ STEP 0 (MANDATORY, SILENT): SOLVE IT YOURSELF FIRST ═══
+Before saying ANYTHING to the student, work the ENTIRE problem out correctly in
+your private reasoning: find the full solution path, every formula, and the final
+answer. For geometry, be especially careful with:
+  • similar-triangle correspondence — match vertices in the RIGHT order so that
+    corresponding sides pair up correctly (e.g. if △AOE ∼ △ADC then AO↔AD,
+    OE↔DC, AE↔AC). Write the proportion only AFTER you've fixed the correspondence.
+  • which side is opposite which angle, hypotenuse vs legs, etc.
+Keep this full solution as your private reference. NEVER reveal it wholesale.
+If you are not certain a step is correct, RE-DERIVE it rather than guessing — a
+wrong hint teaches the student wrong maths, which is unacceptable.
+
+═══ THEN: GUIDE (Socratic) ═══
+1. YOUR ONLY JOB: guide the student through THIS specific problem. Don't teach from scratch.
+2. Never give the full answer. Ask ONE targeted question per reply.
+3. FIRST MESSAGE: identify the first concrete step (based on YOUR solved path) and
+   ask ONE question about it.
+   GOOD: "这道题矩形ABCD中AB=8，AD=10。折叠题第一步是找出折叠前后相等的线段。你觉得折叠后哪些线段长度不变？"
    BAD: "让我们先复习一下勾股定理的公式…"
-4. SUBSEQUENT TURNS: Affirm correct answers, hint at wrong ones, re-ask.
-5. NEVER give a full worked solution. Maximum one algebraic step per reply.
-6. LANGUAGE: Always reply in ${lang === "zh" ? "Chinese" : "English"}.
+4. Every hint you give MUST be consistent with your STEP-0 solution. Do not
+   improvise a relationship you haven't verified.
+5. NEVER give a full worked solution. At most one algebraic step per reply.
+6. LANGUAGE: always reply in ${lang === "zh" ? "Chinese" : "English"}.
 7. LENGTH: 3-5 sentences + 1 question per reply.` + curriculumInstr;
 
   const userMsg =
     `The student is working on:\n"""\n${exercises}\n"""\n\n` +
     `Topic: ${concept.title[lang]}\n` +
     `Language: ${lang === "zh" ? "Chinese" : "English"}\n\n` +
-    `Address THIS specific problem immediately. Identify the first concrete step and ask ONE question.`;
+    `First solve it fully and correctly in your head, then address THIS specific ` +
+    `problem: identify the first concrete step and ask ONE question.`;
 
   return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
-  ], false, 2000);
+  ], false, 6000, 0.3, true);
 }
 
 export async function guideExerciseStep(
@@ -663,11 +689,23 @@ export async function guideExerciseStep(
   const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
 
   const system = `You are a patient, Socratic math tutor guiding a student through specific problems.
+
+═══ BEFORE EVERY REPLY (MANDATORY, SILENT) ═══
+Re-derive the correct full solution of the problem in your private reasoning so
+you always know the right answer and the right next step. Be rigorous with
+geometry, ESPECIALLY similar-triangle correspondence (match vertices in order so
+corresponding sides pair correctly; verify the proportion before using it),
+hypotenuse vs legs, and which angle/side corresponds to which. If the student
+points out a possible mistake, RE-CHECK by re-deriving — do not just agree or
+just insist. A hint that contains wrong maths is the worst possible outcome.
+
 RULES:
-- Stay focused on the problems shown. Never drift to general theory.
-- Never give the full answer. One micro-step hint per reply.
+- Stay focused on the problem shown. Never drift to general theory.
+- Never give the full answer. One verified micro-step hint per reply.
 - Ask exactly ONE follow-up question per reply.
-- Keep replies to 3-5 sentences.
+- Every statement you make must be consistent with the correctly re-derived
+  solution. Never state a relationship you have not verified this turn.
+- Keep replies to 3-6 sentences.
 - Language: always ${lang === "zh" ? "Chinese" : "English"}.
 - The problems: """${exercises}"""` + curriculumInstr;
 
@@ -685,7 +723,7 @@ RULES:
     messages.push({ role: "user", content: reminder });
   }
 
-  return await safeGenerate(messages, false, 500);
+  return await safeGenerate(messages, false, 6000, 0.3, true);
 }
 
 const PROBLEM_TYPE_POOLS: Record<string, string[]> = {
@@ -901,6 +939,12 @@ export async function solveExercises(exercises: string, lang: Language) {
 IGNORE any \`\`\`math-diagram blocks in the input — they are figure data.
 NEVER reproduce or mention them in your answer. Solve based on the problem text.
 
+CORRECTNESS FIRST: work each problem out rigorously before writing. Double-check
+geometry — similar-triangle correspondence (pair vertices in order so
+corresponding sides match), Pythagorean setup, which side is hypotenuse, angle
+relationships. A confidently-written but WRONG solution is worse than useless.
+Re-derive any step you are unsure of. The final answer must be correct.
+
 MATH FORMAT (KaTeX only):
 - Inline: $x^2$   Display: $$\\frac{a}{b}$$
 - ALLOWED: \\frac, \\sqrt, ^{}, _{}, \\times, \\div, \\pm, \\leq, \\geq, \\neq, \\approx, \\sin, \\cos, \\tan, \\pi, \\Rightarrow
@@ -924,7 +968,7 @@ $$独立公式$$
   return await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: exercises },
-  ], false, 8000);
+  ], false, 10000, 0.3, true);
 }
 
 export async function identifyTopic(query: string, lang: Language) {
