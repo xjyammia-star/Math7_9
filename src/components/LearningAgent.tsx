@@ -10,7 +10,6 @@ import { startFeynmanSession, chatStep, guideExercise, guideExerciseStep } from 
 import MathDiagram from './MathDiagram';
 import { sanitizeMath } from '../utils/mathUtils';
 import { extractEmbeddedDiagram } from '../utils/markdownDiagram';
-import { normalizeTutorPlainText, shouldRenderTutorContentWithMath } from '../utils/tutorMarkdown';
 
 interface LearningAgentProps {
   concept: Concept;
@@ -167,13 +166,16 @@ const LearningAgent: React.FC<LearningAgentProps> = ({
 
   const renderTutorContent = (content: string) => {
     const sanitized = sanitizeMath(content);
-    const useMathMode = shouldRenderTutorContentWithMath(sanitized);
-    const displayText = useMathMode ? sanitized : normalizeTutorPlainText(sanitized);
+    // Tutor replies are almost always about maths, and mis-guessing "no math"
+    // silently drops things like √, fractions and exponents. So we ALWAYS run
+    // the math pipeline here — KaTeX simply leaves non-math text untouched, so
+    // there is no downside, and it guarantees roots/fractions always render.
+    const displayText = sanitized;
 
     return (
       <ReactMarkdown
-        remarkPlugins={useMathMode ? [remarkMath] : []}
-        rehypePlugins={useMathMode ? [rehypeKatex] : []}
+        remarkPlugins={[remarkMath]}
+        rehypePlugins={[rehypeKatex]}
         components={mdComponents}
       >
         {displayText}

@@ -727,6 +727,34 @@ RULES:
 }
 
 const PROBLEM_TYPE_POOLS: Record<string, string[]> = {
+  '四边形': [
+    '平行四边形性质（对边、对角、对角线互相平分）',
+    '平行四边形判定（给条件判断是否为平行四边形）',
+    '菱形性质（边长、对角线垂直平分、面积）',
+    '菱形中点连线与线段长度',
+    '矩形对角线相等与求长度',
+    '正方形对角线与内角',
+    '梯形中位线定理',
+    '等腰梯形性质与高',
+    '中点四边形（顺次连接各边中点）',
+    '四边形面积（分割或对角线法）',
+    '平行四边形中的角度计算',
+    '矩形折叠求折痕或线段',
+  ],
+  'quadrilateral': [
+    'Parallelogram properties (sides, angles, diagonals bisect)',
+    'Parallelogram criteria (decide if a figure is one)',
+    'Rhombus properties (side, diagonals, area)',
+    'Rhombus midpoint segments',
+    'Rectangle diagonals equal, find length',
+    'Square diagonals and angles',
+    'Trapezoid midsegment theorem',
+    'Isosceles trapezoid properties and height',
+    'Midpoint quadrilateral (join midpoints of sides)',
+    'Quadrilateral area (split or diagonal method)',
+    'Angle calculation in a parallelogram',
+    'Rectangle folding (find crease or segment)',
+  ],
   '勾股': [
     '梯子靠墙（梯子滑动，求高度或距离）',
     '电线杆/大树折断（折断后形成直角三角形）',
@@ -818,6 +846,21 @@ function pickRandom<T>(arr: T[], n: number): T[] {
 
 function getTypePool(conceptTitle: string): string[] | null {
   const title = conceptTitle.toLowerCase();
+  // Aliases: concept titles that should map to a pool even when they don't
+  // literally contain the pool key. e.g. "平行四边形"/"菱形" → 四边形 pool.
+  const ALIASES: Record<string, string> = {
+    '平行四边形': '四边形', '菱形': '四边形', '矩形': '四边形',
+    '正方形': '四边形', '梯形': '四边形', '四边形': '四边形',
+    'parallelogram': 'quadrilateral', 'rhombus': 'quadrilateral',
+    'rectangle': 'quadrilateral', 'square': 'quadrilateral',
+    'trapezoid': 'quadrilateral', 'trapezium': 'quadrilateral',
+    '勾股定理': '勾股', '相似三角形': '相似', '一次函数': '函数',
+  };
+  for (const [alias, poolKey] of Object.entries(ALIASES)) {
+    if (title.includes(alias.toLowerCase()) && PROBLEM_TYPE_POOLS[poolKey]) {
+      return PROBLEM_TYPE_POOLS[poolKey];
+    }
+  }
   for (const [key, pool] of Object.entries(PROBLEM_TYPE_POOLS)) {
     if (title.includes(key.toLowerCase())) return pool;
   }
