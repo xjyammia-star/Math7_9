@@ -478,6 +478,24 @@ STRICT PRINCIPLES:
    enable with "show_vertex":true and "vertex_label":"P" (a point NAME) only
    when the vertex is named/given in the text.
 
+   line_axes_schematic — a straight line crossing the coordinate axes, drawn
+   on a SCHEMATIC coordinate system (axes with arrows and O, but NO numeric
+   ticks and NO grid, so no value can be read off the figure):
+   {"template":"line_axes_schematic","x_intercept_label":"A","y_intercept_label":"B","x_sign":1,"y_sign":1,"line_label":"l","points_on_line":[{"label":"P(2,3)"}]}
+   x_sign / y_sign: 1 = line crosses the POSITIVE half-axis, -1 = negative
+   (e.g. 与x轴、y轴的正半轴分别交于A、B → x_sign:1, y_sign:1).
+   points_on_line: points the text places ON the line, in order from the
+   y-intercept toward the x-intercept; put GIVEN coordinates inside the
+   label (e.g. "P(2,3)") ONLY when the text states them.
+   ⚠️ MANDATORY TEMPLATE CHOICE: whenever a problem shows a line in a
+   coordinate system whose equation is UNKNOWN (求解析式 / 求k、b / 判断
+   k、b符号) — e.g. "直线l与x轴、y轴交于A、B，△AOB面积是…，求直线l的解析式"
+   — you MUST use line_axes_schematic. Do NOT use coordinate_points (you
+   would have to invent the intercept coordinates, which ARE the answer)
+   and do NOT use linear_function (its numbered grid lets the student read
+   the intercepts = answer leak). Every object the text names (直线l, x轴,
+   y轴, O, A, B, P…) is drawn and labelled by this template.
+
    similar_triangles — two similar triangles side by side, ratio of similarity:
    {"template":"similar_triangles","ratio":2,"sides":[3,4,5]}
 
@@ -981,7 +999,10 @@ async function reviewExercises(
     `Function graphs: if the problem asks to FIND k/b/a/c, the 解析式, or their signs, ` +
     `the linear_function/quadratic_function JSON MUST NOT contain any "label" with the ` +
     `equation or numbers (a bare line name like "label":"l" is fine), and MUST NOT ` +
-    `enable intercept/vertex dots with coordinate values.\n` +
+    `enable intercept/vertex dots with coordinate values. If a problem asks for a line's ` +
+    `解析式 and its diagram uses coordinate_points or linear_function (both would reveal or ` +
+    `invent the answer coordinates), REPLACE the diagram with line_axes_schematic, keeping ` +
+    `all point names from the text.\n` +
     `5. Do NOT add solutions, do NOT merge or drop problems, do NOT change problem types.\n\n` +
     `DRAFT:\n"""\n${draft}\n"""`;
 

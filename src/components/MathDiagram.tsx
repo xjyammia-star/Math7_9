@@ -513,6 +513,12 @@ function validateDiagramData(template: string, data: any): string | null {
       const hi = asFiniteNumber(range[1]);
       return lo !== null && hi !== null && lo < hi ? null : 'number_line range is invalid';
     }
+    case 'line_axes_schematic':
+    case 'axes_line_schematic': {
+      const pts = Array.isArray(data.points_on_line) ? data.points_on_line : [];
+      const bad = pts.some((p: any) => p && p.label !== undefined && typeof p.label !== 'string');
+      return bad ? 'line_axes_schematic points_on_line labels must be strings' : null;
+    }
     case 'coordinate_points': {
       const points = Array.isArray(data.points) ? data.points : [];
       if (points.length === 0) return 'coordinate_points requires at least one point';
@@ -1696,6 +1702,93 @@ function LinearFunction({ data }: { data: any }) {
           textAnchor="end">{label2}</text>
       )}
       {extras}
+    </g>
+  );
+}
+
+/** line_axes_schematic: a straight line crossing the coordinate axes on a
+ * SCHEMATIC coordinate system — axes with arrows and O but NO numeric ticks
+ * and NO grid. Used when the line's equation is UNKNOWN (the problem asks
+ * for 解析式 / k / b): since nothing numeric appears, the figure cannot
+ * leak the answer, yet it faithfully shows 直线 l, the axes, the intercept
+ * points and any named points on the line. All geometry computed here. */
+function LineAxesSchematic({ data }: { data: any }) {
+  const xSign: number = (data.x_sign === -1 || data.x_sign === '-1') ? -1 : 1;
+  const ySign: number = (data.y_sign === -1 || data.y_sign === '-1') ? -1 : 1;
+  const xLab: string = typeof data.x_intercept_label === 'string' ? data.x_intercept_label : 'A';
+  const yLab: string = typeof data.y_intercept_label === 'string' ? data.y_intercept_label : 'B';
+  const rawLineLab = data.line_label ?? data.label;
+  const lineLab: string = typeof rawLineLab === 'string' ? rawLineLab : '';
+  const rawOnLine: Array<{ label?: string; frac?: number }> =
+    Array.isArray(data.points_on_line) ? data.points_on_line : [];
+
+  // Internal schematic geometry (math coords, y up). These constants are
+  // arbitrary drawing choices — no ticks are shown, so they carry NO
+  // information about the (unknown) real intercepts.
+  const Apt = { x: 4.2 * xSign, y: 0 };   // x-axis intercept
+  const Bpt = { x: 0, y: 5 * ySign };     // y-axis intercept
+  const xMin = xSign === 1 ? -2.0 : -6.2, xMax = xSign === 1 ? 6.2 : 2.0;
+  const yMin = ySign === 1 ? -2.2 : -6.6, yMax = ySign === 1 ? 6.6 : 2.2;
+  const sc = makeScaler(xMin, xMax, yMin, yMax);
+
+  // Extend the segment beyond both intercepts so it reads as a LINE (直线).
+  const ext = 0.26;
+  const d = { x: Apt.x - Bpt.x, y: Apt.y - Bpt.y };
+  const start = { x: Bpt.x - ext * d.x, y: Bpt.y - ext * d.y };
+  const end   = { x: Apt.x + ext * d.x, y: Apt.y + ext * d.y };
+
+  const o  = sc({ x: 0, y: 0 });
+  const xL = sc({ x: xMin, y: 0 }), xR = sc({ x: xMax, y: 0 });
+  const yB = sc({ x: 0, y: yMin }), yT = sc({ x: 0, y: yMax });
+
+  // Named points on the line, evenly spaced between the two intercepts
+  // unless an explicit frac (0..1, measured from the y-intercept toward the
+  // x-intercept) is given. Positions are schematic — never to scale.
+  const n = rawOnLine.length;
+  const onLine = rawOnLine.map((p, i) => {
+    const t = typeof p.frac === 'number' && p.frac > 0 && p.frac < 1
+      ? p.frac : (i + 1) / (n + 1);
+    return {
+      label: typeof p.label === 'string' ? p.label : '',
+      pt: sc({ x: Bpt.x + t * d.x, y: Bpt.y + t * d.y }),
+    };
+  });
+
+  const pStart = sc(start), pEnd = sc(end);
+  const pA = sc(Apt), pB = sc(Bpt);
+
+  return (
+    <g>
+      {/* Axes: lines + arrowheads + x / y / O labels, deliberately WITHOUT
+          ticks or grid so no value can be read off the figure. */}
+      <line x1={xL.x} y1={o.y} x2={xR.x} y2={o.y} stroke={GREY} strokeWidth={1.8} />
+      <line x1={o.x} y1={yB.y} x2={o.x} y2={yT.y} stroke={GREY} strokeWidth={1.8} />
+      <path d={`M${xR.x - 9},${o.y - 4} L${xR.x},${o.y} L${xR.x - 9},${o.y + 4}`}
+        fill="none" stroke={GREY} strokeWidth={1.8} />
+      <path d={`M${o.x - 4},${yT.y + 9} L${o.x},${yT.y} L${o.x + 4},${yT.y + 9}`}
+        fill="none" stroke={GREY} strokeWidth={1.8} />
+      <text x={xR.x + 4} y={o.y + 14} fontSize={12} fill={GREY} fontWeight="700">x</text>
+      <text x={o.x + 8} y={yT.y + 2} fontSize={12} fill={GREY} fontWeight="700">y</text>
+      <text x={o.x + (xSign === 1 ? -14 : 8)} y={o.y + (ySign === 1 ? 16 : -8)}
+        fontSize={12} fill={GREY} fontWeight="700">O</text>
+
+      {/* The line itself, extended past both intercepts */}
+      <Seg a={pStart} b={pEnd} stroke={GOLD} sw={2.5} />
+      {lineLab !== '' && (
+        <text x={pStart.x - 12 * xSign} y={pStart.y + (ySign === 1 ? -8 : 18)}
+          fontSize={13} fill={GOLD} fontWeight="700" textAnchor="middle">{lineLab}</text>
+      )}
+
+      {/* Intercept points */}
+      <Dot p={pA} label={xLab}
+        offset={{ x: xSign === 1 ? 8 : -16, y: 18 }} />
+      <Dot p={pB} label={yLab}
+        offset={{ x: xSign === 1 ? -16 : 10, y: -6 }} />
+
+      {/* Named points on the line (e.g. P(2,3) when given in the text) */}
+      {onLine.map((p, i) => (
+        <Dot key={i} p={p.pt} label={p.label} offset={{ x: 12, y: -8 }} />
+      ))}
     </g>
   );
 }
@@ -2957,6 +3050,8 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'circle_diameter_tangent_chord': content = <CircleDiameterTangentChord data={parsed} />; break;
       case 'circle_scene':        content = <CircleScene data={parsed} />; break;
       case 'linear_function':     content = <LinearFunction data={parsed} />; break;
+      case 'line_axes_schematic':
+      case 'axes_line_schematic': content = <LineAxesSchematic data={parsed} />; break;
       case 'quadratic_function':  content = <QuadraticFunction data={parsed} />; break;
       case 'number_line':
       case 'numberline':          content = <NumberLine data={parsed} />; break;
