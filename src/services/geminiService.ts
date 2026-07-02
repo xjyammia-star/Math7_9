@@ -308,8 +308,12 @@ STRICT PRINCIPLES:
    Use when: external point P, tangents PA and PB touch circle at A and B,
    C on arc AB, tangent at C meets PA at D and PB at E.
    C on 劣弧 (minor arc near P): "angle_C":0. C on 优弧 (far side): "angle_C":180.
+   Optional "connect": pairs of NAMED points (P,A,B,C,D,E,O) to join with an
+   auxiliary segment — REQUIRED whenever the text mentions an angle whose
+   sides the scene does not draw by default. Example: 求∠DOE → the sides OD
+   and OE must be visible → add "connect":[["O","D"],["O","E"]].
    ${BT}math-diagram
-   {"template":"scene","scene":"external_two_tangents","angle_A":50,"angle_B":310,"angle_C":0}
+   {"template":"scene","scene":"external_two_tangents","angle_A":50,"angle_B":310,"angle_C":0,"connect":[["O","D"],["O","E"]]}
    ${BT}
 
    ── generic_circle ──
@@ -514,6 +518,14 @@ STRICT PRINCIPLES:
      match the problem's point names (including primed names like C′ for folded
      images). Never leave a point the text names blank in the figure.
    - NO EXTRAS: NEVER draw points, lines or labels the text does not mention.
+   - ANGLE SIDES MUST BE VISIBLE: for EVERY angle ∠XYZ the text mentions —
+     including the ASKED angle — BOTH sides (segment/ray Y→X and Y→Z) must be
+     drawn in the figure. An angle whose sides are missing is a broken figure.
+     If the chosen scene/template does not draw those sides by default, add
+     them via the scene's "connect" parameter with the point NAMES only
+     (e.g. 求∠DOE → "connect":[["O","D"],["O","E"]]); the renderer computes
+     exact positions. Drawing the sides is REQUIRED even for the asked angle —
+     only its VALUE must never appear in the figure.
    - ANGLES MUST LOOK RIGHT: when the text gives angle values, pass them via
      the scene's angle parameters (e.g. "angle_CAB":20) so point positions in
      the figure match the given values. Never invent raw positions that
@@ -984,7 +996,9 @@ async function reviewExercises(
     `(b) contain ONE valid single-line JSON object in the formats defined above, ` +
     `(c) match the text EXACTLY — same scene/template type, same point names, same numbers, ` +
     `(d) show EVERY object the text mentions (tangent lines, perpendiculars, feet, intersections) ` +
-    `and NOTHING the text does not mention; the asked quantity must not appear in the figure, ` +
+    `and NOTHING the text does not mention; the asked quantity must not appear in the figure; ` +
+    `for EVERY angle ∠XYZ in the text BOTH sides Y→X and Y→Z must be drawn — if the scene ` +
+    `does not draw them, add "connect":[["Y","X"],["Y","Z"]] (point names only), ` +
     `(e) when the text gives angle values, the JSON must pass them through the scene's angle ` +
     `parameters (e.g. "angle_CAB":20) so the drawn positions match the given values. ` +
     `If the chosen scene cannot draw an object the text requires, either switch to a scene that can ` +

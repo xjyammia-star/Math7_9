@@ -40,6 +40,44 @@ function arc_path(cx: number, cy: number, r: number, a1: number, a2: number) {
   return `<path d="M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} A ${r} ${r} 0 ${large} 1 ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}" fill="none" stroke="${GOLD}" stroke-width="2.5"/>`;
 }
 
+/**
+ * ANGLE-SIDES / AUXILIARY CONNECTIONS ("connect" parameter)
+ * Draws extra segments between NAMED points a scene has already computed.
+ * Purpose (project iron rule): every angle ∠XYZ the problem text mentions
+ * must have BOTH of its sides visible in the figure. When a scene does not
+ * draw them by default (e.g. ∠DOE in external_two_tangents, where only the
+ * radii OA/OB/OC are drawn), the AI passes the STRUCTURE only:
+ *   "connect": [["O","D"],["O","E"]]
+ * and the exact positions come from the scene's own computed geometry —
+ * the AI never invents coordinates.
+ * Entry forms:  ["O","D"]  or  {"from":"O","to":"D","dash":false}
+ * Default style: dashed gray (auxiliary line). dash:false → solid gold.
+ */
+function render_connect_segments(
+  s: SceneJSON,
+  pts: Record<string, { x: number; y: number }>,
+): string[] {
+  const raw = (s as any).connect ?? null;
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const entry of raw) {
+    let from = '', to = '', dash = true;
+    if (Array.isArray(entry) && entry.length >= 2) {
+      from = String(entry[0]); to = String(entry[1]);
+    } else if (entry && typeof entry === 'object') {
+      from = String((entry as any).from ?? '');
+      to = String((entry as any).to ?? '');
+      if ((entry as any).dash === false) dash = false;
+    }
+    const a = pts[from], b = pts[to];
+    if (!a || !b || from === to) continue;
+    out.push(dash
+      ? line(a.x, a.y, b.x, b.y, GRAY, 1.5, DASH)
+      : line(a.x, a.y, b.x, b.y));
+  }
+  return out;
+}
+
 // ─── Scene Renderers ──────────────────────────────────────────────────────────
 
 function render_circle_with_tangent_chord(s: SceneJSON): string {
@@ -381,6 +419,7 @@ function render_circle_diameter_points(s: SceneJSON): string {
     const p1 = pts[seg[0]], p2 = pts[seg[1]];
     if (p1 && p2) elems.push(line(p1.x, p1.y, p2.x, p2.y));
   }
+  elems.push(...render_connect_segments(s, pts));
 
   // Visibility: arc point D only when used AND not replaced by intersection D;
   // E only when explicitly placed or referenced.
@@ -446,6 +485,7 @@ function render_generic_circle(s: SceneJSON): string {
     const p1 = pts[seg[0]], p2 = pts[seg[1]];
     if (p1 && p2) elems.push(line(p1.x, p1.y, p2.x, p2.y, GRAY, 1.5, DASH));
   }
+  elems.push(...render_connect_segments(s, pts));
   for (const [lbl, p] of Object.entries(pts)) {
     elems.push(dot(p.x, p.y, lbl === s.center ? GRAY : GOLD));
     const lo = label_offset(p.x, p.y, cx, cy);
@@ -795,6 +835,10 @@ function render_cyclic_quad_tangent_extension(s: SceneJSON): string {
   const allPts: [{x:number,y:number}, string][] = [
     [Ap,"A"],[Bp,"B"],[Cp,"C"],[Dp,"D"],[Ep,"E"]
   ];
+  // Extra named-point connections (e.g. sides of an asked angle)
+  const cqPtMap: Record<string, { x: number; y: number }> = { O: { x: cx, y: cy } };
+  for (const [p, lbl] of allPts) cqPtMap[lbl] = p;
+  elems.push(...render_connect_segments(s, cqPtMap));
   for (const [p, lbl] of allPts) {
     elems.push(dot(p.x, p.y));
     const lo = label_offset(p.x, p.y, cx, cy);
@@ -873,6 +917,14 @@ function render_external_tangent_two_points(s: SceneJSON): string {
   elems.push(line(ocx, ocy, Ap.x, Ap.y, GRAY, 1.5, DASH));
   elems.push(line(ocx, ocy, Bp.x, Bp.y, GRAY, 1.5, DASH));
   elems.push(line(ocx, ocy, Cp.x, Cp.y, GRAY, 1.5, DASH));
+
+  // Extra named-point connections (e.g. the two sides OD, OE of an asked
+  // angle ∠DOE): AI passes "connect":[["O","D"],["O","E"]], positions are
+  // the exact ones computed above.
+  const ptMap: Record<string, { x: number; y: number }> = {
+    P: Pp, A: Ap, B: Bp, C: Cp, D: Dp, E: Ep, O: { x: ocx, y: ocy },
+  };
+  elems.push(...render_connect_segments(s, ptMap));
 
   // Points and labels
   const allPts: [typeof Pp, string][] = [
