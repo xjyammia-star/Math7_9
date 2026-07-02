@@ -1641,8 +1641,15 @@ function LinearFunction({ data }: { data: any }) {
   const p2 = sc({ x: xMax, y: k * xMax + b });
   const p1b = k2 !== null && b2 !== null ? sc({ x: xMin, y: k2 * xMin + b2 }) : null;
   const p2b = k2 !== null && b2 !== null ? sc({ x: xMax, y: k2 * xMax + b2 }) : null;
-  const label: string = data.label ?? `y = ${k}x${b >= 0 ? '+' + b : b}`;
-  const label2: string = data.secondary_label ?? data.label_2 ?? (k2 !== null && b2 !== null ? `y = ${k2}x${b2 >= 0 ? '+' + b2 : b2}` : '');
+  // ANSWER-LEAK GUARD: NEVER auto-generate an equation label from k/b.
+  // If the problem asks the student to FIND k, b or the 解析式, printing
+  // "y = kx+b" with real numbers on the figure would reveal the answer.
+  // A label is shown ONLY when the AI explicitly provides one (it is
+  // instructed to do so only when the equation is GIVEN in the text).
+  const label: string = typeof data.label === 'string' ? data.label : '';
+  const label2: string = typeof (data.secondary_label ?? data.label_2) === 'string'
+    ? (data.secondary_label ?? data.label_2)
+    : '';
   const { xInterceptLabel, yInterceptLabel, showInterceptDots } = getLinearFunctionAnnotations(data);
   const extras: React.ReactNode[] = [];
   if (showInterceptDots) {
@@ -1680,9 +1687,11 @@ function LinearFunction({ data }: { data: any }) {
       {p1b && p2b && (
         <Seg a={p1b} b={p2b} stroke="#10b981" sw={2.5} />
       )}
-      <text x={p2.x - 8} y={p2.y - 12} fontSize={12} fill={GOLD} fontWeight="700"
-        textAnchor="end">{label}</text>
-      {p2b && (
+      {label !== '' && (
+        <text x={p2.x - 8} y={p2.y - 12} fontSize={12} fill={GOLD} fontWeight="700"
+          textAnchor="end">{label}</text>
+      )}
+      {p2b && label2 !== '' && (
         <text x={p2b.x - 8} y={p2b.y - 12} fontSize={12} fill="#10b981" fontWeight="700"
           textAnchor="end">{label2}</text>
       )}
@@ -1708,7 +1717,9 @@ function QuadraticFunction({ data }: { data: any }) {
   const vx = -b / (2 * a), vy = f(vx);
   const { vertexLabel, showVertexDot } = getQuadraticFunctionAnnotations(data);
   const vLabel = showVertexDot ? (vertexLabel || '') : '';
-  const label = data.label ?? `y = ${a}x²${b !== 0 ? (b > 0 ? '+' + b : b) + 'x' : ''}${c !== 0 ? (c > 0 ? '+' + c : c) : ''}`;
+  // ANSWER-LEAK GUARD: same as LinearFunction — never auto-print the
+  // equation. Shown ONLY when the AI explicitly provides a label.
+  const label: string = typeof data.label === 'string' ? data.label : '';
   return (
     <g>
       <Axes sc={sc} xMin={xMin} xMax={xMax} yMin={yMin} yMax={yMax} />
@@ -1717,8 +1728,10 @@ function QuadraticFunction({ data }: { data: any }) {
         <Dot p={sc({ x: vx, y: vy })} label={vLabel} color={GREY}
           offset={{ x: 8, y: vy < (yMin + yMax) / 2 ? -14 : 14 }} />
       )}
-      <text x={pts[pts.length - 1].x - 8} y={pts[pts.length - 1].y - 10}
-        fontSize={12} fill={GOLD} fontWeight="700" textAnchor="end">{label}</text>
+      {label !== '' && (
+        <text x={pts[pts.length - 1].x - 8} y={pts[pts.length - 1].y - 10}
+          fontSize={12} fill={GOLD} fontWeight="700" textAnchor="end">{label}</text>
+      )}
     </g>
   );
 }

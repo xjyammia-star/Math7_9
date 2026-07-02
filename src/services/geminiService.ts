@@ -458,9 +458,25 @@ STRICT PRINCIPLES:
 
    linear_function — y = kx + b on a grid:
    {"template":"linear_function","k":2,"b":-1,"xmin":-4,"xmax":4}
+   ⚠️ EQUATION LABEL RULE (CRITICAL): the renderer NEVER prints the equation
+   automatically. Add "label" ONLY when the problem text explicitly STATES
+   the equation (e.g. 已知一次函数 y=2x−1). If the problem asks the student
+   to FIND k, b, their signs, or the 解析式, you MUST NOT pass any "label"
+   containing numbers — pass the line's name only (e.g. "label":"l") or omit
+   it entirely. Same rule for "secondary_label" of a second line.
+   Optional intercept dots are OFF by default. Enable them ONLY when those
+   intersection points are named in the text: "show_intercepts":true with
+   "x_intercept_label":"A" and/or "y_intercept_label":"B" — point NAMES only,
+   never coordinate values (unless those exact coordinates are stated as
+   GIVEN in the text).
 
    quadratic_function — y = ax² + bx + c on a grid (a ≠ 0):
    {"template":"quadratic_function","a":1,"b":-2,"c":-3,"xmin":-3,"xmax":5}
+   ⚠️ Same EQUATION LABEL RULE as linear_function: no automatic equation is
+   printed; pass "label" only if the equation is GIVEN in the text, never
+   when it is what the problem asks for. Vertex dot is OFF by default —
+   enable with "show_vertex":true and "vertex_label":"P" (a point NAME) only
+   when the vertex is named/given in the text.
 
    similar_triangles — two similar triangles side by side, ratio of similarity:
    {"template":"similar_triangles","ratio":2,"sides":[3,4,5]}
@@ -961,7 +977,11 @@ async function reviewExercises(
     `reveals that asked quantity OR a key intermediate value the student must compute, ` +
     `DELETE that label field from the JSON. The figure may only annotate values stated ` +
     `as GIVEN in the text. Example: "梯子长10、离地8、求底端距离" → JSON may keep ` +
-    `label_ladder/label_wall but MUST NOT contain label_foot.\n` +
+    `label_ladder/label_wall but MUST NOT contain label_foot. ` +
+    `Function graphs: if the problem asks to FIND k/b/a/c, the 解析式, or their signs, ` +
+    `the linear_function/quadratic_function JSON MUST NOT contain any "label" with the ` +
+    `equation or numbers (a bare line name like "label":"l" is fine), and MUST NOT ` +
+    `enable intercept/vertex dots with coordinate values.\n` +
     `5. Do NOT add solutions, do NOT merge or drop problems, do NOT change problem types.\n\n` +
     `DRAFT:\n"""\n${draft}\n"""`;
 
