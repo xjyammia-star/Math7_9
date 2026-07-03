@@ -903,8 +903,19 @@ function render_external_tangent_two_points(s: SceneJSON): string {
   // PA=PB by symmetry. Place A and B symmetric about vertical axis.
   // Tangent from P touches at A,B. If half-angle at O is theta, sin(theta) = r/OP
   // Choose angle_A (from top, clockwise) e.g. A at 50° right, B at -50° = 310° left
-  const angle_A = s.angle_A ?? 50;   // A on right side of circle
-  const angle_B = s.angle_B ?? -50;  // B on left side (symmetric)
+  // Optional GIVEN lengths: "PA" (tangent length) and "radius" — when both
+  // are provided the tangent-point angle is computed EXACTLY from them
+  // (tan∠AOP = PA/r), so the figure's proportions match the given data.
+  // The numbers themselves are never printed (no answer/data leak).
+  const paLen = Number((s as any).PA ?? (s as any).pa);
+  const radLen = Number((s as any).radius ?? (s as any).r);
+  let angle_A = Number(s.angle_A ?? 50);   // A on right side of circle
+  let angle_B = Number(s.angle_B ?? -50);  // B on left side (symmetric)
+  if (Number.isFinite(paLen) && Number.isFinite(radLen) && paLen > 0 && radLen > 0) {
+    const a = Math.atan2(paLen, radLen) * 180 / Math.PI;
+    angle_A = a;
+    angle_B = -a;
+  }
   const angle_C = s.angle_C ?? 0;   // C at top = minor arc AB (short arc near P)
 
   function cp(deg: number) {
@@ -946,8 +957,28 @@ function render_external_tangent_two_points(s: SceneJSON): string {
   // Main segments: PA, PB
   elems.push(line(Pp.x, Pp.y, Ap.x, Ap.y));
   elems.push(line(Pp.x, Pp.y, Bp.x, Bp.y));
-  // Tangent at C: D to E
-  elems.push(line(Dp.x, Dp.y, Ep.x, Ep.y));
+  // Which tangent-line intersections the TEXT actually names:
+  // "show_D":false / "show_E":false hide the corresponding point entirely
+  // (NO-EXTRAS rule: never draw a point the text does not mention).
+  const showD = (s as any).show_D !== false;
+  const showE = (s as any).show_E !== false;
+  let tangentOverhang: { x: number; y: number } | null = null;
+  // Tangent at C: full D–E when both ends are named; when only one end is
+  // named, draw from that point through C with a short overhang past C
+  // (the tangent line is still visible, but no unnamed point is invented).
+  if (showD && showE) {
+    elems.push(line(Dp.x, Dp.y, Ep.x, Ep.y));
+  } else if (showD) {
+    tangentOverhang = pt(Cp.x + 0.45 * (Cp.x - Dp.x), Cp.y + 0.45 * (Cp.y - Dp.y));
+    elems.push(line(Dp.x, Dp.y, tangentOverhang.x, tangentOverhang.y));
+  } else if (showE) {
+    tangentOverhang = pt(Cp.x + 0.45 * (Cp.x - Ep.x), Cp.y + 0.45 * (Cp.y - Ep.y));
+    elems.push(line(Ep.x, Ep.y, tangentOverhang.x, tangentOverhang.y));
+  } else {
+    const tdx = -(Cp.y - ocy) / r, tdy = (Cp.x - ocx) / r;
+    elems.push(line(Cp.x - 0.7 * r * tdx, Cp.y - 0.7 * r * tdy,
+                    Cp.x + 0.7 * r * tdx, Cp.y + 0.7 * r * tdy));
+  }
   // OA, OB, OC dashed
   elems.push(line(ocx, ocy, Ap.x, Ap.y, GRAY, 1.5, DASH));
   elems.push(line(ocx, ocy, Bp.x, Bp.y, GRAY, 1.5, DASH));
@@ -961,10 +992,12 @@ function render_external_tangent_two_points(s: SceneJSON): string {
   };
   elems.push(...render_connect_segments(s, ptMap));
 
-  // Points and labels
+  // Points and labels (only the ones the text names)
   const allPts: [typeof Pp, string][] = [
-    [Pp,"P"],[Ap,"A"],[Bp,"B"],[Cp,"C"],[Dp,"D"],[Ep,"E"]
+    [Pp,"P"],[Ap,"A"],[Bp,"B"],[Cp,"C"]
   ];
+  if (showD) allPts.push([Dp,"D"]);
+  if (showE) allPts.push([Ep,"E"]);
   for (const [p, lbl] of allPts) {
     elems.push(dot(p.x, p.y));
     const lo = label_offset(p.x, p.y, ocx, ocy, 18);
@@ -974,9 +1007,12 @@ function render_external_tangent_two_points(s: SceneJSON): string {
   elems.push(dot(ocx, ocy, GRAY));
   elems.push(text(ocx + 12, ocy + 5, "O", "start"));
 
-  // Compute tight viewBox
-  const allX = [Pp,Ap,Bp,Cp,Dp,Ep].map(p=>p.x);
-  const allY = [Pp,Ap,Bp,Cp,Dp,Ep].map(p=>p.y);
+  // Compute viewBox: must include ALL shown points, the tangent overhang,
+  // AND THE FULL CIRCLE (previously the circle could get cropped away).
+  const boundPts = allPts.map(([p]) => p);
+  if (tangentOverhang) boundPts.push(tangentOverhang as typeof Pp);
+  const allX = boundPts.map(p=>p.x).concat([ocx - r, ocx + r]);
+  const allY = boundPts.map(p=>p.y).concat([ocy - r, ocy + r]);
   const minX = Math.min(...allX) - 30, maxX = Math.max(...allX) + 30;
   const minY = Math.min(...allY) - 30, maxY = Math.max(...allY) + 30;
   const vw = maxX - minX, vh = maxY - minY;

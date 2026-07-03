@@ -323,12 +323,30 @@ STRICT PRINCIPLES:
 
    ── external_two_tangents ──
    Use when: external point P, tangents PA and PB touch circle at A and B,
-   C on arc AB, tangent at C meets PA at D and PB at E.
+   C on arc AB, tangent at C meets PA at D and/or PB at E.
    C on 劣弧 (minor arc near P): "angle_C":0. C on 优弧 (far side): "angle_C":180.
-   Optional "connect": pairs of NAMED points (P,A,B,C,D,E,O) to join with an
-   auxiliary segment — REQUIRED whenever the text mentions an angle whose
-   sides the scene does not draw by default. Example: 求∠DOE → the sides OD
-   and OE must be visible → add "connect":[["O","D"],["O","E"]].
+   "angle_C":0 also makes PC bisect ∠APB exactly (by symmetry) — use it when
+   the text says PC平分∠APB, and draw PC via "connect".
+   GIVEN LENGTHS: when the text gives the tangent length and the radius
+   (e.g. PA=4, 半径=3), pass "PA":4,"radius":3 — the renderer then computes
+   the tangent-point positions EXACTLY so the figure's proportions match the
+   data (numbers are never printed on the figure).
+   NO-EXTRAS SWITCHES: the text may name only ONE intersection of the
+   tangent at C. Set "show_E":false (or "show_D":false) to omit the unnamed
+   point — the tangent is then drawn from the named point through C with a
+   short overhang, without inventing a point the text never mentions.
+   Optional "connect": pairs of NAMED points (P,A,B,C,D,E,O) to join —
+   REQUIRED whenever the text mentions an angle whose sides the scene does
+   not draw by default (求∠DOE → "connect":[["O","D"],["O","E"]]), and for
+   segments the text states (PC平分∠APB → PC must be drawn:
+   {"from":"P","to":"C","dash":false}).
+   Example — "P为⊙O外一点，PA、PB切⊙O于A、B。C在劣弧AB上，PC平分∠APB。过C作
+   ⊙O的切线，交直线PA于点D。已知PA=4，半径为3，求PD" (E is NOT mentioned →
+   show_E:false; PC drawn solid):
+   ${BT}math-diagram
+   {"template":"scene","scene":"external_two_tangents","angle_C":0,"PA":4,"radius":3,"show_E":false,"connect":[{"from":"P","to":"C","dash":false}]}
+   ${BT}
+   Example — both intersections named, asked ∠DOE:
    ${BT}math-diagram
    {"template":"scene","scene":"external_two_tangents","angle_A":50,"angle_B":310,"angle_C":0,"connect":[["O","D"],["O","E"]]}
    ${BT}
@@ -1018,7 +1036,10 @@ async function reviewExercises(
     `does not draw them, add "connect":[["Y","X"],["Y","Z"]] (point names only); ` +
     `if the text says 连接XY并延长交…于Z, the figure must show the extension reaching Z ` +
     `(use "extend_to_tangent" or the scene's dedicated parameter); if the text places a point ` +
-    `on 优弧/劣弧, verify the drawn position is on THAT arc — otherwise fix the text wording, ` +
+    `on 优弧/劣弧, verify the drawn position is on THAT arc — otherwise fix the text wording; ` +
+    `every point name used in the text must be DEFINED in the text and shown in the figure — a ` +
+    `primed name like D′ appearing only once (e.g. 求PD′ when the problem only defines D) is a ` +
+    `TYPO: fix it to the defined name (PD), ` +
     `(e) when the text gives angle values, the JSON must pass them through the scene's angle ` +
     `parameters (e.g. "angle_CAB":20) so the drawn positions match the given values. ` +
     `If the chosen scene cannot draw an object the text requires, either switch to a scene that can ` +
