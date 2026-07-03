@@ -381,38 +381,68 @@ function render_circle_diameter_points(s: SceneJSON): string {
   elems.push(line(Ap.x, Ap.y, Bp.x, Bp.y, GRAY, 1.5, DASH));
   const pts: Record<string, {x:number,y:number}> = {A:Ap,B:Bp,C:Cp,D:Dp,E:Ep,O:pt(cx,cy)};
   const segs: string[] = (Array.isArray(s.segments) ? (s.segments as any[]).map(x => String(x).toUpperCase()) : ["AC","BC"])
-    .filter(seg => seg.length === 2 && pts[seg[0]] && pts[seg[1]]);
+    .filter(seg => seg.length === 2);
 
-  // ── Optional tangent line at A or B ("tangent_at":"A"), labeled l ──
-  // The tangent at a diameter endpoint is VERTICAL (⊥ AB).
-  const tangentAt = s.tangent_at === 'A' || s.tangent_at === 'B' ? (s.tangent_at as string) : null;
-  const tx = tangentAt === 'A' ? Ap.x : tangentAt === 'B' ? Bp.x : null;
+  // ── Optional tangent line at ANY named circle point ("tangent_at":"C") ──
+  // The tangent is perpendicular to the radius at that point — computed
+  // exactly. (Tangents at the diameter endpoints A/B come out vertical,
+  // preserving the old behaviour.)
+  const tKey = typeof s.tangent_at === 'string' ? (s.tangent_at as string).toUpperCase() : '';
+  const Tp = (tKey && tKey !== 'O' && pts[tKey]) ? pts[tKey] : null;
+  // unit outward normal (radius direction) and unit tangent direction
+  const tN = Tp ? { x: (Tp.x - cx) / r, y: (Tp.y - cy) / r } : null;
+  const tDir = tN ? { x: -tN.y, y: tN.x } : null;
 
-  // ── Optional intersection D: "D_from":"BE" → extend line through those two
-  //    named points until it meets the tangent line; label the hit point D. ──
-  let Dhit: {x:number,y:number} | null = null;
-  let DfromSeg: [{x:number,y:number},{x:number,y:number}] | null = null;
-  const dFrom = typeof s.D_from === 'string' ? (s.D_from as string).toUpperCase() : '';
-  if (tx !== null && dFrom.length === 2 && pts[dFrom[0]] && pts[dFrom[1]]) {
-    const p1 = pts[dFrom[0]], p2 = pts[dFrom[1]];
-    if (Math.abs(p2.x - p1.x) > 0.5) {
-      const t = (tx - p1.x) / (p2.x - p1.x);
-      Dhit = pt(tx, p1.y + t * (p2.y - p1.y));
-      DfromSeg = [p1, p2];
-      pts.D = Dhit; // D now refers to the intersection, not an arc point
+  // ── Optional: extend the line through two named points until it meets the
+  //    tangent line; the hit point gets a NAME (e.g. 连接BD并延长，交直线l于
+  //    点E → "extend_to_tangent":{"line":"BD","label":"E"}).
+  //    Legacy form kept: "D_from":"BE" (hit point named D).
+  //    The intersection is solved exactly; the AI only names the points. ──
+  let hit: {x:number,y:number} | null = null;
+  let hitLabel = '';
+  let extLine = '', extLabel = '';
+  const ett = (s as any).extend_to_tangent;
+  if (ett && typeof ett === 'object') {
+    extLine = String((ett as any).line ?? '').toUpperCase();
+    extLabel = String((ett as any).label ?? 'E').toUpperCase();
+  } else if (typeof s.D_from === 'string') {
+    extLine = (s.D_from as string).toUpperCase();
+    extLabel = 'D';
+  }
+  if (Tp && tN && extLine.length === 2 && pts[extLine[0]] && pts[extLine[1]]) {
+    const p1 = pts[extLine[0]], p2 = pts[extLine[1]];
+    const dx = p2.x - p1.x, dy = p2.y - p1.y;
+    const denom = tN.x * dx + tN.y * dy;
+    if (Math.abs(denom) > 1e-6) {
+      const c0 = tN.x * Tp.x + tN.y * Tp.y;
+      const t = (c0 - (tN.x * p1.x + tN.y * p1.y)) / denom;
+      hit = pt(p1.x + t * dx, p1.y + t * dy);
+      hitLabel = extLabel;
+      pts[hitLabel] = hit; // now referencable from segments/connect
+      // Draw the chord itself plus its extension to the hit point, always
+      // covering all three points regardless of which side the hit lies on.
+      elems.push(line(p1.x, p1.y, p2.x, p2.y, GOLD, 2.5));
+      const anchor = t >= 0 ? p1 : p2;
+      elems.push(line(anchor.x, anchor.y, hit.x, hit.y, GOLD, 2.5));
     }
   }
 
-  // Draw the tangent line, extended to cover D if present
-  if (tx !== null) {
-    let yTop = cy - r - 35, yBot = cy + r + 35;
-    if (Dhit) { yTop = Math.min(yTop, Dhit.y - 25); yBot = Math.max(yBot, Dhit.y + 25); }
-    elems.push(line(tx, yTop, tx, yBot, GRAY, 1.5));
-    elems.push(text(tx - 10, yTop + 12, (s.tangent_label as string) || "l", "end"));
-  }
-  // Draw the extended line p1→D (e.g. 连接BE并延长交l于D)
-  if (Dhit && DfromSeg) {
-    elems.push(line(DfromSeg[0].x, DfromSeg[0].y, Dhit.x, Dhit.y, GOLD, 2.5));
+  // Draw the tangent line along its exact direction, long enough to cover
+  // the circle and the hit point (if any), with the "l" label at one end.
+  let tEnd1: {x:number,y:number} | null = null, tEnd2: {x:number,y:number} | null = null;
+  if (Tp && tDir) {
+    let sMin = -(r + 40), sMax = r + 40;
+    if (hit) {
+      const sH = (hit.x - Tp.x) * tDir.x + (hit.y - Tp.y) * tDir.y;
+      sMin = Math.min(sMin, sH - 30);
+      sMax = Math.max(sMax, sH + 30);
+    }
+    tEnd1 = pt(Tp.x + sMin * tDir.x, Tp.y + sMin * tDir.y);
+    tEnd2 = pt(Tp.x + sMax * tDir.x, Tp.y + sMax * tDir.y);
+    elems.push(line(tEnd1.x, tEnd1.y, tEnd2.x, tEnd2.y, GRAY, 1.5));
+    const lbl = (s.tangent_label as string) || "l";
+    const lref = tEnd1.y <= tEnd2.y ? tEnd1 : tEnd2; // label at the upper end
+    elems.push(text(lref.x + 14 * (tN as any).x, lref.y + 14 * (tN as any).y, lbl, "middle"));
   }
 
   for (const seg of segs) {
@@ -421,16 +451,16 @@ function render_circle_diameter_points(s: SceneJSON): string {
   }
   elems.push(...render_connect_segments(s, pts));
 
-  // Visibility: arc point D only when used AND not replaced by intersection D;
-  // E only when explicitly placed or referenced.
-  const usesArcD = !Dhit && (Dres.explicit || segs.some(seg => seg.includes('D')));
-  const usesE = Eres.explicit || segs.some(seg => seg.includes('E')) || dFrom.includes('E');
+  // Visibility: an arc point is hidden when its name was taken by the
+  // tangent intersection; otherwise shown when placed/referenced.
+  const usesArcD = hitLabel !== 'D' && (Dres.explicit || segs.some(seg => seg.includes('D')) || extLine.includes('D'));
+  const usesE = hitLabel !== 'E' && (Eres.explicit || segs.some(seg => seg.includes('E')) || extLine.includes('E'));
   elems.push(dot(cx, cy, GRAY));
   elems.push(text(cx, cy+18, "O"));
   const shown: [string, {x:number,y:number}][] = [["A",Ap],["B",Bp],["C",Cp]];
   if (usesArcD) shown.push(["D", Dp]);
   if (usesE) shown.push(["E", Ep]);
-  if (Dhit) shown.push(["D", Dhit]);
+  if (hit && hitLabel) shown.push([hitLabel, hit]);
   for (const [lbl, p] of shown) {
     elems.push(dot(p.x, p.y));
     const lo = label_offset(p.x, p.y, cx, cy);
@@ -438,13 +468,18 @@ function render_circle_diameter_points(s: SceneJSON): string {
     elems.push(text(lo.x, lo.y, lbl, anchor));
   }
 
-  // Dynamic viewBox: expand to include the tangent line / external D
+  // Dynamic viewBox: expand to include the tangent line / intersection point
   let minX = 0, minY = 0, maxX = W, maxY = H;
   for (const [, p] of shown) {
     minX = Math.min(minX, p.x - 35); maxX = Math.max(maxX, p.x + 35);
     minY = Math.min(minY, p.y - 30); maxY = Math.max(maxY, p.y + 30);
   }
-  if (tx !== null) { minX = Math.min(minX, tx - 30); }
+  for (const e of [tEnd1, tEnd2]) {
+    if (e) {
+      minX = Math.min(minX, e.x - 25); maxX = Math.max(maxX, e.x + 25);
+      minY = Math.min(minY, e.y - 25); maxY = Math.max(maxY, e.y + 25);
+    }
+  }
   return `<svg viewBox="${minX.toFixed(0)} ${minY.toFixed(0)} ${(maxX - minX).toFixed(0)} ${(maxY - minY).toFixed(0)}" xmlns="http://www.w3.org/2000/svg">${elems.join("")}</svg>`;
 }
 

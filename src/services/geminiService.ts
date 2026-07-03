@@ -270,12 +270,29 @@ STRICT PRINCIPLES:
    SPECIAL CONSTRUCTIONS (computed exactly by the renderer):
      "E_bisector_from_C":true → E placed exactly so that CE bisects ∠ACB
        (use when text says "CE平分∠ACB")
-     "tangent_at":"A" → draws tangent line l touching the circle at A (or "B")
-       (use when text says "直线l切⊙O于点A")
-     "D_from":"BE" → D = intersection of line B→E EXTENDED with tangent l;
-       draws B–E–D and labels D (use when text says "连接BE并延长，交直线l于点D").
-       When "D_from" is used, D means this intersection — do NOT also give angle_D.
+     "tangent_at":"C" → draws tangent line l touching the circle at that point.
+       Works at ANY named circle point (A, B, C, D or E) — use whenever the
+       text says "直线l切⊙O于点X". The tangent MUST be drawn whenever the
+       text mentions one.
+     "extend_to_tangent":{"line":"BD","label":"E"} → extends the line through
+       the two named points until it meets the tangent line, draws the chord
+       PLUS its extension, and labels the intersection with the given name
+       (use when text says "连接BD并延长，交直线l于点E"). The named
+       intersection can then be used in "segments"/"connect" (e.g. "AE").
+       Do NOT also give an arc position for that label.
+       (Legacy alias: "D_from":"BE" = extend_to_tangent line BE, label D.)
+   ARC WORDING MUST MATCH (优弧/劣弧): after choosing positions, CHECK which
+   arc each point actually lies on and make the problem text agree. Example:
+   C at top ("angle_C":0), D placed by ∠DAB=15° upper → D lies on 劣弧BC (the
+   short arc between C and B), so the text must say 劣弧BC. If the text said
+   优弧 but the drawable configuration puts the point on 劣弧, FIX THE TEXT.
    List ONLY the segments the problem actually draws. Omit params for unused points.
+   Example — "AB是⊙O的直径，直线l切⊙O于点C，点D在劣弧BC上，连接BD并延长交
+   直线l于点E，∠DAB=15°，求∠AEB" (note: ∠DAB needs AD; ∠AEB needs EA and EB —
+   EB lies on the extension line, EA is added explicitly):
+   ${BT}math-diagram
+   {"template":"scene","scene":"circle_diameter_points","angle_C":0,"tangent_at":"C","angle_DAB":15,"side_D":"upper","extend_to_tangent":{"line":"BD","label":"E"},"segments":["AD","AE"]}
+   ${BT}
    Example — "直线l切⊙O于A，C在上半弧，E在下半弧，CE平分∠ACB，连接BE并延长交l于D，∠CAB=35°":
    ${BT}math-diagram
    {"template":"scene","scene":"circle_diameter_points","angle_CAB":35,"E_bisector_from_C":true,"tangent_at":"A","D_from":"BE","segments":["AC","BC","CE"]}
@@ -998,7 +1015,10 @@ async function reviewExercises(
     `(d) show EVERY object the text mentions (tangent lines, perpendiculars, feet, intersections) ` +
     `and NOTHING the text does not mention; the asked quantity must not appear in the figure; ` +
     `for EVERY angle ∠XYZ in the text BOTH sides Y→X and Y→Z must be drawn — if the scene ` +
-    `does not draw them, add "connect":[["Y","X"],["Y","Z"]] (point names only), ` +
+    `does not draw them, add "connect":[["Y","X"],["Y","Z"]] (point names only); ` +
+    `if the text says 连接XY并延长交…于Z, the figure must show the extension reaching Z ` +
+    `(use "extend_to_tangent" or the scene's dedicated parameter); if the text places a point ` +
+    `on 优弧/劣弧, verify the drawn position is on THAT arc — otherwise fix the text wording, ` +
     `(e) when the text gives angle values, the JSON must pass them through the scene's angle ` +
     `parameters (e.g. "angle_CAB":20) so the drawn positions match the given values. ` +
     `If the chosen scene cannot draw an object the text requires, either switch to a scene that can ` +
