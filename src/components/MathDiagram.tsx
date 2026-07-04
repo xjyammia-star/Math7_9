@@ -480,6 +480,12 @@ function validateDiagramData(template: string, data: any): string | null {
         ? null
         : 'cylinder_unrolled requires positive circumference and height';
     }
+    case 'cuboid':
+    case 'rectangular_prism_3d': {
+      const dims = [data.AB ?? data.ab, data.BC ?? data.bc, data.BB1 ?? data.bb1];
+      const bad = dims.some((d: any) => d !== undefined && !(Number(d) > 0));
+      return bad ? 'cuboid dimensions AB/BC/BB1 must be positive numbers' : null;
+    }
     case 'rectangular_prism_net': {
       const length = asFiniteNumber(data.length ?? data.l ?? data.a);
       const width = asFiniteNumber(data.width ?? data.w ?? data.b);
@@ -1532,6 +1538,96 @@ function CylinderUnrolled({ data }: { data: any }) {
       <SegLabel a={A} b={B} label={lH} />
       <SegLabel a={B} b={C} label={lC} />
       {lPath && <SegLabel a={A} b={C} label={lPath} color={GOLD} />}
+    </g>
+  );
+}
+
+/** cuboid: 3D rectangular box ABCD-A₁B₁C₁D₁ in oblique (cabinet) projection.
+ * Standard textbook layout: front face ABB₁A₁, depth going up-right to the
+ * back face DCC₁D₁. ALL 8 vertices are ALWAYS labelled (iron rule: every
+ * point must carry its letter). Hidden edges (AD, DC, DD₁) are dashed.
+ * Proportions follow the GIVEN edge lengths AB / BC / BB₁.
+ * Edge-length labels are strictly OPT-IN (label_AB / label_BC / label_BB1):
+ * pass ONLY values the problem text states — never a value to be found.
+ * "mark_points": names of vertices to emphasise with a dot (e.g. the ant's
+ * start/end ["A","C1"]). No path is ever drawn automatically (the shortest
+ * path is usually the ANSWER). */
+function Cuboid({ data }: { data: any }) {
+  const ab: number = Number(data.AB ?? data.ab) > 0 ? Number(data.AB ?? data.ab) : 4;
+  const bc: number = Number(data.BC ?? data.bc) > 0 ? Number(data.BC ?? data.bc) : 3;
+  const bb1: number = Number(data.BB1 ?? data.bb1) > 0 ? Number(data.BB1 ?? data.bb1) : 3;
+  const labAB: string = typeof data.label_AB === 'string' ? data.label_AB : '';
+  const labBC: string = typeof data.label_BC === 'string' ? data.label_BC : '';
+  const labBB1: string = typeof data.label_BB1 === 'string' ? data.label_BB1 : '';
+  const marks: string[] = Array.isArray(data.mark_points)
+    ? data.mark_points.map((m: any) => String(m).toUpperCase()) : [];
+
+  // Oblique projection: depth (BC) drawn at 38° with 0.55 foreshortening
+  const k = 0.55, angRad = 38 * Math.PI / 180;
+  const dv = { x: bc * k * Math.cos(angRad), y: bc * k * Math.sin(angRad) };
+  const V: Record<string, { x: number; y: number }> = {
+    A:  { x: 0, y: 0 },            B:  { x: ab, y: 0 },
+    A1: { x: 0, y: bb1 },          B1: { x: ab, y: bb1 },
+    D:  { x: dv.x, y: dv.y },      C:  { x: ab + dv.x, y: dv.y },
+    D1: { x: dv.x, y: bb1 + dv.y }, C1: { x: ab + dv.x, y: bb1 + dv.y },
+  };
+  const pad = Math.max(ab, bb1, dv.y) * 0.35 + 1;
+  const sc = makeScaler(-pad, ab + dv.x + pad, -pad, bb1 + dv.y + pad);
+  const S: Record<string, { x: number; y: number }> = {};
+  for (const key of Object.keys(V)) S[key] = sc(V[key]);
+
+  const solidEdges: [string, string][] = [
+    ['A','B'], ['B','B1'], ['B1','A1'], ['A1','A'],      // front face
+    ['B1','C1'], ['C1','D1'], ['D1','A1'],               // top face
+    ['B','C'], ['C','C1'],                                // right face
+  ];
+  const hiddenEdges: [string, string][] = [['A','D'], ['D','C'], ['D','D1']];
+
+  // Vertex label with subscript support (A1 → A₁)
+  const VLabel = ({ name, dx, dy, anchor }: { name: string; dx: number; dy: number; anchor?: string }) => {
+    const p = S[name];
+    const m = name.match(/^([A-Z])1$/);
+    return (
+      <text x={p.x + dx} y={p.y + dy} fontSize={13} fontWeight={700}
+        fill={WHITE} textAnchor={(anchor ?? 'middle') as any}>
+        {m ? (<>{m[1]}<tspan fontSize={9} dy={3}>1</tspan></>) : name}
+      </text>
+    );
+  };
+  const offsets: Record<string, { dx: number; dy: number; anchor?: string }> = {
+    A:  { dx: -8,  dy: 16, anchor: 'end' },
+    B:  { dx: 8,   dy: 16, anchor: 'start' },
+    C:  { dx: 12,  dy: 6,  anchor: 'start' },
+    D:  { dx: -12, dy: 4,  anchor: 'end' },
+    A1: { dx: -10, dy: 4,  anchor: 'end' },
+    B1: { dx: 10,  dy: 16, anchor: 'start' },
+    C1: { dx: 10,  dy: -6, anchor: 'start' },
+    D1: { dx: -4,  dy: -8, anchor: 'middle' },
+  };
+
+  return (
+    <g>
+      {hiddenEdges.map(([p, q], i) => (
+        <Seg key={'h' + i} a={S[p]} b={S[q]} stroke={GREY} sw={1.6} dash="5,4" />
+      ))}
+      {solidEdges.map(([p, q], i) => (
+        <Seg key={'s' + i} a={S[p]} b={S[q]} stroke={GOLD} sw={2.2} />
+      ))}
+
+      {/* Opt-in GIVEN edge-length labels */}
+      {labAB !== '' && <SegLabel a={S.A} b={S.B} label={labAB} color={GOLD} />}
+      {labBC !== '' && <SegLabel a={S.B} b={S.C} label={labBC} color={GOLD} />}
+      {labBB1 !== '' && <SegLabel a={S.B} b={S.B1} label={labBB1} color={GOLD} />}
+
+      {/* Emphasised points (e.g. ant start/end) */}
+      {marks.map((m, i) => S[m] ? (
+        <circle key={'m' + i} cx={S[m].x} cy={S[m].y} r={4.5} fill={GOLD} />
+      ) : null)}
+
+      {/* ALL eight vertex labels, always */}
+      {Object.keys(offsets).map((name) => (
+        <VLabel key={name} name={name} {...offsets[name]} />
+      ))}
     </g>
   );
 }
@@ -3013,6 +3109,8 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
   const largerDiagramTemplates = new Set([
     'rectangle_fold',
     'cylinder_unrolled',
+    'cuboid',
+    'rectangular_prism_3d',
     'rectangular_prism_net',
     'adjacent_squares_diagonal',
     'composite_overlay',
@@ -3035,6 +3133,8 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'parallelogram':       content = <Parallelogram data={parsed} />; break;
       case 'ladder':              content = <Ladder data={parsed} />; break;
       case 'cylinder_unrolled':   content = <CylinderUnrolled data={parsed} />; break;
+      case 'cuboid':
+      case 'rectangular_prism_3d': content = <Cuboid data={parsed} />; break;
       case 'rectangular_prism_net': content = <RectangularPrismNet data={parsed} />; break;
       case 'circle_chord':        content = <CircleChord data={parsed} />; break;
       case 'circle_sector':       content = <CircleSector data={parsed} />; break;

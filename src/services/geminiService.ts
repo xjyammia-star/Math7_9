@@ -474,7 +474,21 @@ STRICT PRINCIPLES:
    cylinder_unrolled — unrolled lateral surface for shortest-path problems:
    {"template":"cylinder_unrolled","circumference":12,"height":9}
 
-   rectangular_prism_net — cuboid net with dimensions:
+   cuboid — 3D rectangular box ABCD-A₁B₁C₁D₁ (oblique projection). ALL 8
+   vertices are always labelled; hidden edges dashed; proportions follow the
+   given edge lengths. Edge labels are OPT-IN: pass label_AB/label_BC/label_BB1
+   ONLY for values the text GIVES. "mark_points" emphasises named vertices.
+   NO path is ever drawn (a shortest surface path is usually the ANSWER —
+   drawing it would leak which unfolding is optimal).
+   ⚠️ MANDATORY: any problem about a solid 长方体/正方体 named like
+   ABCD-A₁B₁C₁D₁ (蚂蚁爬行/对角线/表面最短路径…) MUST use this 3D template.
+   Use rectangular_prism_net ONLY when the problem text itself is about a net
+   (展开图) as the subject.
+   Example — "长方体ABCD-A₁B₁C₁D₁，AB=4，BC=5，BB₁=6，蚂蚁从A沿表面爬到C₁":
+   {"template":"cuboid","AB":4,"BC":5,"BB1":6,"label_AB":"4","label_BC":"5","label_BB1":"6","mark_points":["A","C1"]}
+
+   rectangular_prism_net — cuboid net with dimensions (ONLY for problems whose
+   subject is the unfolded net itself):
    {"template":"rectangular_prism_net","length":4,"width":3,"height":2}
 
    number_line — range [lo,hi], optional marked points and solution-set arrows:
