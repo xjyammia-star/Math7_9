@@ -81,10 +81,24 @@ body {
 }
 
 /* Diagrams (inline SVG from math-diagram blocks) must never exceed the
-   width of their container on any screen size. */
-.markdown-body svg {
+   width of their container on any screen size.
+   2026-07 FIX: this rule must NOT touch KaTeX's internal SVGs. KaTeX draws
+   radical signs (√), stretchy arrows and braces with inline <svg> elements
+   whose size comes from their width/height ATTRIBUTES (e.g. width="400em"
+   height="1.08em" viewBox="0 0 400000 1080" preserveAspectRatio="slice",
+   clipped by an overflow:hidden .hide-tail wrapper). Applying
+   `max-width:100%; height:auto` to them collapses the svg to ~0.002em tall,
+   which makes every √ silently INVISIBLE while its horizontal space remains
+   — i.e. "(√3, 1)" displays as "( 3, 1)". */
+.markdown-body svg:not(.katex svg) {
   max-width: 100%;
   height: auto;
+}
+
+/* Belt-and-braces: even if any other global rule ever caps the width of a
+   KaTeX svg, undo it here — the .hide-tail wrapper clips it correctly. */
+.markdown-body .katex svg {
+  max-width: none;
 }
 
 .dark-card {
