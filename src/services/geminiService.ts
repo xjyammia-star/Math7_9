@@ -498,6 +498,21 @@ STRICT PRINCIPLES:
    problem explicitly mentions a coordinate system; otherwise "axes":false.
    Segments reference point labels:
    {"template":"coordinate_points","axes":true,"points":[{"x":-2,"y":3,"label":"A"},{"x":1,"y":-1,"label":"B"},{"x":4,"y":2,"label":"C"}],"segments":[["A","B"],["B","C"]]}
+   直线 vs 线段: a bare pair ["A","B"] draws the SEGMENT 线段AB only. When the
+   text calls it 直线AB, use the object form with "extend":true — the line is
+   then drawn through both points and extended across the whole plot:
+   "segments":[{"from":"A","to":"B","extend":true}]
+   This matters: asked intersections often lie OUTSIDE the segment (e.g. the
+   foot of a perpendicular on 直线AB can lie beyond A), so a segment-only
+   drawing would contradict the text and hide where the answer lives.
+   题干 vs 设问 (GIVEN vs ASKED objects): draw ONLY the objects the problem
+   STEM defines (given points, given lines/segments/circles). NEVER pre-draw
+   an object that first appears inside a QUESTION as the target of 求/作/画
+   — e.g. "(2) 求过P且与AB垂直的直线l" → do NOT draw l; "(3) 求交点Q" → do
+   NOT mark Q; "求点P到AB的距离" → do NOT draw the distance segment. Drawing
+   these performs the construction for the student and leaks the answer.
+   (An asked ANGLE is different: its two sides connect stem-defined points
+   and MUST be drawn — only its value stays off the figure.)
    ⚠️ USE coordinate_points ONLY for genuine coordinate-geometry problems that
    give explicit (x, y) values in the text. DO NOT use it to fake a plain
    geometry figure by guessing coordinates — you will get the positions wrong
@@ -567,6 +582,15 @@ STRICT PRINCIPLES:
      match the problem's point names (including primed names like C′ for folded
      images). Never leave a point the text names blank in the figure.
    - NO EXTRAS: NEVER draw points, lines or labels the text does not mention.
+   - GIVEN vs ASKED OBJECTS: draw every object the problem STEM (题干)
+     defines. NEVER pre-draw an object that only appears inside a question
+     as the target of 求/作/画 (a line to be found, an intersection to be
+     located, a distance/perpendicular to be constructed) — drawing it does
+     the student's work and leaks the answer. If the stem says 如图 and
+     includes the object, it is GIVEN → draw it.
+   - 直线 vs 线段: an object the text calls 直线 must be drawn extended
+     across the figure (not stopping at the two defining points); 线段
+     stops at its endpoints; 射线 extends one way.
    - ANGLE SIDES MUST BE VISIBLE: for EVERY angle ∠XYZ the text mentions —
      including the ASKED angle — BOTH sides (segment/ray Y→X and Y→Z) must be
      drawn in the figure. An angle whose sides are missing is a broken figure.
@@ -1053,7 +1077,10 @@ async function reviewExercises(
     `on 优弧/劣弧, verify the drawn position is on THAT arc — otherwise fix the text wording; ` +
     `every point name used in the text must be DEFINED in the text and shown in the figure — a ` +
     `primed name like D′ appearing only once (e.g. 求PD′ when the problem only defines D) is a ` +
-    `TYPO: fix it to the defined name (PD), ` +
+    `TYPO: fix it to the defined name (PD); objects that first appear in a QUESTION as 求/作 ` +
+    `targets (a line l to be found, an intersection Q, a distance) must NOT be pre-drawn in the ` +
+    `figure — only STEM objects are drawn; anything the text calls 直线 must be drawn extended ` +
+    `across the figure, not stopped at its two defining points, ` +
     `(e) when the text gives angle values, the JSON must pass them through the scene's angle ` +
     `parameters (e.g. "angle_CAB":20) so the drawn positions match the given values. ` +
     `If the chosen scene cannot draw an object the text requires, either switch to a scene that can ` +

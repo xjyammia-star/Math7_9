@@ -2015,7 +2015,45 @@ function CoordinatePoints({ data }: { data: any }) {
   const yMin = Math.min(...ys) - margin, yMax = Math.max(...ys) + margin;
   const sc = makeScaler(xMin, xMax, yMin, yMax);
   const ptMap: Record<string, Pt> = {};
-  rawPts.forEach(p => { if (p.label) ptMap[p.label] = sc({ x: p.x, y: p.y }); });
+  const mathMap: Record<string, { x: number; y: number }> = {};
+  rawPts.forEach(p => {
+    if (p.label) {
+      ptMap[p.label] = sc({ x: p.x, y: p.y });
+      mathMap[p.label] = { x: p.x, y: p.y };
+    }
+  });
+
+  // FULL LINE through two points ("直线XY"): extend in both directions and
+  // clip to the plot rectangle — used when the text calls XY a LINE, not a
+  // segment. Returns scaled endpoints, or null when degenerate.
+  const extendedEndpoints = (a: string, b: string): [Pt, Pt] | null => {
+    const p1 = mathMap[a], p2 = mathMap[b];
+    if (!p1 || !p2) return null;
+    const dx = p2.x - p1.x, dy = p2.y - p1.y;
+    if (Math.abs(dx) < 1e-9 && Math.abs(dy) < 1e-9) return null;
+    const ts: number[] = [];
+    const eps = 1e-6;
+    if (Math.abs(dx) > 1e-9) {
+      for (const bx of [xMin, xMax]) {
+        const t = (bx - p1.x) / dx;
+        const y = p1.y + t * dy;
+        if (y >= yMin - eps && y <= yMax + eps) ts.push(t);
+      }
+    }
+    if (Math.abs(dy) > 1e-9) {
+      for (const by of [yMin, yMax]) {
+        const t = (by - p1.y) / dy;
+        const x = p1.x + t * dx;
+        if (x >= xMin - eps && x <= xMax + eps) ts.push(t);
+      }
+    }
+    if (ts.length < 2) return null;
+    const tA = Math.min(...ts), tB = Math.max(...ts);
+    return [
+      sc({ x: p1.x + tA * dx, y: p1.y + tA * dy }),
+      sc({ x: p1.x + tB * dx, y: p1.y + tB * dy }),
+    ];
+  };
 
   return (
     <g>
@@ -2040,11 +2078,16 @@ function CoordinatePoints({ data }: { data: any }) {
         const [a, b] = Array.isArray(seg) ? seg : [seg.from, seg.to];
         const isDash = !Array.isArray(seg) && seg.dash;
         const segLabel = !Array.isArray(seg) ? seg.label : undefined;
+        const isExtend = !Array.isArray(seg) && (seg as any).extend === true;
         const pa = ptMap[a], pb = ptMap[b];
         if (!pa || !pb) return null;
+        // extend:true → draw the FULL LINE through the two points (直线),
+        // clipped to the plot area; label still sits at the A–B midpoint.
+        const ends = isExtend ? extendedEndpoints(a, b) : null;
+        const e1 = ends ? ends[0] : pa, e2 = ends ? ends[1] : pb;
         return (
           <g key={i}>
-            <Seg a={pa} b={pb} stroke={GOLD} sw={2} dash={isDash ? '5,4' : ''} />
+            <Seg a={e1} b={e2} stroke={GOLD} sw={2} dash={isDash ? '5,4' : ''} />
             {segLabel && <SegLabel a={pa} b={pb} label={segLabel} color={GOLD} />}
           </g>
         );
