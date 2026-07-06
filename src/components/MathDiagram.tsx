@@ -487,9 +487,15 @@ function validateDiagramData(template: string, data: any): string | null {
     case 'cylinder_unrolled': {
       const circ = asFiniteNumber(data.circumference ?? data.radius);
       const height = asFiniteNumber(data.height);
-      return circ !== null && height !== null && circ > 0 && height > 0
-        ? null
-        : 'cylinder_unrolled requires positive circumference and height';
+      if (circ === null || height === null || circ <= 0 || height <= 0)
+        return 'cylinder_unrolled requires positive circumference and height';
+      const offRaw = data.offset ?? data.path_width;
+      if (offRaw !== undefined) {
+        const off = asFiniteNumber(offRaw);
+        if (off === null || off < 0 || off > circ)
+          return 'cylinder_unrolled offset must be between 0 and the circumference';
+      }
+      return null;
     }
     case 'cuboid':
     case 'rectangular_prism_3d': {
@@ -1587,32 +1593,69 @@ function Ladder({ data }: { data: any }) {
   );
 }
 
-/** cylinder_unrolled: shows unrolled lateral surface as rectangle; diagonal = shortest path */
+/** cylinder_unrolled: unrolled lateral surface (shortest-path problems).
+ * 2026-07 REWRITE — the old version broke three iron rules at once:
+ *   • it AUTO-COMPUTED the diagonal length √(w²+h²) and PRINTED it on the
+ *     figure (that length is the ANSWER of these problems — this is where a
+ *     stray "20" appeared on a 周长16/高12/偏移9 problem);
+ *   • it hardcoded corner labels A/B/C/D, contradicting texts that place
+ *     A on the bottom edge and B on the top edge at a given offset;
+ *   • it always drew the corner-to-corner diagonal, ignoring the offset.
+ * New behaviour (ALL labels strictly opt-in):
+ *   circumference (or radius) + height → rectangle proportions;
+ *   offset → horizontal distance from start to end IN THE UNROLLED FIGURE
+ *            (e.g. "B位于A右侧9cm" → offset:9). Legacy "path_width" is
+ *            accepted as an alias. Defaults to the full circumference.
+ *   start_label (default "A") — dot on the BOTTOM edge, left end;
+ *   end_label   (default "B") — dot on the TOP edge at x = offset;
+ *   label_circ / label_height / label_offset — opt-in, GIVEN values only
+ *   (label_offset renders as a dimension line above the top edge);
+ *   show_path:true — opt-in; draws the straight start→end segment. It is
+ *     usually what the question ASKS, so the default is OFF, and its length
+ *     is NEVER printed unless label_path is explicitly passed (only for
+ *     problems where the text GIVES that length). */
 function CylinderUnrolled({ data }: { data: any }) {
   const circ: number  = data.circumference ?? (2 * Math.PI * (data.radius ?? 3));
   const cylH: number  = data.height ?? 8;
-  const pathW: number = data.path_width ?? circ; // width of unrolled surface
-  const lC = data.label_circ  ?? `${+circ.toFixed(2)}`;
-  const lH = data.label_height ?? String(cylH);
-  const w = pathW, h = cylH;
+  const rawOffset = Number(data.offset ?? data.path_width);
+  const offset: number =
+    Number.isFinite(rawOffset) && rawOffset >= 0 ? Math.min(rawOffset, circ) : circ;
+  const startLabel: string = explicitLabel(data.start_label) ?? 'A';
+  const endLabel: string   = explicitLabel(data.end_label) ?? 'B';
+  const asLabel = (v: any): string =>
+    typeof v === 'string' ? v : typeof v === 'number' && Number.isFinite(v) ? String(v) : '';
+  const lC    = asLabel(data.label_circ);
+  const lH    = asLabel(data.label_height);
+  const lOff  = asLabel(data.label_offset);
+  const lPath = asLabel(data.label_path);
+  const showPath: boolean = data.show_path === true;
+
+  const w = circ, h = cylH;
   const pad = Math.max(w, h) * 0.22;
   const sc = makeScaler(-pad, w + pad, -pad, h + pad);
-  const A = sc({ x: 0, y: h }), B = sc({ x: 0, y: 0 });
-  const C = sc({ x: w, y: 0 }), D = sc({ x: w, y: h });
-  const pathLen = Math.sqrt(w * w + h * h);
-  const lPath = data.label_path ?? (Number.isInteger(pathLen) ? String(pathLen) : `${+pathLen.toFixed(2)}`);
+  const TL = sc({ x: 0, y: h }), BL = sc({ x: 0, y: 0 });
+  const BR = sc({ x: w, y: 0 }), TR = sc({ x: w, y: h });
+  const S = sc({ x: 0, y: 0 });        // start point: bottom-left
+  const E = sc({ x: offset, y: h });   // end point: top edge, at the offset
   return (
     <g>
-      <Poly pts={[A, B, C, D]} fill={FILL2} stroke={GREY} sw={2} />
-      {/* Diagonal = shortest path */}
-      <Seg a={A} b={C} stroke={GOLD} sw={2.5} />
-      <Dot p={A} label="A" offset={{ x: -18, y: -4 }} />
-      <Dot p={B} label="B" offset={{ x: -18, y: 12 }} />
-      <Dot p={C} label="C" offset={{ x: 8,  y: 12 }} />
-      <Dot p={D} label="D" offset={{ x: 8,  y: -4 }} />
-      <SegLabel a={A} b={B} label={lH} />
-      <SegLabel a={B} b={C} label={lC} />
-      {lPath && <SegLabel a={A} b={C} label={lPath} color={GOLD} />}
+      <Poly pts={[TL, BL, BR, TR]} fill={FILL2} stroke={GREY} sw={2} />
+      {showPath && <Seg a={S} b={E} stroke={GOLD} sw={2.5} />}
+      {showPath && lPath && <SegLabel a={S} b={E} label={lPath} color={GOLD} />}
+      <Dot p={S} label={startLabel} offset={{ x: -8, y: 20 }} />
+      <Dot p={E} label={endLabel} offset={{ x: 9, y: -6 }} />
+      {lH && <SegLabel a={TL} b={BL} label={lH} />}
+      {lC && <SegLabel a={BL} b={BR} label={lC} />}
+      {lOff && offset > 0 && (
+        <g>
+          {/* dimension line above the top edge for the GIVEN offset */}
+          <Seg a={{ x: TL.x, y: TL.y - 14 }} b={{ x: E.x, y: TL.y - 14 }} stroke={GREY} sw={1.2} />
+          <Seg a={{ x: TL.x, y: TL.y - 20 }} b={{ x: TL.x, y: TL.y - 8 }} stroke={GREY} sw={1.2} />
+          <Seg a={{ x: E.x,  y: TL.y - 20 }} b={{ x: E.x,  y: TL.y - 8 }} stroke={GREY} sw={1.2} />
+          <text x={(TL.x + E.x) / 2} y={TL.y - 20} fontSize={12} fontWeight="700"
+            textAnchor="middle" fill={GREY}>{lOff}</text>
+        </g>
+      )}
     </g>
   );
 }

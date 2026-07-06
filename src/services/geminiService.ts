@@ -482,8 +482,18 @@ STRICT PRINCIPLES:
    (distance along the ground). NEVER add the label for the side being asked for.
    E.g. "梯长10、离地8、求底端距离": {"template":"ladder","length":10,"foot_dist":6,"label_ladder":"10","label_wall":"8"} — note NO label_foot.
 
-   cylinder_unrolled — unrolled lateral surface for shortest-path problems:
-   {"template":"cylinder_unrolled","circumference":12,"height":9}
+   cylinder_unrolled — unrolled lateral surface for shortest-path problems.
+   The rectangle is circumference × height. "offset" = horizontal distance
+   from the start point to the end point IN THE UNROLLED FIGURE (e.g. "展开图
+   中，点B位于点A右侧9cm处" → "offset":9). start_label marks a dot on the
+   BOTTOM edge (left end); end_label marks a dot on the TOP edge at the
+   offset. Numeric labels are ALL OPT-IN and may carry ONLY values the text
+   GIVES: label_circ / label_height / label_offset. The straight path and its
+   LENGTH are usually the ANSWER: never enable "show_path" unless the stem
+   itself already describes the drawn segment, and NEVER pass "label_path"
+   for a length the student must find.
+   例（底面周长16、高12、展开图中B位于A右侧9处，求最短路程）:
+   {"template":"cylinder_unrolled","circumference":16,"height":12,"offset":9,"start_label":"A","end_label":"B","label_circ":"16","label_height":"12","label_offset":"9"}
 
    cuboid — 3D rectangular box ABCD-A₁B₁C₁D₁ (oblique projection). ALL 8
    vertices are always labelled; hidden edges dashed; proportions follow the
@@ -1112,7 +1122,10 @@ async function reviewExercises(
     `enable intercept/vertex dots with coordinate values. If a problem asks for a line's ` +
     `解析式 and its diagram uses coordinate_points or linear_function (both would reveal or ` +
     `invent the answer coordinates), REPLACE the diagram with line_axes_schematic, keeping ` +
-    `all point names from the text.\n` +
+    `all point names from the text. cylinder_unrolled: the two dots must carry the TEXT's ` +
+    `point names at the text's positions (start on the bottom edge, end on the top edge at ` +
+    `the given "offset"); when the question asks for the shortest path, the JSON must NOT ` +
+    `contain "show_path" or "label_path", and NO length number may appear on the diagonal.\n` +
     `5. Do NOT add solutions, do NOT merge or drop problems, do NOT change problem types.\n\n` +
     `DRAFT:\n"""\n${draft}\n"""`;
 
