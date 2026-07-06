@@ -367,6 +367,17 @@ function validateDiagramData(template: string, data: any): string | null {
       return a !== null && b !== null && a > 0 && b > 0 ? null : 'right_triangle requires two positive leg lengths';
     }
     case 'triangle': {
+      // 2026-07: altitude-to-the-hypotenuse construction (射影定理型).
+      // The triangle is rebuilt EXACTLY from the two given hypotenuse
+      // segments, so no sides/points are needed (and must not be trusted).
+      if (data.hyp_segments && typeof data.hyp_segments === 'object') {
+        const vals = (['A', 'B', 'C'] as const)
+          .map(k => asFiniteNumber((data.hyp_segments as any)[k]))
+          .filter((v): v is number => v !== null);
+        return vals.length === 2 && vals.every(v => v > 0)
+          ? null
+          : 'hyp_segments requires exactly two positive lengths keyed by the two hypotenuse vertex names';
+      }
       if (Array.isArray(data.points) && data.points.length >= 3) {
         const badPoint = data.points.slice(0, 3).some((p: any) => asFiniteNumber(p?.x) === null || asFiniteNumber(p?.y) === null);
         return badPoint ? 'triangle contains invalid point coordinates' : null;
@@ -930,7 +941,42 @@ function RightTriangle({ data }: { data: any }) {
 /** triangle: general triangle from three sides or three explicit points */
 function Triangle({ data }: { data: any }) {
   let A: Pt, B: Pt, C: Pt;
-  if (data.points && data.points.length >= 3) {
+
+  // ── 2026-07: exact "altitude to the hypotenuse" construction (射影定理) ──
+  // For problems like: ∠B=90°, D on AC, BD⊥AC, AD=4, CD=9 — those two
+  // segments fully determine the triangle's shape, so the AI must NOT invent
+  // side lengths. It only declares: hyp_segments = {"A":4,"C":9}
+  // (keys = the two HYPOTENUSE endpoints, values = given distance from each
+  //  endpoint to the foot; the remaining vertex is the right-angle apex).
+  // We rebuild the exact triangle: hypotenuse horizontal at the bottom,
+  // apex above the foot at height √(m·n) — right angle at the apex is then
+  // guaranteed by construction (converse of the geometric-mean relation).
+  let hypApex: 'A' | 'B' | 'C' | null = null;
+  let hypEnds: Array<'A' | 'B' | 'C'> = [];
+  let hypM = 0, hypN = 0;
+  if (data.hyp_segments && typeof data.hyp_segments === 'object') {
+    const hs: any = data.hyp_segments;
+    hypEnds = (['A', 'B', 'C'] as const).filter(
+      k => Number.isFinite(Number(hs[k])) && Number(hs[k]) > 0
+    );
+    if (hypEnds.length === 2) {
+      hypApex = (['A', 'B', 'C'] as const).find(k => !hypEnds.includes(k))!;
+      hypM = Number(hs[hypEnds[0]]);
+      hypN = Number(hs[hypEnds[1]]);
+    } else {
+      hypEnds = [];
+    }
+  }
+
+  if (hypApex) {
+    const pts: Record<'A' | 'B' | 'C', Pt> = {
+      A: { x: 0, y: 0 }, B: { x: 0, y: 0 }, C: { x: 0, y: 0 },
+    };
+    pts[hypEnds[0]] = { x: 0, y: 0 };
+    pts[hypEnds[1]] = { x: hypM + hypN, y: 0 };
+    pts[hypApex]    = { x: hypM, y: Math.sqrt(hypM * hypN) };
+    A = pts.A; B = pts.B; C = pts.C;
+  } else if (data.points && data.points.length >= 3) {
     [A, B, C] = data.points.map((p: any) => ({ x: Number(p[0] ?? p.x), y: Number(p[1] ?? p.y) }));
   } else {
     const sides = data.sides ?? [data.a ?? 5, data.b ?? 4, data.c ?? 3];
@@ -943,7 +989,7 @@ function Triangle({ data }: { data: any }) {
   const [sA, sB, sC] = [sc(A), sc(B), sc(C)];
   const lA = explicitLabel(data.labels?.A) ?? 'A', lB = explicitLabel(data.labels?.B) ?? 'B', lC = explicitLabel(data.labels?.C) ?? 'C';
   const lAB = data.labels?.AB ?? '', lBC = data.labels?.BC ?? '', lCA = data.labels?.CA ?? '';
-  const rightAt: string = data.right_angle ?? '';
+  const rightAt: string = data.right_angle ?? (hypApex ?? '');
   const lArea: string = cleanDiagramLabelText(data.label_area ?? '');
   const lPerimeter: string = cleanDiagramLabelText(data.label_perimeter ?? '');
   const centroid = {
@@ -962,7 +1008,17 @@ function Triangle({ data }: { data: any }) {
   let cevianEl: any = null;
   let footScreen: Pt | null = null;
   let footLabel = '';
-  const cev = data.cevian
+  // In hyp_segments mode the cevian is ALWAYS the altitude from the
+  // right-angle apex — forced here so a stray/contradictory "cevian" field
+  // from the AI can never move the foot away from its exact position.
+  const cev = hypApex
+    ? {
+        from: hypApex,
+        type: 'altitude',
+        foot_label: data.foot_label ?? data.cevian?.foot_label ?? 'D',
+        label: data.cevian?.label,
+      }
+    : data.cevian
     || (data.altitude_from && { from: data.altitude_from, type: 'altitude' })
     || (data.median_from && { from: data.median_from, type: 'median' })
     || (data.bisector_from && { from: data.bisector_from, type: 'bisector' });
@@ -1003,14 +1059,33 @@ function Triangle({ data }: { data: any }) {
   // foot label offset: push it just below the base
   const footOffset = (): Pt => ({ x: 0, y: 16 });
 
+  // Vertex label placement. Defaults match the classic A-top layout; in
+  // hyp_segments mode the layout is (left end, right end, apex on top), so
+  // offsets are chosen by role instead of by letter.
+  const smap: Record<'A' | 'B' | 'C', Pt> = { A: sA, B: sB, C: sC };
+  const offFor = (k: 'A' | 'B' | 'C', fallback: Pt): Pt => {
+    if (!hypApex) return fallback;
+    if (k === hypApex) return { x: -6, y: -16 };          // apex → label above
+    return k === hypEnds[0] ? { x: -18, y: 14 } : { x: 10, y: 14 }; // ends → below
+  };
+
   return (
     <g>
       <Poly pts={[sA, sB, sC]} />
       {cevianEl}
-      <Dot p={sA} label={lA} offset={{ x: -6, y: -14 }} />
-      <Dot p={sB} label={lB} offset={{ x: -18, y: 10 }} />
-      <Dot p={sC} label={lC} offset={{ x: 8, y: 10 }} />
+      <Dot p={sA} label={lA} offset={offFor('A', { x: -6, y: -14 })} />
+      <Dot p={sB} label={lB} offset={offFor('B', { x: -18, y: 10 })} />
+      <Dot p={sC} label={lC} offset={offFor('C', { x: 8, y: 10 })} />
       {footScreen && <Dot p={footScreen} label={footLabel} offset={footOffset()} />}
+      {hypApex && data.show_segment_labels === true && footScreen && (
+        <g>
+          {/* These two values are the problem's GIVEN data (they define the
+              construction), so printing them can never leak an answer.
+              Still opt-in, per the "explicit only" labelling policy. */}
+          <SegLabel a={smap[hypEnds[0]]} b={footScreen} label={String(hypM)} color={GOLD} />
+          <SegLabel a={footScreen} b={smap[hypEnds[1]]} label={String(hypN)} color={GOLD} />
+        </g>
+      )}
       {lAB && <SegLabel a={sA} b={sB} label={lAB} color={GOLD} />}
       {lBC && <SegLabel a={sB} b={sC} label={lBC} color={GOLD} />}
       {lCA && <SegLabel a={sC} b={sA} label={lCA} color={GOLD} />}

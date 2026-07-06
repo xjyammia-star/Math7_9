@@ -405,7 +405,7 @@ STRICT PRINCIPLES:
 
    Copy field names EXACTLY. Numbers MUST equal the numbers in your problem text.
 
-   right_triangle — plain right triangle, right angle at C, legs a (horizontal BC) and b (vertical AC):
+   right_triangle — plain right triangle, right angle at B, legs a (horizontal BC) and b (vertical AB):
    {"template":"right_triangle","a":3,"b":4}
 
    triangle — general triangle by three side lengths (MUST satisfy triangle inequality):
@@ -417,6 +417,17 @@ STRICT PRINCIPLES:
    "底边BC上的高AD"  (altitude from A onto BC, foot D):
    {"template":"triangle","sides":[7.2,7.2,8],"cevian":{"from":"A","type":"altitude","foot_label":"D"},"labels":{"A":"A","B":"B","C":"C"}}
    type can be "altitude" | "median" | "bisector". foot_label is the foot's name (e.g. "D").
+   ★ 直角三角形"斜边上的高"(射影定理)类题 — the text gives the TWO segments the
+   foot cuts on the hypotenuse (e.g. ∠B=90°, 点D在斜边AC上, BD⊥AC, AD=4, CD=9).
+   Those two numbers fully determine the triangle's shape, so DO NOT invent
+   "sides" and DO NOT use a plain "cevian" — use "hyp_segments" instead.
+   Keys = the two HYPOTENUSE endpoints, values = the given distance from each
+   endpoint to the foot; the remaining vertex is the right-angle apex. The
+   altitude, its foot (default label "D", rename with "foot_label") and both
+   right-angle marks are then drawn automatically at the EXACT positions:
+   {"template":"triangle","hyp_segments":{"A":4,"C":9},"foot_label":"D"}
+   Optional "show_segment_labels":true prints the two GIVEN lengths on the
+   figure (nothing else). Never combine hyp_segments with "sides"/"points"/"cevian".
    NOTE on irrational lengths: diagram numeric fields (sides, width …) accept
    ONLY decimals. If a length is e.g. 2√13, put its decimal value (≈7.2) in the
    diagram JSON, but keep the exact form $2\sqrt{13}$ in the QUESTION TEXT.
@@ -1080,7 +1091,10 @@ async function reviewExercises(
     `TYPO: fix it to the defined name (PD); objects that first appear in a QUESTION as 求/作 ` +
     `targets (a line l to be found, an intersection Q, a distance) must NOT be pre-drawn in the ` +
     `figure — only STEM objects are drawn; anything the text calls 直线 must be drawn extended ` +
-    `across the figure, not stopped at its two defining points, ` +
+    `across the figure, not stopped at its two defining points; if a right-triangle problem ` +
+    `gives the two hypotenuse segments cut by the altitude (射影定理型, e.g. AD=4, CD=9), its ` +
+    `diagram MUST be {"template":"triangle","hyp_segments":{...}} — a triangle built from ` +
+    `invented "sides" puts the foot at the wrong ratio and is a broken figure, ` +
     `(e) when the text gives angle values, the JSON must pass them through the scene's angle ` +
     `parameters (e.g. "angle_CAB":20) so the drawn positions match the given values. ` +
     `If the chosen scene cannot draw an object the text requires, either switch to a scene that can ` +
