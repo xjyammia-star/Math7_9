@@ -32,6 +32,14 @@ const LLM_MODEL =
 // env var VITE_GLM_THINKING to "on" once you've confirmed it works.
 const ENABLE_THINKING = String(env.VITE_GLM_THINKING || "").toLowerCase() === "on";
 
+// 2026-07: a single Ark call occasionally stalls for many minutes on a slow
+// backend machine (measured in production: the SAME kind of request took 49s
+// in one run and 7.2 minutes in the next). Abort any call that exceeds this
+// deadline and retry it ONCE — a fresh attempt usually lands on a healthy
+// machine and finishes in normal time. The deadline is ~3× the normal
+// duration, so healthy calls are never cut short.
+const STALL_TIMEOUT_MS = 180_000;
+
 async function safeGenerate(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
   jsonMode = false,
@@ -39,63 +47,91 @@ async function safeGenerate(
   temperature = 0.7,
   forceThinking = false
 ): Promise<string> {
-  try {
+  const runOnce = async (): Promise<string> => {
     const wantThinking = ENABLE_THINKING || forceThinking;
 
     // Zhipu's path already ends in /paas/v4; Ark ends in /api/v3. Either way we
     // append /chat/completions. Guard against a trailing slash.
     const base = LLM_BASE_URL.replace(/\/+$/, "");
 
-    // Helper: one POST attempt. withThinking controls the thinking field.
-    const attempt = async (withThinking: boolean): Promise<Response> => {
-      const body: Record<string, any> = {
-        model: LLM_MODEL,
-        messages,
-        max_tokens: maxTokens,
-        temperature,
-        top_p: 0.95,
+    // ONE deadline covers the whole call: sending, server-side generation and
+    // reading the response body (the API is non-streaming, so the server holds
+    // the response until generation finishes — that wait is where stalls live).
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), STALL_TIMEOUT_MS);
+    try {
+      // Helper: one POST attempt. withThinking controls the thinking field.
+      const attempt = async (withThinking: boolean): Promise<Response> => {
+        const body: Record<string, any> = {
+          model: LLM_MODEL,
+          messages,
+          max_tokens: maxTokens,
+          temperature,
+          top_p: 0.95,
+        };
+        if (jsonMode) body.response_format = { type: "json_object" };
+        if (withThinking) body.thinking = { type: "enabled" };
+        return fetch(`${base}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${LLM_API_KEY}`,
+          },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        });
       };
-      if (jsonMode) body.response_format = { type: "json_object" };
-      if (withThinking) body.thinking = { type: "enabled" };
-      return fetch(`${base}/chat/completions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${LLM_API_KEY}`,
-        },
-        body: JSON.stringify(body),
-      });
-    };
 
-    let res = await attempt(wantThinking);
+      let res = await attempt(wantThinking);
 
-    // DEGRADE GRACEFULLY: if the platform rejects the request specifically
-    // because it doesn't accept the "thinking" field (typically a 400), retry
-    // once WITHOUT thinking so the feature still works (just without deep
-    // reasoning) instead of failing outright.
-    if (!res.ok && wantThinking && (res.status === 400 || res.status === 404)) {
-      const peek = await res.clone().text().catch(() => "");
-      if (/thinking|param|unsupported|invalid|unknown|field/i.test(peek)) {
-        res = await attempt(false);
+      // DEGRADE GRACEFULLY: if the platform rejects the request specifically
+      // because it doesn't accept the "thinking" field (typically a 400), retry
+      // once WITHOUT thinking so the feature still works (just without deep
+      // reasoning) instead of failing outright.
+      if (!res.ok && wantThinking && (res.status === 400 || res.status === 404)) {
+        const peek = await res.clone().text().catch(() => "");
+        if (/thinking|param|unsupported|invalid|unknown|field/i.test(peek)) {
+          res = await attempt(false);
+        }
       }
+
+      if (!res.ok) {
+        const errText = await res.text();
+        if (res.status === 429 || errText.includes("rate_limit") || errText.includes("quota") || errText.includes("1302") || errText.includes("1113")) {
+          throw new Error("QUOTA_EXHAUSTED");
+        }
+        if (res.status >= 500) {
+          throw new Error("AI_INTERNAL_ERROR");
+        }
+        throw new Error(`LLM_API_ERROR: ${res.status} ${errText}`);
+      }
+
+      const data = await res.json();
+      const msg = data.choices?.[0]?.message;
+      // Some GLM responses may include a reasoning_content field; we deliberately
+      // ignore it and return ONLY the final answer content.
+      return (msg?.content ?? "") || "";
+    } finally {
+      clearTimeout(timer);
     }
+  };
 
-    if (!res.ok) {
-      const errText = await res.text();
-      if (res.status === 429 || errText.includes("rate_limit") || errText.includes("quota") || errText.includes("1302") || errText.includes("1113")) {
-        throw new Error("QUOTA_EXHAUSTED");
+  try {
+    try {
+      return await runOnce();
+    } catch (error: any) {
+      const msgText = String(error?.message ?? "");
+      const stalled = error?.name === "AbortError" || /abort/i.test(msgText);
+      const network = error instanceof TypeError || /failed to fetch|network|load failed/i.test(msgText);
+      const serverErr = msgText === "AI_INTERNAL_ERROR";
+      // Retry ONCE on stalls, dropped connections and 5xx server errors —
+      // never on quota or request errors (those would fail identically again).
+      if (stalled || network || serverErr) {
+        console.warn(`LLM call ${stalled ? `stalled > ${STALL_TIMEOUT_MS / 1000}s` : "failed"}; retrying once…`);
+        return await runOnce();
       }
-      if (res.status >= 500) {
-        throw new Error("AI_INTERNAL_ERROR");
-      }
-      throw new Error(`LLM_API_ERROR: ${res.status} ${errText}`);
+      throw error;
     }
-
-    const data = await res.json();
-    const msg = data.choices?.[0]?.message;
-    // Some GLM responses may include a reasoning_content field; we deliberately
-    // ignore it and return ONLY the final answer content.
-    return (msg?.content ?? "") || "";
   } catch (error: any) {
     if (
       error.message === "QUOTA_EXHAUSTED" ||
@@ -1040,12 +1076,19 @@ export async function generateExercises(
     varietyInstr + `\n` +
     `CRITICAL: DO NOT include solutions. ONLY output the numbered questions.\n` +
     `CRITICAL: Each geometry problem ends with its own \`\`\`math-diagram block AFTER all its text.\n` +
+    `CRITICAL: Be CONCISE. Output NOTHING besides the numbered problems and their diagram ` +
+    `blocks — no 解析, no hints, no commentary before/after, no restating of instructions. ` +
+    `Keep each stem compact (typically under ~150 Chinese characters unless the problem type ` +
+    `genuinely needs more) and keep diagram JSON minimal (only documented fields, only values ` +
+    `the text states). Verbose output slows generation and gets deleted by review anyway.\n` +
     `Timestamp: ${Date.now()}`;
 
   // Scale token budget with problem count. Generous headroom so that long
   // diagram JSON (e.g. coordinate_points with many points) is never truncated
-  // mid-object, and so GLM's hidden reasoning tokens (when thinking is on) fit.
-  const genTokens = Math.min(3500 + count * 1400, 16000);
+  // mid-object. 2026-07: trimmed moderately (was 3500 + count*1400) — the cap
+  // is a runaway brake, not a target; typical single-problem output is well
+  // under half of this.
+  const genTokens = Math.min(3000 + count * 1200, 12000);
 
   const draft = await safeGenerate([
     { role: "system", content: system },
