@@ -30,7 +30,6 @@ import { renderScene } from '../utils/sceneRenderer';
 import { coerceCircleScenePayload, normalizeCircleScene, validateCircleScene } from '../utils/circleSceneSchema.js';
 import { explicitLabel } from '../utils/diagramLabelPolicy';
 import { getLinearFunctionAnnotations, getQuadraticFunctionAnnotations } from '../utils/functionDiagramPolicy';
-import PythonCircleDiagram from './PythonCircleDiagram';
 
 // ─── SVG canvas constants ────────────────────────────────────────────────────
 const W = 480;
@@ -3334,17 +3333,11 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
     </div>
   );
 
-  if (template.startsWith('circle')) {
-    return (
-      <PythonCircleDiagram
-        template={template}
-        data={parsed}
-        fallback={fallback}
-        svgMaxHeight={svgMaxHeight}
-      />
-    );
-  }
-
+  // 2026-07: circle templates no longer detour through PythonCircleDiagram.
+  // That component POSTed to /api/diagram — a Python backend that was never
+  // deployed on Vercel — so every circle-type figure fired a doomed request
+  // (visible as a red 404 "diagram" entry in the Network tab) and then used
+  // this local SVG fallback anyway. Now we go straight to the local renderer.
   return fallback;
 };
 
