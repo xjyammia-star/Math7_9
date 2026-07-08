@@ -1125,7 +1125,12 @@ async function reviewExercises(
     `no commentary, no solutions):\n\n` +
     `CHECKLIST:\n` +
     `1. MATH LOGIC: solve each problem yourself. If unsolvable, contradictory, ` +
-    `or the answer is ugly when it should be clean, minimally change a number to fix it.\n` +
+    `or the answer is ugly when it should be clean, minimally change a number to fix it. ` +
+    `Check GEOMETRIC REALIZABILITY, not just algebra: every set of given lengths/angles must ` +
+    `admit an actual figure. Classic trap — intersecting chords: AP·PB=CP·PD holding is NOT ` +
+    `enough; a chord that does not pass through the center must be strictly SHORTER than the ` +
+    `diameter (e.g. 直径AB=10 与弦CD交于P≠O 时必须 CP+PD<10 — CP=2,PD=8 is IMPOSSIBLE even ` +
+    `though 2×8=2×8). Also verify triangle inequalities and that no chord exceeds the diameter.\n` +
     `2. LATEX: every math symbol inside $...$ with single backslashes ` +
     `($\\angle ABC$, $\\odot O$, $\\triangle ABC$, $AB \\parallel CD$, $30^\\circ$); ` +
     `no bare words like angle/odot/parallel/circ; the total count of $ must be even.\n` +

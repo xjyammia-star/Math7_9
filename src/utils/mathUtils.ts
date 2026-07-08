@@ -31,6 +31,12 @@ export function sanitizeMath(content: string): string {
   // Remove zero-width spaces
   result = result.replace(/\u200b/g, '');
 
+  // Step 0.5: Repair malformed/unbalanced math dollar delimiters the model
+  // occasionally emits, e.g. "$$PD = 8。求 OP$" (opened with $$, closed with
+  // a single $). Unbalanced runs make remark-math give up, so the raw dollars
+  // would show on screen verbatim. Must run BEFORE every step that pairs $…$.
+  result = repairDollarDelimiters(result);
+
   // Step 1a: Fix commands with backslash but missing $ (\angle -> $\angle$)
   result = fixBareBackslashCommands(result);
 
@@ -56,6 +62,62 @@ export function sanitizeMath(content: string): string {
   result = result.replace(/\x01F(\d+)\x01/g, (_, i) => fences[Number(i)] ?? '');
 
   return result;
+}
+
+/**
+ * Repairs malformed/unbalanced math dollar delimiters, e.g.
+ *   "$$PD = 8。求 OP$"  →  "$PD = 8$。求$OP$"
+ *   "$CP = 2$$"          →  "$CP = 2$"
+ * Rules:
+ *  - runs of 3+ dollars collapse to $$ (model stutter);
+ *  - a MATCHED pair ($…$ or $$…$$) is left untouched;
+ *  - a MISMATCHED pair ($$…$ or $…$$) is clear evidence of a model glitch:
+ *    its content is re-split so CJK text (Chinese words/punctuation) goes
+ *    back to plain text and each non-CJK chunk is wrapped in $…$;
+ *  - single-$ content must not span a newline (remark-math would not parse
+ *    it anyway); such an opener is kept as literal text and scanning resumes;
+ *  - an opener with no closer at all is kept as literal text (protects
+ *    currency like "$5").
+ */
+function repairDollarDelimiters(text: string): string {
+  if (!text.includes('$')) return text;
+  const s = text.replace(/\$\$\$+/g, '$$$$'); // 3+ dollars → exactly 2 ('$$$$' escapes to '$$')
+  const CJK = /[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/;
+  const out: string[] = [];
+  let i = 0;
+  const n = s.length;
+  while (i < n) {
+    const ch = s[i];
+    if (ch !== '$') { out.push(ch); i++; continue; }
+    const openLen = s[i + 1] === '$' ? 2 : 1;
+    let j = i + openLen;
+    while (j < n && s[j] !== '$') j++;
+    const content = s.slice(i + openLen, j);
+    const noCloser = j >= n;
+    const badSpan = openLen === 1 ? content.includes('\n') : content.includes('\n\n');
+    if (noCloser || badSpan) {
+      // Keep the dollars verbatim (could be currency or a lone stray $) and
+      // resume scanning at the next dollar run.
+      out.push('$'.repeat(openLen) + content);
+      i = j;
+      continue;
+    }
+    const closeLen = s[j + 1] === '$' ? 2 : 1;
+    const trimmed = content.trim();
+    if (!trimmed) { i = j + closeLen; continue; } // empty pair → drop
+    if (openLen === closeLen) {
+      out.push('$'.repeat(openLen) + content + '$'.repeat(closeLen));
+    } else {
+      // Mismatched pair: CJK back to plain text, non-CJK chunks become $…$.
+      const repaired = trimmed
+        .split(/([\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]+)/)
+        .map(seg => (CJK.test(seg) ? seg : seg.trim() ? `$${seg.trim()}$` : seg))
+        .join('');
+      out.push(repaired);
+    }
+    i = j + closeLen;
+  }
+  return out.join('');
 }
 
 /**
