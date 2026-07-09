@@ -462,8 +462,21 @@ STRICT PRINCIPLES:
    altitude, its foot (default label "D", rename with "foot_label") and both
    right-angle marks are then drawn automatically at the EXACT positions:
    {"template":"triangle","hyp_segments":{"A":4,"C":9},"foot_label":"D"}
-   Optional "show_segment_labels":true prints the two GIVEN lengths on the
+   Optional "show_segment_labels":true prints the two GIVEN segment values on the
    figure (nothing else). Never combine hyp_segments with "sides"/"points"/"cevian".
+   ★ 等腰三角形按"底 + 高/腰"精确重建 — an isosceles problem giving the base
+   and the height to it (or the legs) fully determines the shape. NEVER invent
+   "sides" for it — that puts the apex off-centre and can even throw the
+   altitude's foot OUTSIDE the base. Declare only the given numbers:
+   例（等腰△ABC, AB=AC, 底边BC=16, 高AD=6, 求周长）:
+   {"template":"triangle","isosceles":{"apex":"A","base":16,"height":6},"foot_label":"D","labels":{"BC":"16"},"cevian":{"label":"6"}}
+   例（腰已知）: {"template":"triangle","isosceles":{"apex":"A","base":16,"leg":10}}
+   apex = the vertex BETWEEN the two equal sides. Pass "foot_label" ONLY when
+   the stem names the altitude's foot (高AD → "D"); when the height is what
+   the problem ASKS for, give "leg" instead and NO foot_label. Equal-side tick
+   marks are drawn automatically; numeric labels stay opt-in and may carry
+   GIVEN values only ("labels":{"BC":"…"} for the base, "cevian":{"label":"…"}
+   for a GIVEN height). Never combine isosceles with "sides"/"points".
    NOTE on irrational lengths: diagram numeric fields (sides, width …) accept
    ONLY decimals. If a length is e.g. 2√13, put its decimal value (≈7.2) in the
    diagram JSON, but keep the exact form $2\sqrt{13}$ in the QUESTION TEXT.
@@ -1152,7 +1165,10 @@ async function reviewExercises(
     `across the figure, not stopped at its two defining points; if a right-triangle problem ` +
     `gives the two hypotenuse segments cut by the altitude (射影定理型, e.g. AD=4, CD=9), its ` +
     `diagram MUST be {"template":"triangle","hyp_segments":{...}} — a triangle built from ` +
-    `invented "sides" puts the foot at the wrong ratio and is a broken figure, ` +
+    `invented "sides" puts the foot at the wrong ratio and is a broken figure; likewise an ` +
+    `isosceles problem giving 底+高 or 底+腰 MUST use {"template":"triangle","isosceles":{...}} ` +
+    `— an isosceles stem drawn visibly scalene, or an altitude foot off the base midpoint or ` +
+    `outside the base, is a broken figure, ` +
     `(e) when the text gives angle values, the JSON must pass them through the scene's angle ` +
     `parameters (e.g. "angle_CAB":20) so the drawn positions match the given values. ` +
     `If the chosen scene cannot draw an object the text requires, either switch to a scene that can ` +

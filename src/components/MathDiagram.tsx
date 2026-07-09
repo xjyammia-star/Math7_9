@@ -377,6 +377,17 @@ function validateDiagramData(template: string, data: any): string | null {
           ? null
           : 'hyp_segments requires exactly two positive lengths keyed by the two hypotenuse vertex names';
       }
+      // 2026-07: isosceles construction (等腰按"底+高/腰"重建).
+      if (data.isosceles && typeof data.isosceles === 'object') {
+        const iso: any = data.isosceles;
+        const base = asFiniteNumber(iso.base);
+        const h = asFiniteNumber(iso.height);
+        const leg = asFiniteNumber(iso.leg);
+        if (base === null || base <= 0) return 'isosceles requires a positive base';
+        if (!(h !== null && h > 0) && !(leg !== null && leg > base / 2))
+          return 'isosceles requires height>0, or leg greater than half the base (otherwise no such triangle exists)';
+        return null;
+      }
       if (Array.isArray(data.points) && data.points.length >= 3) {
         const badPoint = data.points.slice(0, 3).some((p: any) => asFiniteNumber(p?.x) === null || asFiniteNumber(p?.y) === null);
         return badPoint ? 'triangle contains invalid point coordinates' : null;
@@ -973,6 +984,40 @@ function Triangle({ data }: { data: any }) {
     }
   }
 
+  // ── 2026-07: exact ISOSCELES construction (等腰三角形按"底+高/腰"重建) ──
+  // For problems like: 等腰△ABC, AB=AC, 底边BC=16, 高AD=6 (or 腰AB=10).
+  // Base + height (or legs) fully determine the shape, so the AI must NOT
+  // invent side lengths — inventing them puts the apex off-centre and can
+  // even throw the altitude's foot OUTSIDE the base. The AI declares only:
+  //   "isosceles": {"apex":"A", "base":16, "height":6}   // 高 given
+  //   "isosceles": {"apex":"A", "base":16, "leg":10}     // 腰 given
+  // apex = the vertex between the two equal sides; it is placed exactly
+  // above the base midpoint. Pass "foot_label" ONLY when the stem names the
+  // foot of the altitude — the altitude + right-angle mark are then drawn at
+  // the exact midpoint.
+  let isoApex: 'A' | 'B' | 'C' | null = null;
+  let isoEnds: Array<'A' | 'B' | 'C'> = [];
+  let isoBase = 0, isoH = 0;
+  if (!hypApex && data.isosceles && typeof data.isosceles === 'object') {
+    const iso: any = data.isosceles;
+    const apex: 'A' | 'B' | 'C' =
+      typeof iso.apex === 'string' && (['A', 'B', 'C'] as const).includes(iso.apex) ? iso.apex : 'A';
+    const base = Number(iso.base);
+    let h = Number(iso.height);
+    const leg = Number(iso.leg);
+    if (!(Number.isFinite(h) && h > 0)) {
+      h = Number.isFinite(leg) && leg > base / 2
+        ? Math.sqrt(leg * leg - (base * base) / 4)
+        : NaN;
+    }
+    if (Number.isFinite(base) && base > 0 && Number.isFinite(h) && h > 0) {
+      isoApex = apex;
+      isoEnds = (['A', 'B', 'C'] as const).filter(k => k !== apex);
+      isoBase = base;
+      isoH = h;
+    }
+  }
+
   if (hypApex) {
     const pts: Record<'A' | 'B' | 'C', Pt> = {
       A: { x: 0, y: 0 }, B: { x: 0, y: 0 }, C: { x: 0, y: 0 },
@@ -980,6 +1025,14 @@ function Triangle({ data }: { data: any }) {
     pts[hypEnds[0]] = { x: 0, y: 0 };
     pts[hypEnds[1]] = { x: hypM + hypN, y: 0 };
     pts[hypApex]    = { x: hypM, y: Math.sqrt(hypM * hypN) };
+    A = pts.A; B = pts.B; C = pts.C;
+  } else if (isoApex) {
+    const pts: Record<'A' | 'B' | 'C', Pt> = {
+      A: { x: 0, y: 0 }, B: { x: 0, y: 0 }, C: { x: 0, y: 0 },
+    };
+    pts[isoEnds[0]] = { x: 0, y: 0 };
+    pts[isoEnds[1]] = { x: isoBase, y: 0 };
+    pts[isoApex]    = { x: isoBase / 2, y: isoH };
     A = pts.A; B = pts.B; C = pts.C;
   } else if (data.points && data.points.length >= 3) {
     [A, B, C] = data.points.map((p: any) => ({ x: Number(p[0] ?? p.x), y: Number(p[1] ?? p.y) }));
@@ -1016,11 +1069,22 @@ function Triangle({ data }: { data: any }) {
   // In hyp_segments mode the cevian is ALWAYS the altitude from the
   // right-angle apex — forced here so a stray/contradictory "cevian" field
   // from the AI can never move the foot away from its exact position.
+  // In isosceles mode the altitude is drawn only when the stem names its
+  // foot (foot_label) — its foot is the exact base midpoint by construction.
+  const isoFootLabel: string | null =
+    isoApex ? (data.foot_label ?? data.isosceles?.foot_label ?? null) : null;
   const cev = hypApex
     ? {
         from: hypApex,
         type: 'altitude',
         foot_label: data.foot_label ?? data.cevian?.foot_label ?? 'D',
+        label: data.cevian?.label,
+      }
+    : isoApex && isoFootLabel
+    ? {
+        from: isoApex,
+        type: 'altitude',
+        foot_label: isoFootLabel,
         label: data.cevian?.label,
       }
     : data.cevian
@@ -1065,19 +1129,35 @@ function Triangle({ data }: { data: any }) {
   const footOffset = (): Pt => ({ x: 0, y: 16 });
 
   // Vertex label placement. Defaults match the classic A-top layout; in
-  // hyp_segments mode the layout is (left end, right end, apex on top), so
-  // offsets are chosen by role instead of by letter.
+  // hyp_segments / isosceles modes the layout is (left end, right end, apex
+  // on top), so offsets are chosen by role instead of by letter.
+  const topApex = hypApex ?? isoApex;
+  const topEnds = hypApex ? hypEnds : isoEnds;
   const smap: Record<'A' | 'B' | 'C', Pt> = { A: sA, B: sB, C: sC };
   const offFor = (k: 'A' | 'B' | 'C', fallback: Pt): Pt => {
-    if (!hypApex) return fallback;
-    if (k === hypApex) return { x: -6, y: -16 };          // apex → label above
-    return k === hypEnds[0] ? { x: -18, y: 14 } : { x: 10, y: 14 }; // ends → below
+    if (!topApex) return fallback;
+    if (k === topApex) return { x: -6, y: -16 };          // apex → label above
+    return k === topEnds[0] ? { x: -18, y: 14 } : { x: 10, y: 14 }; // ends → below
   };
 
   return (
     <g>
       <Poly pts={[sA, sB, sC]} />
       {cevianEl}
+      {isoApex && isoEnds.map((e, idx) => {
+        // Equal-side tick marks on the two legs (pure structure, no numbers):
+        // a short stroke across each leg's midpoint, perpendicular to it.
+        const ap = smap[isoApex!];
+        const q = smap[e];
+        const mx = (ap.x + q.x) / 2, my = (ap.y + q.y) / 2;
+        const dx = q.x - ap.x, dy = q.y - ap.y;
+        const L = Math.hypot(dx, dy) || 1;
+        const px = (-dy / L) * 5, py = (dx / L) * 5;
+        return (
+          <line key={`isotick${idx}`} x1={mx - px} y1={my - py} x2={mx + px} y2={my + py}
+            stroke={GOLD} strokeWidth={2} />
+        );
+      })}
       <Dot p={sA} label={lA} offset={offFor('A', { x: -6, y: -14 })} />
       <Dot p={sB} label={lB} offset={offFor('B', { x: -18, y: 10 })} />
       <Dot p={sC} label={lC} offset={offFor('C', { x: 8, y: 10 })} />
