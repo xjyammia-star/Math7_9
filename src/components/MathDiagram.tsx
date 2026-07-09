@@ -398,8 +398,22 @@ function validateDiagramData(template: string, data: any): string | null {
       const [a, b, c] = nums as number[];
       return a + b > c && a + c > b && b + c > a ? null : 'triangle sides do not form a valid triangle';
     }
-    case 'rectangle':
-      return asFiniteNumber(data.width ?? data.w) !== null && asFiniteNumber(data.height ?? data.h) !== null ? null : 'rectangle requires width and height';
+    case 'rectangle': {
+      // 2026-07: named sides {"sides":{"AB":6,"BC":8}} are the preferred way
+      // to give dimensions (AB = left vertical side, BC = bottom side in the
+      // fixed A/B/C/D layout) — the AI no longer guesses width vs height.
+      const sAB = asFiniteNumber(data.sides?.AB);
+      const sBC = asFiniteNumber(data.sides?.BC);
+      const hasNamed = sAB !== null && sAB > 0 && sBC !== null && sBC > 0;
+      const hasWH = asFiniteNumber(data.width ?? data.w) !== null && asFiniteNumber(data.height ?? data.h) !== null;
+      if (!hasNamed && !hasWH) return 'rectangle requires sides:{"AB":…,"BC":…} or width and height';
+      if (data.diagonals !== undefined) {
+        const ok = Array.isArray(data.diagonals) &&
+          data.diagonals.every((dg: any) => typeof dg === 'string' && ['AC', 'CA', 'BD', 'DB'].includes(dg.toUpperCase()));
+        if (!ok) return 'rectangle diagonals must be an array of "AC" and/or "BD"';
+      }
+      return null;
+    }
     case 'circle': {
       const radius = asFiniteNumber(data.radius ?? data.r);
       return radius !== null && radius > 0 ? null : 'circle requires a positive radius';
@@ -1191,8 +1205,18 @@ function Triangle({ data }: { data: any }) {
 
 /** rectangle: plain w×h rectangle */
 function Rectangle({ data }: { data: any }) {
-  const w: number = data.width ?? data.w ?? 6;
-  const h: number = data.height ?? data.h ?? 4;
+  // ── 2026-07: named sides + diagonals ──
+  // Preferred input: {"sides":{"AB":6,"BC":8}} — in the fixed layout below,
+  // AB is the LEFT (vertical) side and BC the BOTTOM side, so the AI never
+  // has to guess which given length is "width" and which is "height" (that
+  // guess is exactly how a 6×8 rectangle got its labels swapped).
+  // "diagonals":["AC"] draws the named diagonal(s) — required whenever the
+  // stem says 连接对角线; the diagonal NEVER carries a length label (its
+  // length is usually what the problem asks for).
+  const sAB = Number(data.sides?.AB);
+  const sBC = Number(data.sides?.BC);
+  const w: number = Number.isFinite(sBC) && sBC > 0 ? sBC : (data.width ?? data.w ?? 6);
+  const h: number = Number.isFinite(sAB) && sAB > 0 ? sAB : (data.height ?? data.h ?? 4);
   const labels: string[] = Array.isArray(data.labels) ? data.labels : [];
   // Default vertex letters so a rectangle is always labelled even if the AI
   // omits them. Order matches the corners below: A top-left, B bottom-left,
@@ -1206,9 +1230,18 @@ function Rectangle({ data }: { data: any }) {
   // A=top-left, B=bottom-left, C=bottom-right, D=top-right
   const A = sc({ x: 0, y: h }), B = sc({ x: 0, y: 0 });
   const C = sc({ x: w, y: 0 }), D = sc({ x: w, y: h });
+  const cmap: Record<string, Pt> = { A, B, C, D };
+  const diagonals: string[] = Array.isArray(data.diagonals)
+    ? data.diagonals
+        .filter((dg: any) => typeof dg === 'string' && ['AC', 'CA', 'BD', 'DB'].includes(dg.toUpperCase()))
+        .map((dg: string) => dg.toUpperCase())
+    : [];
   return (
     <g>
       <Poly pts={[A, B, C, D]} />
+      {diagonals.map((dg, i) => (
+        <Seg key={`diag${i}`} a={cmap[dg[0]]} b={cmap[dg[1]]} stroke={GOLD} sw={2.5} />
+      ))}
       <Dot p={A} label={rl(0)} offset={{ x: -18, y: -4 }} />
       <Dot p={B} label={rl(1)} offset={{ x: -18, y: 12 }} />
       <Dot p={C} label={rl(2)} offset={{ x: 8,  y: 12 }} />

@@ -36,16 +36,23 @@ const ENABLE_THINKING = String(env.VITE_GLM_THINKING || "").toLowerCase() === "o
 // backend machine (measured in production: the SAME kind of request took 49s
 // in one run and 7.2 minutes in the next). Abort any call that exceeds this
 // deadline and retry it ONCE — a fresh attempt usually lands on a healthy
-// machine and finishes in normal time. The deadline is ~3× the normal
-// duration, so healthy calls are never cut short.
-const STALL_TIMEOUT_MS = 180_000;
+// machine and finishes in normal time. Healthy calls measured ≤ ~70s, so a
+// 2-minute deadline never cuts them short. (Was 3 min; tightened after a
+// review call stalled twice back-to-back and wasted 6 minutes.)
+const STALL_TIMEOUT_MS = 120_000;
 
 async function safeGenerate(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
   jsonMode = false,
   maxTokens = 800,
   temperature = 0.7,
-  forceThinking = false
+  forceThinking = false,
+  // When true, a STALLED call is NOT retried (it fails immediately after the
+  // deadline). Use for calls that have a graceful fallback — e.g. the review
+  // pass falls back to the draft — where burning another 2 minutes on a retry
+  // into the same congestion hurts more than the fallback does. Quick
+  // failures (network drops, 5xx) are still retried once: those are cheap.
+  noStallRetry = false
 ): Promise<string> {
   const runOnce = async (): Promise<string> => {
     const wantThinking = ENABLE_THINKING || forceThinking;
@@ -125,7 +132,9 @@ async function safeGenerate(
       const network = error instanceof TypeError || /failed to fetch|network|load failed/i.test(msgText);
       const serverErr = msgText === "AI_INTERNAL_ERROR";
       // Retry ONCE on stalls, dropped connections and 5xx server errors —
-      // never on quota or request errors (those would fail identically again).
+      // never on quota or request errors (those would fail identically again),
+      // and never on stalls when the caller opted out via noStallRetry.
+      if (stalled && noStallRetry) throw error;
       if (stalled || network || serverErr) {
         console.warn(`LLM call ${stalled ? `stalled > ${STALL_TIMEOUT_MS / 1000}s` : "failed"}; retrying once…`);
         return await runOnce();
@@ -483,8 +492,14 @@ STRICT PRINCIPLES:
    Always write square roots in the text as $2\sqrt{13}$ (coefficient INSIDE the
    dollar signs), never as "2 √13" or "2\sqrt 13".
 
-   rectangle:
-   {"template":"rectangle","width":8,"height":5}
+   rectangle — vertices are FIXED as A top-left, B bottom-left, C bottom-right,
+   D top-right. Give dimensions BY SIDE NAME so nothing gets swapped: AB is the
+   left (vertical) side, BC the bottom. When the stem says 连接对角线 you MUST
+   draw it with "diagonals" (its length is never printed — it is usually the
+   answer). 例（矩形ABCD, AB=6, BC=8, 连接对角线AC, 求AC）:
+   {"template":"rectangle","sides":{"AB":6,"BC":8},"diagonals":["AC"]}
+   Legacy {"width":8,"height":5} still works but is discouraged for problems
+   that name sides.
 
    rectangle_fold — rectangle ABCD (A top-left, B top-right, C bottom-right,
    D bottom-left) folded along a crease. The crease has two endpoints (called E
@@ -1168,7 +1183,10 @@ async function reviewExercises(
     `invented "sides" puts the foot at the wrong ratio and is a broken figure; likewise an ` +
     `isosceles problem giving 底+高 or 底+腰 MUST use {"template":"triangle","isosceles":{...}} ` +
     `— an isosceles stem drawn visibly scalene, or an altitude foot off the base midpoint or ` +
-    `outside the base, is a broken figure, ` +
+    `outside the base, is a broken figure; rectangle: side numbers must sit on the sides the ` +
+    `TEXT names (use sides:{"AB":…,"BC":…} — AB is the left vertical side, BC the bottom; ` +
+    `a 6 printed on an 8-long side is a broken figure) and any diagonal the stem 连接s MUST ` +
+    `appear via "diagonals" with NO length on it, ` +
     `(e) when the text gives angle values, the JSON must pass them through the scene's angle ` +
     `parameters (e.g. "angle_CAB":20) so the drawn positions match the given values. ` +
     `If the chosen scene cannot draw an object the text requires, either switch to a scene that can ` +
@@ -1196,7 +1214,10 @@ async function reviewExercises(
   const out = await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: reviewMsg },
-  ], false, maxTokens, 0.2);
+    // noStallRetry: the review pass has a graceful fallback (the draft is
+    // shown as-is), so if it stalls past the deadline we fail fast instead
+    // of burning another 2 minutes retrying into the same congestion.
+  ], false, maxTokens, 0.2, false, true);
 
   // Accept the review only if it looks like a complete rewrite (not truncated/empty)
   const usable = out && out.trim().length > Math.min(200, draft.trim().length * 0.5);
