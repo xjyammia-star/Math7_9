@@ -1096,7 +1096,8 @@ export async function generateExercises(
     : `\nVARIETY: Rotate problem types. Never use the same scenario twice in one batch. Never copy the example problems from the scene docs.`;
 
   const userMsg =
-    `Task: Generate ${count} mathematics exercise(s) for "${conceptTitle}".\n` +
+    `Task: Generate EXACTLY ${count} mathematics exercise(s) for "${conceptTitle}" — ` +
+    `not one more, not one fewer. Extra problems are discarded automatically.\n` +
     `Grade Level: ${grade}\n` +
     `Difficulty: ${difficulty}\n` +
     `Language: ${lang === "zh" ? "Chinese" : "English"}\n` +
@@ -1118,20 +1119,54 @@ export async function generateExercises(
   // under half of this.
   const genTokens = Math.min(3000 + count * 1200, 12000);
 
-  const draft = await safeGenerate([
+  const draftRaw = await safeGenerate([
     { role: "system", content: system },
     { role: "user", content: userMsg },
   ], false, genTokens, 0.55);
+  // Enforce the requested problem count in code — the prompt alone is not
+  // reliable (observed: count=1 → 3 problems). Applied to the draft AND to
+  // the reviewed text, since either pass could emit extras.
+  const draft = enforceProblemCount(draftRaw, count);
 
   if (!ENABLE_REVIEW_PASS) return draft;
 
   // ── Second pass: proofread & repair (logic, LaTeX, diagram-text match) ──
   try {
-    const reviewed = await reviewExercises(draft, system, lang, genTokens);
-    return reviewed;
+    const reviewed = await reviewExercises(draft, system, lang, genTokens, count);
+    return enforceProblemCount(reviewed, count);
   } catch {
     return draft; // review is best-effort; never block on it
   }
+}
+
+/** 2026-07: the model occasionally ignores the requested problem count and
+ * emits extras (observed in production: count=1 → 3 problems). Prompt rules
+ * alone cannot be trusted, so the count is enforced here in code, applied to
+ * both the draft and the reviewed text.
+ * Strategy 1 — "第N题" markers at line starts forming the sequence 1,2,3…:
+ *   if more than `count`, cut at the start of problem count+1.
+ * Strategy 2 — diagram fences: every geometry problem ends with its own
+ *   ```math-diagram block, so with no numbering, more blocks than `count`
+ *   means everything after the count-th block's closing fence is extra.
+ * If neither signal indicates extras the text is returned untouched — we
+ * never risk mangling a single problem with （1）（2） sub-questions. */
+export function enforceProblemCount(text: string, count: number): string {
+  if (!Number.isFinite(count) || count < 1 || !text) return text;
+  // ── Strategy 1: 第N题 markers (unambiguous problem starts) ──
+  const markerRe = /^[ \t>*#]*(?:\*\*)?\s*第\s*(\d+)\s*题/gm;
+  const seqStarts: number[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = markerRe.exec(text)) !== null) {
+    if (Number(m[1]) === seqStarts.length + 1) seqStarts.push(m.index);
+  }
+  if (seqStarts.length > count) return text.slice(0, seqStarts[count]).trimEnd();
+  if (seqStarts.length > 0) return text; // numbered, and within the limit
+  // ── Strategy 2: count ```math-diagram fenced blocks ──
+  const fenceRe = /```math-diagram[\s\S]*?```/g;
+  const blockEnds: number[] = [];
+  while ((m = fenceRe.exec(text)) !== null) blockEnds.push(m.index + m[0].length);
+  if (blockEnds.length > count) return text.slice(0, blockEnds[count - 1]).trimEnd();
+  return text;
 }
 
 /**
@@ -1144,7 +1179,8 @@ async function reviewExercises(
   draft: string,
   system: string,
   lang: Language,
-  maxTokens: number
+  maxTokens: number,
+  count: number
 ): Promise<string> {
   const reviewMsg =
     `Below is a DRAFT set of exercises. You are now the strict proofreader.\n` +
@@ -1152,6 +1188,8 @@ async function reviewExercises(
     `(same numbering, same number of problems, same language: ${lang === "zh" ? "Chinese" : "English"}, ` +
     `no commentary, no solutions):\n\n` +
     `CHECKLIST:\n` +
+    `0. PROBLEM COUNT: the set must contain EXACTLY ${count} problem(s). ` +
+    `Delete every problem beyond the first ${count} — extras are a defect.\n` +
     `1. MATH LOGIC: solve each problem yourself. If unsolvable, contradictory, ` +
     `or the answer is ugly when it should be clean, minimally change a number to fix it. ` +
     `Check GEOMETRIC REALIZABILITY, not just algebra: every set of given lengths/angles must ` +
