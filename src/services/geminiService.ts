@@ -264,6 +264,9 @@ STRICT PRINCIPLES:
      NO  → pick exactly ONE template from CLASSIC TEMPLATES.
 
    ═══════════ CIRCLE SCENES ("template":"scene") ═══════════
+   EVERY scene block MUST contain BOTH fields: "template":"scene" AND
+   "scene":"<name>" where <name> is copied EXACTLY from this documentation —
+   invented or misspelled scene names fail to render.
    Angle convention for ALL scenes: 0 = TOP of circle, increases CLOCKWISE.
 
    ── circle_tangent_parallel_chord ──
@@ -449,6 +452,27 @@ STRICT PRINCIPLES:
    ${BT}
 
    Copy field names EXACTLY. Numbers MUST equal the numbers in your problem text.
+
+   ── parallel_lines_transversal (两平行直线被第三条直线所截 + 角平分线) ──
+   Use when: AB∥CD, 直线EF交AB于E、交CD于F, plus optional angle bisectors from
+   E and/or F (classic "∠EPF" problems). YOU DO NOT COMPUTE ANYTHING — declare
+   the structure and the renderer solves every bisector and the exact
+   intersection point. All three lines are drawn EXTENDED (they are 直线).
+     "angle": the ONE given angle fixing the slant, vertex is the middle
+        letter: {"name":"AEF","value":100}. Valid names: AEF/BEF (at E),
+        CFE/DFE (at F).
+     "bisect": 0–2 angle names whose bisectors the text draws, e.g.
+        ["BEF","DFE"]. With two, their exact intersection is computed and
+        labelled (default "P", change with "P":"…").
+   ⚠ REALIZABILITY (check BEFORE writing the problem): the bisectors of two
+   equal ALTERNATE-interior angles (∠AEF & ∠DFE, or ∠BEF & ∠CFE) are PARALLEL
+   — no intersection point exists, the problem is impossible and the scene
+   will refuse to render it. A meeting point P requires SAME-SIDE interior
+   angles: ∠BEF & ∠DFE, or ∠AEF & ∠CFE (their sum is 180°).
+   例 — "AB∥CD，直线EF分别交AB、CD于E、F。EP平分∠BEF，FP平分∠DFE。若∠AEF=100°，求∠EPF":
+   ${BT}math-diagram
+   {"template":"scene","scene":"parallel_lines_transversal","angle":{"name":"AEF","value":100},"bisect":["BEF","DFE"],"P":"P"}
+   ${BT}
 
    right_triangle — plain right triangle, right angle at B, legs a (horizontal BC) and b (vertical AB):
    {"template":"right_triangle","a":3,"b":4}
@@ -1196,7 +1220,11 @@ async function reviewExercises(
     `admit an actual figure. Classic trap — intersecting chords: AP·PB=CP·PD holding is NOT ` +
     `enough; a chord that does not pass through the center must be strictly SHORTER than the ` +
     `diameter (e.g. 直径AB=10 与弦CD交于P≠O 时必须 CP+PD<10 — CP=2,PD=8 is IMPOSSIBLE even ` +
-    `though 2×8=2×8). Also verify triangle inequalities and that no chord exceeds the diameter.\n` +
+    `though 2×8=2×8). Also verify triangle inequalities and that no chord exceeds the diameter. ` +
+    `Another trap — AB∥CD cut by 直线EF: the bisectors of two equal ALTERNATE-interior angles ` +
+    `(∠AEF & ∠DFE, or ∠BEF & ∠CFE) are PARALLEL and never meet, so a point P on both bisectors ` +
+    `cannot exist; a valid ∠EPF problem must bisect SAME-SIDE interior angles ` +
+    `(∠BEF & ∠DFE, or ∠AEF & ∠CFE).\n` +
     `2. LATEX: every math symbol inside $...$ with single backslashes ` +
     `($\\angle ABC$, $\\odot O$, $\\triangle ABC$, $AB \\parallel CD$, $30^\\circ$); ` +
     `no bare words like angle/odot/parallel/circ; the total count of $ must be even.\n` +
@@ -1224,7 +1252,9 @@ async function reviewExercises(
     `outside the base, is a broken figure; rectangle: side numbers must sit on the sides the ` +
     `TEXT names (use sides:{"AB":…,"BC":…} — AB is the left vertical side, BC the bottom; ` +
     `a 6 printed on an 8-long side is a broken figure) and any diagonal the stem 连接s MUST ` +
-    `appear via "diagonals" with NO length on it, ` +
+    `appear via "diagonals" with NO length on it; every {"template":"scene"} block must carry a ` +
+    `"scene" field whose value is one of the DOCUMENTED scene names, copied exactly — an ` +
+    `invented or misspelled scene name renders as a broken figure, ` +
     `(e) when the text gives angle values, the JSON must pass them through the scene's angle ` +
     `parameters (e.g. "angle_CAB":20) so the drawn positions match the given values. ` +
     `If the chosen scene cannot draw an object the text requires, either switch to a scene that can ` +

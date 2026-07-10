@@ -620,6 +620,119 @@ function render_circle_tangent_perpendicular(s: SceneJSON): string {
 
 // ─── Main export ─────────────────────────────────────────────────────────────
 
+/** parallel_lines_transversal — 两平行直线 AB∥CD 被直线 EF 所截 (E on AB, F on
+ * CD), with optional angle-bisector rays from E and/or F and their EXACT
+ * intersection point.
+ * The AI declares ONLY the given structure:
+ *   {"scene":"parallel_lines_transversal",
+ *    "angle":{"name":"AEF","value":100},   // ONE given angle fixes the slant
+ *    "bisect":["BEF","DFE"],               // 0–2 angle names to bisect
+ *    "P":"P"}                              // intersection label (2 bisectors)
+ * Angle names: the vertex is the MIDDLE letter (E or F); arms come from
+ * {A,B,F} at E and {C,D,E} at F. All three lines are drawn EXTENDED — the
+ * problem text calls them 直线.
+ * REALIZABILITY GUARD: the bisectors of two equal alternate-interior angles
+ * (∠AEF & ∠DFE, or ∠BEF & ∠CFE) are PARALLEL — no intersection exists. In
+ * that case (or if the two rays diverge) this scene REFUSES to render
+ * (returns null): the problem text itself is impossible and must be fixed. */
+function renderParallelLinesTransversal(s: SceneJSON): string | null {
+  const angleSpec: any = (s as any).angle;
+  const givenName = String(angleSpec?.name ?? '').toUpperCase();
+  const givenValue = Number(angleSpec?.value);
+  if (!Number.isFinite(givenValue) || givenValue <= 0 || givenValue >= 180) return null;
+  // Derive α = ∠AEF from whichever angle was given
+  // (∠DFE = ∠AEF: alternate interior; ∠BEF = ∠CFE = 180 − ∠AEF).
+  let alpha: number;
+  if (['AEF', 'FEA', 'DFE', 'EFD'].includes(givenName)) alpha = givenValue;
+  else if (['BEF', 'FEB', 'CFE', 'EFC'].includes(givenName)) alpha = 180 - givenValue;
+  else return null;
+  if (alpha < 8 || alpha > 172) return null; // too degenerate to draw sensibly
+
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const unit = (deg: number) => pt(Math.cos(rad(deg)), Math.sin(rad(deg)));
+  // Math coords, y up. Top line y=1 (through E), bottom line y=0 (through F).
+  const E = pt(0, 1);
+  const F = pt(-Math.cos(rad(alpha)) / Math.sin(rad(alpha)), 0);
+  // Ray directions (math degrees: 0=east, 90=up) from each vertex:
+  const dirsAtE: Record<string, number> = { A: 180, B: 0, F: 180 + alpha };
+  const dirsAtF: Record<string, number> = { C: 180, D: 0, E: alpha };
+
+  const bisectRaw: any[] = Array.isArray((s as any).bisect) ? (s as any).bisect : [];
+  const rays: { from: { x: number; y: number }; d: { x: number; y: number }; vtx: string }[] = [];
+  for (const bn of bisectRaw.slice(0, 2)) {
+    const nm = String(bn).toUpperCase();
+    if (nm.length !== 3) return null;
+    const vtx = nm[1];
+    const table = vtx === 'E' ? dirsAtE : vtx === 'F' ? dirsAtF : null;
+    if (!table) return null;
+    const d1 = table[nm[0]], d2 = table[nm[2]];
+    if (d1 === undefined || d2 === undefined || nm[0] === nm[2]) return null;
+    const u1 = unit(d1), u2 = unit(d2);
+    const sum = pt(u1.x + u2.x, u1.y + u2.y);
+    const L = Math.hypot(sum.x, sum.y);
+    if (L < 1e-6) return null; // arms are opposite rays — not a bisectable angle
+    rays.push({ from: vtx === 'E' ? E : F, d: pt(sum.x / L, sum.y / L), vtx });
+  }
+
+  let P: { x: number; y: number } | null = null;
+  if (rays.length === 2) {
+    const [r1, r2] = rays;
+    const cross = r1.d.x * r2.d.y - r1.d.y * r2.d.x;
+    if (Math.abs(cross) < 1e-9) return null; // PARALLEL bisectors — P does not exist
+    const dx = r2.from.x - r1.from.x, dy = r2.from.y - r1.from.y;
+    const t = (dx * r2.d.y - dy * r2.d.x) / cross;
+    const u = (dx * r1.d.y - dy * r1.d.x) / cross;
+    if (t <= 1e-6 || u <= 1e-6) return null; // the two RAYS diverge — no meeting point
+    P = pt(r1.from.x + t * r1.d.x, r1.from.y + t * r1.d.y);
+  }
+
+  // Named points on the two parallel lines (labels only — lines extend further)
+  const xL = Math.min(E.x, F.x) - 0.8, xR = Math.max(E.x, F.x) + 0.8;
+  const A = pt(xL, 1), B = pt(xR, 1), C = pt(xL, 0), D = pt(xR, 0);
+
+  // ── uniform scale to canvas (angles must not distort) ──
+  const keyPts = [A, B, C, D, E, F, ...(P ? [P] : [])];
+  const m = 0.28; // math-units margin
+  const minX = Math.min(...keyPts.map(p => p.x)) - m;
+  const maxX = Math.max(...keyPts.map(p => p.x)) + m;
+  const minY = Math.min(...keyPts.map(p => p.y)) - m;
+  const maxY = Math.max(...keyPts.map(p => p.y)) + m;
+  const k = Math.min(W / (maxX - minX), H / (maxY - minY));
+  const ox = (W - k * (maxX - minX)) / 2, oy = (H - k * (maxY - minY)) / 2;
+  const sc = (p: { x: number; y: number }) =>
+    pt(ox + k * (p.x - minX), H - oy - k * (p.y - minY));
+
+  const sA = sc(A), sB = sc(B), sC = sc(C), sD = sc(D), sE = sc(E), sF = sc(F);
+  const parts: string[] = [];
+  // The two parallel LINES: drawn across the whole canvas width (直线).
+  parts.push(line(4, sE.y, W - 4, sE.y));
+  parts.push(line(4, sF.y, W - 4, sF.y));
+  // The transversal LINE EF: extended beyond both parallel lines.
+  const v = unit(180 + alpha);
+  const eTop = sc(pt(E.x - 0.3 * v.x, E.y - 0.3 * v.y));
+  const fBot = sc(pt(F.x + 0.3 * v.x, F.y + 0.3 * v.y));
+  parts.push(line(eTop.x, eTop.y, fBot.x, fBot.y));
+  // Bisector rays: to P when it exists, else a fixed visible length.
+  for (const r of rays) {
+    const end = P ?? pt(r.from.x + 0.9 * r.d.x, r.from.y + 0.9 * r.d.y);
+    const sFrom = sc(r.from), sEnd = sc(end);
+    parts.push(line(sFrom.x, sFrom.y, sEnd.x, sEnd.y));
+  }
+  // Dots + labels (top-line labels above, bottom-line labels below).
+  const lbl = (p: { x: number; y: number }, name: string, dx: number, dy: number) => {
+    parts.push(dot(p.x, p.y));
+    parts.push(text(p.x + dx, p.y + dy, name));
+  };
+  lbl(sA, 'A', 0, -10); lbl(sE, 'E', 0, -10); lbl(sB, 'B', 0, -10);
+  lbl(sC, 'C', 0, 20);  lbl(sF, 'F', 0, 20);  lbl(sD, 'D', 0, 20);
+  if (P) {
+    const sP = sc(P);
+    parts.push(dot(sP.x, sP.y));
+    parts.push(text(sP.x + 12, sP.y + 5, String((s as any).P ?? 'P'), 'start'));
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${parts.join('')}</svg>`;
+}
+
 export function renderScene(sceneJson: SceneJSON): string | null {
   try {
     const scene = sceneJson.scene as string;
@@ -652,6 +765,9 @@ export function renderScene(sceneJson: SceneJSON): string | null {
     }
     if (scene === "intersecting_lines_rays" || scene === "intersecting_lines" || scene === "angle_bisector_rays") {
       return render_intersecting_lines_rays(sceneJson);
+    }
+    if (scene === "parallel_lines_transversal" || scene === "parallel_lines_bisectors") {
+      return renderParallelLinesTransversal(sceneJson);
     }
     if (scene === "parallelogram_general" || scene === "rhombus" || scene === "parallelogram_midpoints" || scene === "quadrilateral_midpoints") {
       return render_parallelogram_general(sceneJson);

@@ -3362,21 +3362,30 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
   }
 
   // scene template: AI describes geometry, frontend computes exact SVG
-  if (parsed?.template === 'scene' && parsed?.scene) {
-    const svgStr = renderScene(parsed);
-    if (svgStr) {
-      return (
-        <div className="my-4 flex justify-center bg-slate-900/40 p-3 rounded-2xl border border-white/5 backdrop-blur-sm" style={{maxWidth:'380px',margin:'12px auto'}}>
-          <div style={{width:'100%'}} dangerouslySetInnerHTML={{ __html: svgStr.replace(/<svg /, '<svg style="width:100%;height:auto;max-height:320px" ') }}/>
-        </div>
-      );
+  // 2026-07: a failed scene no longer falls through silently into the
+  // classic-template switch (which misreported it as "unsupported diagram
+  // template: scene"). The precise reason is surfaced instead.
+  let sceneError: string | null = null;
+  if (parsed?.template === 'scene') {
+    if (parsed?.scene) {
+      const svgStr = renderScene(parsed);
+      if (svgStr) {
+        return (
+          <div className="my-4 flex justify-center bg-slate-900/40 p-3 rounded-2xl border border-white/5 backdrop-blur-sm" style={{maxWidth:'380px',margin:'12px auto'}}>
+            <div style={{width:'100%'}} dangerouslySetInnerHTML={{ __html: svgStr.replace(/<svg /, '<svg style="width:100%;height:auto;max-height:320px" ') }}/>
+          </div>
+        );
+      }
+      sceneError = `invalid or unknown scene: ${String(parsed.scene)}`;
+    } else {
+      sceneError = 'scene JSON is missing its "scene" field';
     }
   }
 
   let template: string = String(parsed?.template ?? parsed?.type ?? '').trim();
   parsed = normalizeDiagramData(template, parsed);
   template = String(parsed?.template ?? parsed?.type ?? template).trim();
-  const validationError = validateDiagramData(template, parsed);
+  const validationError = sceneError ?? validateDiagramData(template, parsed);
 
   let content: React.ReactNode;
   const largerDiagramTemplates = new Set([
@@ -3430,8 +3439,20 @@ const MathDiagram: React.FC<MathDiagramProps> = ({ data: rawData }) => {
       case 'numberline':          content = <NumberLine data={parsed} />; break;
       case 'coordinate_points':   content = <CoordinatePoints data={parsed} />; break;
       case 'similar_triangles':   content = <SimilarTriangles data={parsed} />; break;
-      default:
+      default: {
+        // Salvage: the AI sometimes writes {"template":"intersecting_lines_rays"}
+        // without the {"template":"scene","scene":…} wrapper. Before declaring
+        // the template unsupported, try the name as a scene.
+        const asScene = template ? renderScene({ ...(parsed as any), scene: template }) : null;
+        if (asScene) {
+          return (
+            <div className="my-4 flex justify-center bg-slate-900/40 p-3 rounded-2xl border border-white/5 backdrop-blur-sm" style={{maxWidth:'380px',margin:'12px auto'}}>
+              <div style={{width:'100%'}} dangerouslySetInnerHTML={{ __html: asScene.replace(/<svg /, '<svg style="width:100%;height:auto;max-height:320px" ') }}/>
+            </div>
+          );
+        }
         content = <InvalidDiagramFallback message={`unsupported diagram template: ${template || 'unknown'}`} />;
+      }
     }
   } catch (e: any) {
     content = <InvalidDiagramFallback message="diagram render exception" />;
