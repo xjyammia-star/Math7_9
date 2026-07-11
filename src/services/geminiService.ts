@@ -955,6 +955,54 @@ RULES:
 }
 
 const PROBLEM_TYPE_POOLS: Record<string, string[]> = {
+  '平行线': [
+    '同位角/内错角/同旁内角的识别与角度计算',
+    '两平行线间的三线八角求角（含未知数设x）',
+    '平行线的判定（由角的关系推出两线平行）',
+    '拐点问题（平行线之间加一个拐点，求拐角）',
+    '角平分线与平行线结合（如∠EPF型，交点角恒定）',
+    '平行线间的距离与垂线段',
+    '生活情境中的平行线（台球反弹、光线、街道方位）',
+    '平行线与三角形内角和结合求角',
+    '多次平行推理（由a∥b、b∥c推a∥c再求角）',
+    '含代数式的角度方程（两角关系列方程求解）',
+  ],
+  '点线角': [
+    '互余角与互补角的计算',
+    '对顶角与邻补角求角度',
+    '角平分线（一次或两次平分）求角',
+    '钟面上时针分针的夹角',
+    '直线上线段的和差与中点计算',
+    '两点之间线段最短的应用',
+    '方位角问题（北偏东α等）',
+    '度分秒的换算与计算',
+    '数线段/数角的个数（计数规律）',
+    '含未知数的角度方程（设x列方程）',
+  ],
+  '全等': [
+    '用SSS判定证明三角形全等',
+    '用SAS判定证明三角形全等',
+    '用ASA或AAS判定证明三角形全等',
+    '用HL判定证明直角三角形全等',
+    '由全等三角形性质求边长或角度',
+    '倍长中线法构造全等',
+    '角平分线上的点向两边作垂线构造全等',
+    '图形变换背景的全等（平移/旋转/翻折）',
+    '先证全等再证线段相等或平行',
+    '需要证明两次全等的综合题',
+  ],
+  '三角形': [
+    '三角形内角和与外角性质求角',
+    '三边关系（判断能否构成三角形/第三边取值范围）',
+    '等腰三角形的性质与判定（含分类讨论）',
+    '等边三角形的角度与边长计算',
+    '三角形的高、中线、角平分线概念与计算',
+    '直角三角形两锐角互余的应用',
+    '外角等于不相邻两内角之和的应用',
+    '含未知数的角度方程（设x求各角）',
+    '等腰三角形周长问题（讨论腰与底的两种情况）',
+    '三角形稳定性与实际应用',
+  ],
   '四边形': [
     '平行四边形性质（对边、对角、对角线互相平分）',
     '平行四边形判定（给条件判断是否为平行四边形）',
@@ -1072,17 +1120,84 @@ function pickRandom<T>(arr: T[], n: number): T[] {
   return shuffled.slice(0, Math.min(n, arr.length));
 }
 
-function getTypePool(conceptTitle: string): string[] | null {
+// ── 2026-07: cross-generation anti-repetition memory ──────────────────────
+// The type pool used to be sampled with plain Math.random on every call, with
+// NO memory: consecutive generations could (and often did) pick the same type
+// again, and nothing stopped the model from re-telling the same story with new
+// numbers. Two histories are now kept per concept in localStorage (surviving
+// page reloads): the recently USED TYPES (excluded from the next draws) and
+// the recently GENERATED STEMS (shown to the model as a do-not-resemble list).
+// Storage failures degrade silently to the old behaviour.
+const RECENT_TYPES_CAP = 6;
+const RECENT_STEMS_CAP = 6;
+const recentKey = (kind: string, concept: string) => `m79_recent_${kind}::${concept}`;
+
+function loadRecent(kind: string, concept: string): string[] {
+  try {
+    const raw = (globalThis as any).localStorage?.getItem(recentKey(kind, concept));
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter((x: any) => typeof x === 'string') : [];
+  } catch { return []; }
+}
+
+function saveRecent(kind: string, concept: string, arr: string[], cap: number) {
+  try {
+    (globalThis as any).localStorage?.setItem(recentKey(kind, concept), JSON.stringify(arr.slice(-cap)));
+  } catch { /* private mode / SSR: silently degrade */ }
+}
+
+/** Draw `count` types from the pool, avoiding recently used ones. If the
+ * recent list would leave too few choices, the OLDEST entries are forgiven
+ * first, so small pools still rotate instead of dead-locking. */
+export function pickTypesAvoidingRecent(pool: string[], count: number, concept: string): string[] {
+  const want = Math.max(1, Math.min(count, pool.length));
+  const avoid = loadRecent('types', concept).filter(t => pool.includes(t));
+  let available = pool.filter(t => !avoid.includes(t));
+  while (available.length < want && avoid.length) {
+    avoid.shift(); // forgive the oldest
+    available = pool.filter(t => !avoid.includes(t));
+  }
+  if (available.length < want) available = [...pool];
+  return pickRandom(available, want);
+}
+
+/** First ~80 readable characters of each problem's stem (diagram JSON and
+ * markup stripped) — enough for the model to recognise "same story again". */
+export function extractStems(text: string): string[] {
+  return text
+    .split(/```math-diagram[\s\S]*?```/)
+    .map(seg => seg.replace(/\s+/g, ' ').replace(/[$\\*#>`]/g, '').trim())
+    .filter(seg => seg.length >= 12)
+    .map(seg => seg.slice(0, 80));
+}
+
+function recordRecentGeneration(concept: string, usedTypes: string[] | null, finalText: string) {
+  if (usedTypes && usedTypes.length) {
+    const prev = loadRecent('types', concept);
+    saveRecent('types', concept, [...prev, ...usedTypes], RECENT_TYPES_CAP);
+  }
+  const stems = extractStems(finalText);
+  if (stems.length) {
+    const prev = loadRecent('stems', concept);
+    saveRecent('stems', concept, [...prev, ...stems], RECENT_STEMS_CAP);
+  }
+}
+
+export function getTypePool(conceptTitle: string): string[] | null {
   const title = conceptTitle.toLowerCase();
   // Aliases: concept titles that should map to a pool even when they don't
   // literally contain the pool key. e.g. "平行四边形"/"菱形" → 四边形 pool.
   const ALIASES: Record<string, string> = {
+    // 先匹配更具体的概念，避免"全等三角形"落进"三角形"池
+    '全等三角形': '全等', '全等': '全等', '相似三角形': '相似',
+    '平行线与横截线': '平行线', '横截线': '平行线', '平行线': '平行线',
+    '点、线、角': '点线角', '点线角': '点线角', '线与角': '点线角', '角与线': '点线角',
     '平行四边形': '四边形', '菱形': '四边形', '矩形': '四边形',
     '正方形': '四边形', '梯形': '四边形', '四边形': '四边形',
     'parallelogram': 'quadrilateral', 'rhombus': 'quadrilateral',
     'rectangle': 'quadrilateral', 'square': 'quadrilateral',
     'trapezoid': 'quadrilateral', 'trapezium': 'quadrilateral',
-    '勾股定理': '勾股', '相似三角形': '相似', '一次函数': '函数',
+    '勾股定理': '勾股', '一次函数': '函数',
   };
   for (const [alias, poolKey] of Object.entries(ALIASES)) {
     if (title.includes(alias.toLowerCase()) && PROBLEM_TYPE_POOLS[poolKey]) {
@@ -1112,12 +1227,18 @@ export async function generateExercises(
   const system = SYSTEM_PROMPT_BASE + curriculumInstr;
 
   const pool = getTypePool(conceptTitle);
-  const pickedTypes = pool ? pickRandom(pool, Math.max(count, 3)) : null;
-  const varietyInstr = pickedTypes
+  const pickedTypes = pool ? pickTypesAvoidingRecent(pool, count, conceptTitle) : null;
+  const recentStems = loadRecent('stems', conceptTitle);
+  const avoidStems = recentStems.length
+    ? (lang === "zh"
+        ? `\n最近已经生成过下列题目，新题必须与它们明显不同（换情境、换数值、换设问对象；禁止近似复述）：\n${recentStems.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}`
+        : `\nRecently generated problems — the new ones MUST differ clearly (different scenario, numbers and asked quantity; no near-duplicates):\n${recentStems.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}`)
+    : '';
+  const varietyInstr = (pickedTypes
     ? (lang === "zh"
         ? `\n题型分配（强制执行，每道题必须严格采用为它指定的题型）：\n${Array.from({ length: count }, (_, i) => `  第${i + 1}题题型：${pickedTypes[i % pickedTypes.length]}`).join('\n')}\n注意：系统提示中的场景示例题（如"PA切⊙O于A，弦BC∥PA"）仅用于说明JSON格式，严禁照搬或改写为生成的题目。`
         : `\nPROBLEM TYPE ASSIGNMENT (mandatory — each problem MUST use its assigned type):\n${Array.from({ length: count }, (_, i) => `  Problem ${i + 1}: ${pickedTypes[i % pickedTypes.length]}`).join('\n')}\nNote: the example problems in the scene docs are FORMAT references only. Never copy or rephrase them.`)
-    : `\nVARIETY: Rotate problem types. Never use the same scenario twice in one batch. Never copy the example problems from the scene docs.`;
+    : `\nVARIETY: Rotate problem types. Never use the same scenario twice in one batch. Never copy the example problems from the scene docs.`) + avoidStems;
 
   const userMsg =
     `Task: Generate EXACTLY ${count} mathematics exercise(s) for "${conceptTitle}" — ` +
@@ -1150,17 +1271,23 @@ export async function generateExercises(
   // Enforce the requested problem count in code — the prompt alone is not
   // reliable (observed: count=1 → 3 problems). Applied to the draft AND to
   // the reviewed text, since either pass could emit extras. The parallel-line
-  // bisector repair runs at the same points, for the same reason.
+  // bisector repair runs at the same points, for the same reason. Every
+  // return path also records what was generated into the anti-repetition
+  // history so the NEXT generation avoids repeating it.
+  const finalize = (t: string): string => {
+    recordRecentGeneration(conceptTitle, pickedTypes, t);
+    return t;
+  };
   const draft = repairParallelBisectorScenes(enforceProblemCount(draftRaw, count));
 
-  if (!ENABLE_REVIEW_PASS) return draft;
+  if (!ENABLE_REVIEW_PASS) return finalize(draft);
 
   // ── Second pass: proofread & repair (logic, LaTeX, diagram-text match) ──
   try {
     const reviewed = await reviewExercises(draft, system, lang, genTokens, count);
-    return repairParallelBisectorScenes(enforceProblemCount(reviewed, count));
+    return finalize(repairParallelBisectorScenes(enforceProblemCount(reviewed, count)));
   } catch {
-    return draft; // review is best-effort; never block on it
+    return finalize(draft); // review is best-effort; never block on it
   }
 }
 
