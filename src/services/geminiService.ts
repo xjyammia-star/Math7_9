@@ -1149,15 +1149,16 @@ export async function generateExercises(
   ], false, genTokens, 0.55);
   // Enforce the requested problem count in code — the prompt alone is not
   // reliable (observed: count=1 → 3 problems). Applied to the draft AND to
-  // the reviewed text, since either pass could emit extras.
-  const draft = enforceProblemCount(draftRaw, count);
+  // the reviewed text, since either pass could emit extras. The parallel-line
+  // bisector repair runs at the same points, for the same reason.
+  const draft = repairParallelBisectorScenes(enforceProblemCount(draftRaw, count));
 
   if (!ENABLE_REVIEW_PASS) return draft;
 
   // ── Second pass: proofread & repair (logic, LaTeX, diagram-text match) ──
   try {
     const reviewed = await reviewExercises(draft, system, lang, genTokens, count);
-    return enforceProblemCount(reviewed, count);
+    return repairParallelBisectorScenes(enforceProblemCount(reviewed, count));
   } catch {
     return draft; // review is best-effort; never block on it
   }
@@ -1174,6 +1175,102 @@ export async function generateExercises(
  *   means everything after the count-th block's closing fence is extra.
  * If neither signal indicates extras the text is returned untouched — we
  * never risk mangling a single problem with （1）（2） sub-questions. */
+/** 2026-07: deterministic repair for impossible parallel-line bisector
+ * problems. Despite explicit warnings in the prompt AND the review checklist,
+ * the model still writes stems that bisect two ALTERNATE-interior angles
+ * (∠AEF&∠DFE or ∠BEF&∠CFE) — those bisectors are parallel, the intersection
+ * point does not exist, and the scene renderer (correctly) refuses to draw.
+ * The fix is mechanical: flipping ONE letter (A↔B on the E-angle, or C↔D on
+ * the F-angle) turns the pair into SAME-SIDE interior angles, the
+ * intersection exists, and the problem becomes the classic solvable one.
+ * Per the project's iron rule — when text and drawable geometry conflict,
+ * the TEXT is amended to match the figure — both the JSON and the stem are
+ * rewritten consistently, with zero extra API calls.
+ * Bonus: when the JSON has no "P" label, the intersection name is inferred
+ * from the asked angle in the stem (求∠EGF → "G"), so the figure's label
+ * always matches the text. */
+export function repairParallelBisectorScenes(text: string): string {
+  if (!text || !text.includes('parallel_lines_transversal')) return text;
+  const fenceRe = /```math-diagram\s*([\s\S]*?)```/g;
+  const blocks: { start: number; end: number; body: string }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = fenceRe.exec(text)) !== null) {
+    blocks.push({ start: m.index, end: m.index + m[0].length, body: m[1] });
+  }
+  if (!blocks.length) return text;
+
+  const canon = (raw: any): string | null => {
+    const nm = String(raw ?? '').toUpperCase().replace(/[^A-Z]/g, '');
+    if (nm.length !== 3) return null;
+    if (nm[1] === 'E' || nm[1] === 'F') return nm;
+    const rev = nm.split('').reverse().join('');
+    return rev[1] === 'E' || rev[1] === 'F' ? rev : null;
+  };
+  const sideOf = (nm: string): 'L' | 'R' | null => {
+    const arms = nm[0] + nm[2];
+    if (nm[1] === 'E') return arms.includes('A') ? 'L' : arms.includes('B') ? 'R' : null;
+    if (nm[1] === 'F') return arms.includes('C') ? 'L' : arms.includes('D') ? 'R' : null;
+    return null;
+  };
+  const flip = (nm: string): string => {
+    const map: Record<string, string> = { A: 'B', B: 'A', C: 'D', D: 'C' };
+    return nm.split('').map(ch => map[ch] ?? ch).join('');
+  };
+
+  let out = text;
+  // Walk blocks from last to first so earlier indices stay valid after edits.
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const b = blocks[i];
+    let json: any;
+    try { json = JSON.parse(b.body); } catch { continue; }
+    if (json?.scene !== 'parallel_lines_transversal') continue;
+    const bis: any[] = Array.isArray(json.bisect) ? json.bisect : [];
+    if (bis.length !== 2) continue;
+    const n1 = canon(bis[0]), n2 = canon(bis[1]);
+    if (!n1 || !n2) continue;
+    const s1 = sideOf(n1), s2 = sideOf(n2);
+    if (!s1 || !s2 || n1[1] === n2[1]) continue; // malformed / same-vertex: leave to renderer guard
+
+    const segStart = i === 0 ? 0 : blocks[i - 1].end;
+    let segment = out.slice(segStart, b.start);
+    let changed = false;
+
+    if (s1 !== s2) {
+      // Impossible alternate-interior pair → flip exactly one angle name,
+      // preferring NOT to touch the problem's GIVEN angle.
+      const given = canon(json.angle?.name);
+      let flipIdx: 0 | 1;
+      if (given && n1 === given) flipIdx = 1;
+      else if (given && n2 === given) flipIdx = 0;
+      else flipIdx = n1[1] === 'F' ? 0 : 1; // by convention amend the F-angle
+      const oldName = flipIdx === 0 ? n1 : n2;
+      const newName = flip(oldName);
+      json.bisect = [flipIdx === 0 ? newName : n1, flipIdx === 1 ? newName : n2];
+      const rev = oldName.split('').reverse().join('');
+      const nameRe = new RegExp(`(∠|\\\\angle|角)([\\s{]*)(?:${oldName}|${rev})`, 'g');
+      segment = segment.replace(nameRe, (_all, p1, p2) => `${p1}${p2}${newName}`);
+      changed = true;
+    }
+
+    // Infer the intersection label from the asked angle (求∠EGF → "G") when
+    // the JSON omitted it — otherwise the figure would say "P" while the
+    // text says "G".
+    if (json.P === undefined) {
+      const pm = segment.match(/(?:∠|\\angle|角)[\s{]*(?:E\s*([A-Z])\s*F|F\s*([A-Z])\s*E)/);
+      const letter = pm ? (pm[1] ?? pm[2]) : null;
+      if (letter && !'ABCDEF'.includes(letter)) {
+        json.P = letter;
+        changed = true;
+      }
+    }
+
+    if (!changed) continue;
+    const newBlock = '```math-diagram\n' + JSON.stringify(json) + '\n```';
+    out = out.slice(0, segStart) + segment + newBlock + out.slice(b.end);
+  }
+  return out;
+}
+
 export function enforceProblemCount(text: string, count: number): string {
   if (!Number.isFinite(count) || count < 1 || !text) return text;
   // ── Strategy 1: 第N题 markers (unambiguous problem starts) ──
