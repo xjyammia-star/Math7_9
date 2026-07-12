@@ -1361,12 +1361,14 @@ export async function generateExercises(
   // One full generation pass: draft → count/scene repairs → review →
   // count/scene repairs. Both the prompt-level count rule and the parallel-
   // line bisector repair are enforced in code because the prompt alone is
-  // demonstrably unreliable.
-  const runPipeline = async (types: string[] | null, escalation: string): Promise<string> => {
+  // demonstrably unreliable. `failFast` disables the stall-retry on the
+  // draft call — used by the similarity-gate retry, whose whole job is
+  // nice-to-have variety and must never burn extra minutes.
+  const runPipeline = async (types: string[] | null, escalation: string, failFast = false): Promise<string> => {
     const draftRaw = await safeGenerate([
       { role: "system", content: system },
       { role: "user", content: buildUserMsg(types, escalation) },
-    ], false, genTokens, 0.55);
+    ], false, genTokens, 0.55, false, failFast);
     const draft = repairParallelBisectorScenes(enforceProblemCount(draftRaw, count));
     if (!ENABLE_REVIEW_PASS) return draft;
     try {
@@ -1397,8 +1399,17 @@ export async function generateExercises(
     const escalation = lang === "zh"
       ? `\n【严重警告】你上一次的输出与最近已生成的题目雷同（换数字不算新题），已被系统丢弃。绝对禁止再输出与下面内容同结构的题目：\n  「${clash.oldStem}」\n本次必须彻底更换题目结构与情境。`
       : `\n[SEVERE] Your previous output was a near-duplicate of a recent problem (new numbers do NOT make a new problem) and was DISCARDED. Never output a problem structured like:\n  "${clash.oldStem}"\nUse a completely different structure and scenario.`;
-    usedTypes = altTypes;
-    final = await runPipeline(altTypes, escalation);
+    // The retry exists ONLY to improve variety, so it runs fail-fast and any
+    // failure (a stalled backend, a dropped connection, …) falls back to the
+    // perfectly good first attempt instead of surfacing an error. A slightly
+    // repetitive problem beats an error screen every single time.
+    try {
+      const retried = await runPipeline(altTypes, escalation, true);
+      final = retried;
+      usedTypes = altTypes;
+    } catch {
+      // keep `final` and `usedTypes` from the first attempt
+    }
   }
   recordRecentGeneration(conceptTitle, usedTypes, final);
   return final;
