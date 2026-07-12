@@ -510,6 +510,18 @@ STRICT PRINCIPLES:
    marks are drawn automatically; numeric labels stay opt-in and may carry
    GIVEN values only ("labels":{"BC":"…"} for the base, "cevian":{"label":"…"}
    for a GIVEN height). Never combine isosceles with "sides"/"points".
+   ★ 只给角度的三角形（角度追逐题）— when the stem gives ONLY angles, declare
+   the KNOWN ones and the renderer builds the exact shape (the missing third
+   angle is computed automatically; NEVER invent side lengths):
+   {"template":"triangle","angles":{"A":50,"C":60}}
+   ★ 边上的点与连线（中点/中位线/分点）— points the stem defines ON a side are
+   declared with "side_points" (ratio 0.5 = midpoint = the default; or
+   "segments":[AD,DB] when the stem gives the two pieces), and every 连接 with
+   "connect". They combine with ANY construction mode above.
+   例（D、E分别是AB、AC的中点，连接DE。∠A=50°，∠C=60°，求∠ADE）:
+   {"template":"triangle","angles":{"A":50,"C":60},"side_points":[{"on":"AB","label":"D"},{"on":"AC","label":"E"}],"connect":[["D","E"]]}
+   Every point the stem names MUST appear on the figure — a bare triangle for
+   a stem that defines D and E is a broken figure.
    NOTE on irrational lengths: diagram numeric fields (sides, width …) accept
    ONLY decimals. If a length is e.g. 2√13, put its decimal value (≈7.2) in the
    diagram JSON, but keep the exact form $2\sqrt{13}$ in the QUESTION TEXT.
@@ -1579,7 +1591,11 @@ async function reviewExercises(
     `a 6 printed on an 8-long side is a broken figure) and any diagonal the stem 连接s MUST ` +
     `appear via "diagonals" with NO length on it; every {"template":"scene"} block must carry a ` +
     `"scene" field whose value is one of the DOCUMENTED scene names, copied exactly — an ` +
-    `invented or misspelled scene name renders as a broken figure, ` +
+    `invented or misspelled scene name renders as a broken figure; triangle stems that DEFINE ` +
+    `points on sides (中点/分点, e.g. "D、E分别是AB、AC的中点") MUST place them via "side_points" ` +
+    `and draw every 连接 via "connect" — a bare triangle missing named points is a broken ` +
+    `figure; a triangle stem giving only ANGLES must use {"angles":{...}} instead of invented ` +
+    `side lengths, ` +
     `(e) when the text gives angle values, the JSON must pass them through the scene's angle ` +
     `parameters (e.g. "angle_CAB":20) so the drawn positions match the given values. ` +
     `If the chosen scene cannot draw an object the text requires, either switch to a scene that can ` +

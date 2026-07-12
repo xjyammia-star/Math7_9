@@ -366,6 +366,16 @@ function validateDiagramData(template: string, data: any): string | null {
       return a !== null && b !== null && a > 0 && b > 0 ? null : 'right_triangle requires two positive leg lengths';
     }
     case 'triangle': {
+      // 2026-07: side_points may combine with any construction mode, so it is
+      // validated first, without early-returning.
+      if (data.side_points !== undefined) {
+        if (!Array.isArray(data.side_points)) return 'side_points must be an array';
+        for (const sp of data.side_points as any[]) {
+          const on = String(sp?.on ?? '').toUpperCase();
+          if (!/^[ABC]{2}$/.test(on) || on[0] === on[1])
+            return 'each side_point needs "on": a triangle side such as "AB"';
+        }
+      }
       // 2026-07: altitude-to-the-hypotenuse construction (射影定理型).
       // The triangle is rebuilt EXACTLY from the two given hypotenuse
       // segments, so no sides/points are needed (and must not be trusted).
@@ -386,6 +396,18 @@ function validateDiagramData(template: string, data: any): string | null {
         if (base === null || base <= 0) return 'isosceles requires a positive base';
         if (!(h !== null && h > 0) && !(leg !== null && leg > base / 2))
           return 'isosceles requires height>0, or leg greater than half the base (otherwise no such triangle exists)';
+        return null;
+      }
+      // 2026-07: angles-only construction (角度追逐题).
+      if (data.angles && typeof data.angles === 'object') {
+        const vals = (['A', 'B', 'C'] as const)
+          .map(k => asFiniteNumber((data.angles as any)[k]))
+          .filter((v): v is number => v !== null);
+        if (vals.length < 2) return 'angles requires at least two of A/B/C';
+        if (vals.some(v => v <= 0 || v >= 180)) return 'each angle must be between 0 and 180 degrees';
+        const sum = vals.reduce((a, b) => a + b, 0);
+        if (vals.length === 2 && sum >= 177) return 'two given angles must sum to well under 180';
+        if (vals.length === 3 && Math.abs(sum - 180) > 1) return 'three angles must sum to 180';
         return null;
       }
       if (Array.isArray(data.points) && data.points.length >= 3) {
@@ -1048,6 +1070,29 @@ function Triangle({ data }: { data: any }) {
     pts[isoEnds[1]] = { x: isoBase, y: 0 };
     pts[isoApex]    = { x: isoBase / 2, y: isoH };
     A = pts.A; B = pts.B; C = pts.C;
+  } else if (data.angles && typeof data.angles === 'object') {
+    // ── 2026-07: angles-only construction (角度追逐题) ──
+    // Many problems give ONLY angles (e.g. ∠A=50°, ∠C=60°, 求∠ADE) — there is
+    // no side length for the AI to pass and it must NOT invent one. It
+    // declares the KNOWN angles; the missing third is computed here and the
+    // exact shape is built with BC horizontal at the bottom, A on top.
+    const angRaw: any = data.angles;
+    let aA = Number(angRaw.A), aB = Number(angRaw.B), aC = Number(angRaw.C);
+    if (!Number.isFinite(aA) && Number.isFinite(aB) && Number.isFinite(aC)) aA = 180 - aB - aC;
+    else if (!Number.isFinite(aB) && Number.isFinite(aA) && Number.isFinite(aC)) aB = 180 - aA - aC;
+    else if (!Number.isFinite(aC) && Number.isFinite(aA) && Number.isFinite(aB)) aC = 180 - aA - aB;
+    if ([aA, aB, aC].every(v => Number.isFinite(v) && v > 3 && v < 174) &&
+        Math.abs(aA + aB + aC - 180) < 1) {
+      const base = 6;
+      const tB = Math.tan((aB * Math.PI) / 180);
+      const tC = Math.tan((aC * Math.PI) / 180);
+      const x = (base * tC) / (tB + tC);
+      B = { x: 0, y: 0 };
+      C = { x: base, y: 0 };
+      A = { x, y: x * tB };
+    } else {
+      [A, B, C] = triangleFromSides(5, 4, 3);
+    }
   } else if (data.points && data.points.length >= 3) {
     [A, B, C] = data.points.map((p: any) => ({ x: Number(p[0] ?? p.x), y: Number(p[1] ?? p.y) }));
   } else {
@@ -1154,9 +1199,55 @@ function Triangle({ data }: { data: any }) {
     return k === topEnds[0] ? { x: -18, y: 14 } : { x: 10, y: 14 }; // ends → below
   };
 
+  // ── 2026-07: points ON the sides (中点/分点) and 连接 segments ──
+  // Stems frequently DEFINE points on the sides ("D、E分别是AB、AC的中点，
+  // 连接DE"). side_points places them EXACTLY (ratio 0.5 = midpoint =
+  // default, or "segments":[AD,DB] for a given division — the renderer turns
+  // the two given lengths into the ratio); "connect" joins any named points.
+  // Works in every construction mode; the cevian foot (if any) can also be
+  // referenced by its label.
+  const namedPts: Record<string, Pt> = { A: sA, B: sB, C: sC };
+  if (footScreen && footLabel) namedPts[footLabel] = footScreen;
+  const sideDots: { label: string; p: Pt; off: Pt }[] = [];
+  if (Array.isArray(data.side_points)) {
+    for (const sp of data.side_points) {
+      const on = String(sp?.on ?? '').toUpperCase();
+      if (!/^[ABC]{2}$/.test(on) || on[0] === on[1]) continue;
+      const P = smap[on[0] as 'A' | 'B' | 'C'];
+      const Q = smap[on[1] as 'A' | 'B' | 'C'];
+      let ratio = Number(sp?.ratio);
+      if (Array.isArray(sp?.segments) && sp.segments.length === 2) {
+        const m = Number(sp.segments[0]), n = Number(sp.segments[1]);
+        if (m > 0 && n > 0) ratio = m / (m + n);
+      }
+      if (!Number.isFinite(ratio) || ratio <= 0 || ratio >= 1) ratio = 0.5;
+      const p = { x: P.x + ratio * (Q.x - P.x), y: P.y + ratio * (Q.y - P.y) };
+      // Label sits OUTSIDE the triangle: along the side's normal, on the side
+      // pointing away from the third vertex.
+      const thirdKey = (['A', 'B', 'C'] as const).find(k => k !== on[0] && k !== on[1])!;
+      const T = smap[thirdKey];
+      const dx = Q.x - P.x, dy = Q.y - P.y;
+      const L = Math.hypot(dx, dy) || 1;
+      let nx = -dy / L, ny = dx / L;
+      if (nx * (T.x - p.x) + ny * (T.y - p.y) > 0) { nx = -nx; ny = -ny; }
+      const label = explicitLabel(sp?.label) ?? '';
+      if (label) namedPts[label] = p;
+      sideDots.push({ label, p, off: { x: nx * 16 - 4, y: ny * 16 + 5 } });
+    }
+  }
+  const connectPairs: [Pt, Pt][] = Array.isArray(data.connect)
+    ? data.connect
+        .filter((pr: any) => Array.isArray(pr) && pr.length === 2 &&
+          namedPts[String(pr[0])] && namedPts[String(pr[1])])
+        .map((pr: any) => [namedPts[String(pr[0])], namedPts[String(pr[1])]] as [Pt, Pt])
+    : [];
+
   return (
     <g>
       <Poly pts={[sA, sB, sC]} />
+      {connectPairs.map(([p1, p2], i) => (
+        <Seg key={`conn${i}`} a={p1} b={p2} stroke={GOLD} sw={2} />
+      ))}
       {cevianEl}
       {isoApex && isoEnds.map((e, idx) => {
         // Equal-side tick marks on the two legs (pure structure, no numbers):
@@ -1175,6 +1266,9 @@ function Triangle({ data }: { data: any }) {
       <Dot p={sA} label={lA} offset={offFor('A', { x: -6, y: -14 })} />
       <Dot p={sB} label={lB} offset={offFor('B', { x: -18, y: 10 })} />
       <Dot p={sC} label={lC} offset={offFor('C', { x: 8, y: 10 })} />
+      {sideDots.map((d, i) => (
+        <Dot key={`sp${i}`} p={d.p} label={d.label} offset={d.off} />
+      ))}
       {footScreen && <Dot p={footScreen} label={footLabel} offset={footOffset()} />}
       {hypApex && data.show_segment_labels === true && footScreen && (
         <g>
