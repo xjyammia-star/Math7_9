@@ -72,8 +72,15 @@ async function safeGenerate(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), STALL_TIMEOUT_MS);
     try {
-      // Helper: one POST attempt. withThinking controls the thinking field.
-      const attempt = async (withThinking: boolean): Promise<Response> => {
+      // Helper: one POST attempt. The thinking field is ALWAYS sent
+      // explicitly — 2026-07: the Ark endpoint's DEFAULT PARAMETER is
+      // thinking.type: enabled, so omitting the field silently turned deep
+      // thinking ON for every generation/review call (explaining minute-long
+      // waits for tiny outputs, "stalls" that were actually long thinking
+      // being killed by our deadline, and thinking tokens billed as output).
+      // mode 'omit' exists only as a degrade path for platforms that reject
+      // the field entirely.
+      const attempt = async (mode: 'enabled' | 'disabled' | 'omit'): Promise<Response> => {
         const body: Record<string, any> = {
           model: LLM_MODEL,
           messages,
@@ -82,7 +89,7 @@ async function safeGenerate(
           top_p: 0.95,
         };
         if (jsonMode) body.response_format = { type: "json_object" };
-        if (withThinking) body.thinking = { type: "enabled" };
+        if (mode !== 'omit') body.thinking = { type: mode };
         return fetch(`${base}/chat/completions`, {
           method: "POST",
           headers: {
@@ -94,16 +101,16 @@ async function safeGenerate(
         });
       };
 
-      let res = await attempt(wantThinking);
+      let res = await attempt(wantThinking ? 'enabled' : 'disabled');
 
       // DEGRADE GRACEFULLY: if the platform rejects the request specifically
-      // because it doesn't accept the "thinking" field (typically a 400), retry
-      // once WITHOUT thinking so the feature still works (just without deep
-      // reasoning) instead of failing outright.
-      if (!res.ok && wantThinking && (res.status === 400 || res.status === 404)) {
+      // because it doesn't accept the "thinking" field (typically a 400),
+      // retry once WITHOUT the field so the feature still works (just with
+      // the platform's default) instead of failing outright.
+      if (!res.ok && (res.status === 400 || res.status === 404)) {
         const peek = await res.clone().text().catch(() => "");
         if (/thinking|param|unsupported|invalid|unknown|field/i.test(peek)) {
-          res = await attempt(false);
+          res = await attempt('omit');
         }
       }
 
