@@ -41,6 +41,11 @@ const ENABLE_THINKING = String(env.VITE_GLM_THINKING || "").toLowerCase() === "o
 // review call stalled twice back-to-back and wasted 6 minutes.)
 const STALL_TIMEOUT_MS = 120_000;
 
+// When a stalled call is retried, wait this long first: a stall usually means
+// the backend is throttled or queued, and re-sending instantly just re-enters
+// the same jam. A short breather measurably improves the retry's odds.
+const STALL_RETRY_BACKOFF_MS = 20_000;
+
 async function safeGenerate(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
   jsonMode = false,
@@ -134,17 +139,30 @@ async function safeGenerate(
       // Retry ONCE on stalls, dropped connections and 5xx server errors —
       // never on quota or request errors (those would fail identically again),
       // and never on stalls when the caller opted out via noStallRetry.
-      if (stalled && noStallRetry) throw error;
+      if (stalled && noStallRetry) throw new Error("AI_STALLED");
       if (stalled || network || serverErr) {
         console.warn(`LLM call ${stalled ? `stalled > ${STALL_TIMEOUT_MS / 1000}s` : "failed"}; retrying once…`);
-        return await runOnce();
+        if (stalled) {
+          // Give a throttled/queued backend a breather before re-entering.
+          await new Promise(resolve => setTimeout(resolve, STALL_RETRY_BACKOFF_MS));
+        }
+        try {
+          return await runOnce();
+        } catch (e2: any) {
+          const stalledAgain = e2?.name === "AbortError" || /abort/i.test(String(e2?.message ?? ""));
+          // Both attempts timed out — surface a DISTINGUISHABLE error so the
+          // UI can tell the user what actually happened (endpoint throttling
+          // or heavy congestion) instead of a generic connection message.
+          throw stalledAgain ? new Error("AI_STALLED") : e2;
+        }
       }
       throw error;
     }
   } catch (error: any) {
     if (
       error.message === "QUOTA_EXHAUSTED" ||
-      error.message === "AI_INTERNAL_ERROR"
+      error.message === "AI_INTERNAL_ERROR" ||
+      error.message === "AI_STALLED"
     ) {
       throw error;
     }

@@ -206,7 +206,11 @@ const PracticeCenter: React.FC<PracticeCenterProps> = ({
         message.startsWith('AREA_PERIMETER_TEMPLATE_ERROR:');
 
       setError(
-        message === 'AI_INTERNAL_ERROR'
+        message === 'AI_STALLED'
+          ? (lang === 'zh'
+              ? 'AI 服务响应持续超时，可能是接入点拥堵或限流。请等待 1～2 分钟后再试；若频繁出现，请到火山方舟控制台检查接入点的 TPM/RPM 配额。'
+              : 'The AI service kept timing out (endpoint congestion or throttling). Wait 1–2 minutes and retry; if this happens often, check your Ark endpoint quota.')
+          : message === 'AI_INTERNAL_ERROR'
           ? (lang === 'zh' ? '生成出错，请稍后重试。' : 'Evaluation error, please try again.')
           : isTemplateError
             ? (lang === 'zh'
