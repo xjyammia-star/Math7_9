@@ -1168,7 +1168,76 @@ export function extractStems(text: string): string[] {
     .split(/```math-diagram[\s\S]*?```/)
     .map(seg => seg.replace(/\s+/g, ' ').replace(/[$\\*#>`]/g, '').trim())
     .filter(seg => seg.length >= 12)
-    .map(seg => seg.slice(0, 80));
+    .map(seg => seg.slice(0, 110));
+}
+
+// ── 2026-07: structural similarity gate ────────────────────────────────────
+/** Normalises a stem so letter names and numbers cannot mask structural
+ * identity: latin letters → □, numbers → #, markup dropped. "EP平分∠BEF，若
+ * ∠AEF=110°" and "EG平分∠AEF，若∠BEF=(2x+40)°" normalise to nearly the same
+ * string — exactly the "same story, new numbers" pattern the gate must catch. */
+export function normalizeForSimilarity(s: string): string {
+  return s
+    .replace(/[$\\{}()（）[\]\s]/g, '')
+    .replace(/[A-Za-z]+/g, '□')
+    .replace(/\d+(?:\.\d+)?/g, '#');
+}
+
+/** Problems on the same concept share a boilerplate SETUP sentence（"如图，
+ * AB∥CD，直线EF分别交…"）that would make every pair look similar, so the
+ * comparison uses only the text after the first sentence when there is one. */
+function distinctiveTail(s: string): string {
+  const idx = s.indexOf('。');
+  const tail = idx >= 0 && idx < s.length - 6 ? s.slice(idx + 1) : s;
+  return normalizeForSimilarity(tail);
+}
+
+/** Structure keywords that actually define a problem FAMILY. Two stems are
+ * only ever considered duplicates when they share at least one — this stops
+ * the shared ask-phrasing（"若∠…求∠…的度数"）from flagging genuinely
+ * different problem types. */
+const STRUCT_KEYWORDS = [
+  '平分', '交于', '垂直', '⊥', '中点', '延长', '折', '全等', '相似',
+  '方位', '偏', '判断', '说明理由', '证明', '取值范围', '之间', '连接',
+  '旋转', '平移', '展开', '最短', '动点', '周长', '面积', '钟', '互余', '互补',
+];
+function sharedStructKeywords(a: string, b: string): number {
+  return STRUCT_KEYWORDS.filter(k => a.includes(k) && b.includes(k)).length;
+}
+
+/** Dice coefficient over character bigrams of the distinctive tails:
+ * 1 = identical structure, 0 = nothing shared. */
+export function stemSimilarity(a: string, b: string): number {
+  const grams = (t: string) => {
+    const g = new Set<string>();
+    for (let i = 0; i < t.length - 1; i++) g.add(t.slice(i, i + 2));
+    return g;
+  };
+  const ga = grams(distinctiveTail(a));
+  const gb = grams(distinctiveTail(b));
+  if (!ga.size || !gb.size) return 0;
+  let inter = 0;
+  for (const g of ga) if (gb.has(g)) inter++;
+  return (2 * inter) / (ga.size + gb.size);
+}
+
+/** A finished text clashes when ANY of its stems is (a) structurally too
+ * close to a recently generated stem AND (b) shares at least one structure
+ * keyword with it — both conditions, so shared boilerplate alone never
+ * triggers a false positive. */
+const SIMILARITY_LIMIT = 0.55;
+export function findTooSimilar(text: string, concept: string): { newStem: string; oldStem: string; sim: number } | null {
+  const recent = loadRecent('stems', concept);
+  if (!recent.length) return null;
+  for (const ns of extractStems(text)) {
+    for (const os of recent) {
+      const sim = stemSimilarity(ns, os);
+      if (sim >= SIMILARITY_LIMIT && sharedStructKeywords(ns, os) >= 1) {
+        return { newStem: ns, oldStem: os, sim };
+      }
+    }
+  }
+  return null;
 }
 
 function recordRecentGeneration(concept: string, usedTypes: string[] | null, finalText: string) {
@@ -1229,33 +1298,46 @@ export async function generateExercises(
   const pool = getTypePool(conceptTitle);
   const pickedTypes = pool ? pickTypesAvoidingRecent(pool, count, conceptTitle) : null;
   const recentStems = loadRecent('stems', conceptTitle);
-  const avoidStems = recentStems.length
-    ? (lang === "zh"
-        ? `\n最近已经生成过下列题目，新题必须与它们明显不同（换情境、换数值、换设问对象；禁止近似复述）：\n${recentStems.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}`
-        : `\nRecently generated problems — the new ones MUST differ clearly (different scenario, numbers and asked quantity; no near-duplicates):\n${recentStems.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}`)
-    : '';
-  const varietyInstr = (pickedTypes
-    ? (lang === "zh"
-        ? `\n题型分配（强制执行，每道题必须严格采用为它指定的题型）：\n${Array.from({ length: count }, (_, i) => `  第${i + 1}题题型：${pickedTypes[i % pickedTypes.length]}`).join('\n')}\n注意：系统提示中的场景示例题（如"PA切⊙O于A，弦BC∥PA"）仅用于说明JSON格式，严禁照搬或改写为生成的题目。`
-        : `\nPROBLEM TYPE ASSIGNMENT (mandatory — each problem MUST use its assigned type):\n${Array.from({ length: count }, (_, i) => `  Problem ${i + 1}: ${pickedTypes[i % pickedTypes.length]}`).join('\n')}\nNote: the example problems in the scene docs are FORMAT references only. Never copy or rephrase them.`)
-    : `\nVARIETY: Rotate problem types. Never use the same scenario twice in one batch. Never copy the example problems from the scene docs.`) + avoidStems;
+  const recentTypes = loadRecent('types', conceptTitle);
 
-  const userMsg =
-    `Task: Generate EXACTLY ${count} mathematics exercise(s) for "${conceptTitle}" — ` +
-    `not one more, not one fewer. Extra problems are discarded automatically.\n` +
-    `Grade Level: ${grade}\n` +
-    `Difficulty: ${difficulty}\n` +
-    `Language: ${lang === "zh" ? "Chinese" : "English"}\n` +
-    `Description: ${conceptDesc}\n` +
-    varietyInstr + `\n` +
-    `CRITICAL: DO NOT include solutions. ONLY output the numbered questions.\n` +
-    `CRITICAL: Each geometry problem ends with its own \`\`\`math-diagram block AFTER all its text.\n` +
-    `CRITICAL: Be CONCISE. Output NOTHING besides the numbered problems and their diagram ` +
-    `blocks — no 解析, no hints, no commentary before/after, no restating of instructions. ` +
-    `Keep each stem compact (typically under ~150 Chinese characters unless the problem type ` +
-    `genuinely needs more) and keep diagram JSON minimal (only documented fields, only values ` +
-    `the text states). Verbose output slows generation and gets deleted by review anyway.\n` +
-    `Timestamp: ${Date.now()}`;
+  // Builds the per-attempt user message. `types` are this attempt's assigned
+  // problem types; `escalation` is non-empty only on the retry after the
+  // similarity gate rejected the first attempt.
+  const buildUserMsg = (types: string[] | null, escalation: string): string => {
+    const avoidStems = recentStems.length
+      ? (lang === "zh"
+          ? `\n最近已经生成过下列题目，新题必须与它们明显不同（换情境、换数值、换设问对象；禁止近似复述）：\n${recentStems.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}`
+          : `\nRecently generated problems — the new ones MUST differ clearly (different scenario, numbers and asked quantity; no near-duplicates):\n${recentStems.map((s, i) => `  ${i + 1}. ${s}`).join('\n')}`)
+      : '';
+    const forbidden = types && recentTypes.filter(t => !types.includes(t)).length
+      ? (lang === "zh"
+          ? `\n以下题型最近已经使用，本次禁止：${recentTypes.filter(t => !types.includes(t)).join('、')}`
+          : `\nThese types were used recently and are FORBIDDEN now: ${recentTypes.filter(t => !types.includes(t)).join('; ')}`)
+      : '';
+    const varietyInstr = (types
+      ? (lang === "zh"
+          ? `\n题型分配（强制执行，每道题必须严格采用为它指定的题型）：\n${Array.from({ length: count }, (_, i) => `  第${i + 1}题题型：${types[i % types.length]}`).join('\n')}\n注意：系统提示中的场景示例题（如"PA切⊙O于A，弦BC∥PA"）仅用于说明JSON格式，严禁照搬或改写为生成的题目。`
+          : `\nPROBLEM TYPE ASSIGNMENT (mandatory — each problem MUST use its assigned type):\n${Array.from({ length: count }, (_, i) => `  Problem ${i + 1}: ${types[i % types.length]}`).join('\n')}\nNote: the example problems in the scene docs are FORMAT references only. Never copy or rephrase them.`)
+      : `\nVARIETY: Rotate problem types. Never use the same scenario twice in one batch. Never copy the example problems from the scene docs.`) + forbidden + avoidStems + escalation;
+
+    return (
+      `Task: Generate EXACTLY ${count} mathematics exercise(s) for "${conceptTitle}" — ` +
+      `not one more, not one fewer. Extra problems are discarded automatically.\n` +
+      `Grade Level: ${grade}\n` +
+      `Difficulty: ${difficulty}\n` +
+      `Language: ${lang === "zh" ? "Chinese" : "English"}\n` +
+      `Description: ${conceptDesc}\n` +
+      varietyInstr + `\n` +
+      `CRITICAL: DO NOT include solutions. ONLY output the numbered questions.\n` +
+      `CRITICAL: Each geometry problem ends with its own \`\`\`math-diagram block AFTER all its text.\n` +
+      `CRITICAL: Be CONCISE. Output NOTHING besides the numbered problems and their diagram ` +
+      `blocks — no 解析, no hints, no commentary before/after, no restating of instructions. ` +
+      `Keep each stem compact (typically under ~150 Chinese characters unless the problem type ` +
+      `genuinely needs more) and keep diagram JSON minimal (only documented fields, only values ` +
+      `the text states). Verbose output slows generation and gets deleted by review anyway.\n` +
+      `Timestamp: ${Date.now()}`
+    );
+  };
 
   // Scale token budget with problem count. Generous headroom so that long
   // diagram JSON (e.g. coordinate_points with many points) is never truncated
@@ -1264,31 +1346,50 @@ export async function generateExercises(
   // under half of this.
   const genTokens = Math.min(3000 + count * 1200, 12000);
 
-  const draftRaw = await safeGenerate([
-    { role: "system", content: system },
-    { role: "user", content: userMsg },
-  ], false, genTokens, 0.55);
-  // Enforce the requested problem count in code — the prompt alone is not
-  // reliable (observed: count=1 → 3 problems). Applied to the draft AND to
-  // the reviewed text, since either pass could emit extras. The parallel-line
-  // bisector repair runs at the same points, for the same reason. Every
-  // return path also records what was generated into the anti-repetition
-  // history so the NEXT generation avoids repeating it.
-  const finalize = (t: string): string => {
-    recordRecentGeneration(conceptTitle, pickedTypes, t);
-    return t;
+  // One full generation pass: draft → count/scene repairs → review →
+  // count/scene repairs. Both the prompt-level count rule and the parallel-
+  // line bisector repair are enforced in code because the prompt alone is
+  // demonstrably unreliable.
+  const runPipeline = async (types: string[] | null, escalation: string): Promise<string> => {
+    const draftRaw = await safeGenerate([
+      { role: "system", content: system },
+      { role: "user", content: buildUserMsg(types, escalation) },
+    ], false, genTokens, 0.55);
+    const draft = repairParallelBisectorScenes(enforceProblemCount(draftRaw, count));
+    if (!ENABLE_REVIEW_PASS) return draft;
+    try {
+      const reviewed = await reviewExercises(draft, system, lang, genTokens, count);
+      return repairParallelBisectorScenes(enforceProblemCount(reviewed, count));
+    } catch {
+      return draft; // review is best-effort; never block on it
+    }
   };
-  const draft = repairParallelBisectorScenes(enforceProblemCount(draftRaw, count));
 
-  if (!ENABLE_REVIEW_PASS) return finalize(draft);
-
-  // ── Second pass: proofread & repair (logic, LaTeX, diagram-text match) ──
-  try {
-    const reviewed = await reviewExercises(draft, system, lang, genTokens, count);
-    return finalize(repairParallelBisectorScenes(enforceProblemCount(reviewed, count)));
-  } catch {
-    return finalize(draft); // review is best-effort; never block on it
+  // ── 2026-07: similarity gate (code-level, deterministic) ──
+  // Type assignment and the do-not-resemble list are PROMPT-level, and the
+  // model demonstrably disobeys them for its favourite problems (the ∠EPF
+  // classic appeared three generations in a row despite both). The gate
+  // compares the finished text STRUCTURALLY against the recent-problem
+  // history (letters/digits normalised, so "same story, new numbers" is
+  // caught); on a clash the output is DISCARDED and regenerated once with a
+  // freshly assigned different type plus an explicit escalation. The retry
+  // costs one extra round trip — but only when an actual clash happened.
+  let usedTypes = pickedTypes;
+  let final = await runPipeline(pickedTypes, '');
+  const clash = findTooSimilar(final, conceptTitle);
+  if (clash) {
+    const altPool = pool ? pool.filter(t => !(pickedTypes ?? []).includes(t)) : null;
+    const altTypes = altPool && altPool.length
+      ? pickTypesAvoidingRecent(altPool, count, conceptTitle)
+      : pickedTypes;
+    const escalation = lang === "zh"
+      ? `\n【严重警告】你上一次的输出与最近已生成的题目雷同（换数字不算新题），已被系统丢弃。绝对禁止再输出与下面内容同结构的题目：\n  「${clash.oldStem}」\n本次必须彻底更换题目结构与情境。`
+      : `\n[SEVERE] Your previous output was a near-duplicate of a recent problem (new numbers do NOT make a new problem) and was DISCARDED. Never output a problem structured like:\n  "${clash.oldStem}"\nUse a completely different structure and scenario.`;
+    usedTypes = altTypes;
+    final = await runPipeline(altTypes, escalation);
   }
+  recordRecentGeneration(conceptTitle, usedTypes, final);
+  return final;
 }
 
 /** 2026-07: the model occasionally ignores the requested problem count and
