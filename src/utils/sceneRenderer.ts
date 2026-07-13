@@ -658,9 +658,12 @@ function renderParallelLinesTransversal(s: SceneJSON): string | null {
   const dirsAtF: Record<string, number> = { C: 180, D: 0, E: alpha };
 
   const bisectRaw: any[] = Array.isArray((s as any).bisect) ? (s as any).bisect : [];
-  const rays: { from: { x: number; y: number }; d: { x: number; y: number }; vtx: string }[] = [];
-  for (const bn of bisectRaw.slice(0, 2)) {
-    const nm = String(bn).toUpperCase();
+  const rays: { from: { x: number; y: number }; d: { x: number; y: number }; vtx: string; label: string }[] = [];
+  for (const entryRaw of bisectRaw.slice(0, 2)) {
+    const isObj = entryRaw !== null && typeof entryRaw === 'object';
+    const nm = String(isObj ? (entryRaw as any).angle : entryRaw).toUpperCase();
+    const rawLbl = isObj ? String((entryRaw as any).label ?? '').trim().toUpperCase() : '';
+    const rayLabel = /^[A-Z]$/.test(rawLbl) && !'ABCDEF'.includes(rawLbl) ? rawLbl : '';
     if (nm.length !== 3) return null;
     const vtx = nm[1];
     const table = vtx === 'E' ? dirsAtE : vtx === 'F' ? dirsAtF : null;
@@ -671,27 +674,55 @@ function renderParallelLinesTransversal(s: SceneJSON): string | null {
     const sum = pt(u1.x + u2.x, u1.y + u2.y);
     const L = Math.hypot(sum.x, sum.y);
     if (L < 1e-6) return null; // arms are opposite rays — not a bisectable angle
-    rays.push({ from: vtx === 'E' ? E : F, d: pt(sum.x / L, sum.y / L), vtx });
+    rays.push({ from: vtx === 'E' ? E : F, d: pt(sum.x / L, sum.y / L), vtx, label: rayLabel });
   }
 
+  // The intersection is MARKED only when the problem itself names a meeting
+  // point ("P" in the JSON, e.g. from 交于点G / 求∠EPF). Two parallel
+  // bisectors are impossible ONLY if such a meeting point is claimed —
+  // without one they are perfectly fine (e.g. 证明EG∥FH).
+  const wantP = (s as any).P !== undefined && String((s as any).P).trim() !== '';
   let P: { x: number; y: number } | null = null;
   if (rays.length === 2) {
     const [r1, r2] = rays;
     const cross = r1.d.x * r2.d.y - r1.d.y * r2.d.x;
-    if (Math.abs(cross) < 1e-9) return null; // PARALLEL bisectors — P does not exist
-    const dx = r2.from.x - r1.from.x, dy = r2.from.y - r1.from.y;
-    const t = (dx * r2.d.y - dy * r2.d.x) / cross;
-    const u = (dx * r1.d.y - dy * r1.d.x) / cross;
-    if (t <= 1e-6 || u <= 1e-6) return null; // the two RAYS diverge — no meeting point
-    P = pt(r1.from.x + t * r1.d.x, r1.from.y + t * r1.d.y);
+    if (Math.abs(cross) < 1e-9) {
+      if (wantP) return null; // PARALLEL bisectors — the claimed P does not exist
+    } else {
+      const dx = r2.from.x - r1.from.x, dy = r2.from.y - r1.from.y;
+      const t = (dx * r2.d.y - dy * r2.d.x) / cross;
+      const u = (dx * r1.d.y - dy * r1.d.x) / cross;
+      if (t > 1e-6 && u > 1e-6) {
+        P = pt(r1.from.x + t * r1.d.x, r1.from.y + t * r1.d.y);
+      } else if (wantP) {
+        return null; // the two RAYS diverge — the claimed meeting point does not exist
+      }
+    }
   }
+
+  // Geometry of each drawn ray: to P exactly (named meeting point), past P
+  // by 18% (unnamed crossing — rays visibly cross and continue), or a fixed
+  // length when there is no crossing at all. Named points on the rays (from
+  // "EG平分…" → G) sit at 60% of the drawn length.
+  const rayEnds: { x: number; y: number }[] = rays.map(r => {
+    if (P) {
+      const dist = Math.hypot(P.x - r.from.x, P.y - r.from.y);
+      const len = wantP ? dist : dist * 1.18;
+      return pt(r.from.x + len * r.d.x, r.from.y + len * r.d.y);
+    }
+    return pt(r.from.x + 0.9 * r.d.x, r.from.y + 0.9 * r.d.y);
+  });
+  const rayLabelPts = rays.map((r, i) => {
+    const end = rayEnds[i];
+    return pt(r.from.x + 0.6 * (end.x - r.from.x), r.from.y + 0.6 * (end.y - r.from.y));
+  });
 
   // Named points on the two parallel lines (labels only — lines extend further)
   const xL = Math.min(E.x, F.x) - 0.8, xR = Math.max(E.x, F.x) + 0.8;
   const A = pt(xL, 1), B = pt(xR, 1), C = pt(xL, 0), D = pt(xR, 0);
 
   // ── uniform scale to canvas (angles must not distort) ──
-  const keyPts = [A, B, C, D, E, F, ...(P ? [P] : [])];
+  const keyPts = [A, B, C, D, E, F, ...(P ? [P] : []), ...rayEnds, ...rayLabelPts];
   const m = 0.28; // math-units margin
   const minX = Math.min(...keyPts.map(p => p.x)) - m;
   const maxX = Math.max(...keyPts.map(p => p.x)) + m;
@@ -712,12 +743,11 @@ function renderParallelLinesTransversal(s: SceneJSON): string | null {
   const eTop = sc(pt(E.x - 0.3 * v.x, E.y - 0.3 * v.y));
   const fBot = sc(pt(F.x + 0.3 * v.x, F.y + 0.3 * v.y));
   parts.push(line(eTop.x, eTop.y, fBot.x, fBot.y));
-  // Bisector rays: to P when it exists, else a fixed visible length.
-  for (const r of rays) {
-    const end = P ?? pt(r.from.x + 0.9 * r.d.x, r.from.y + 0.9 * r.d.y);
-    const sFrom = sc(r.from), sEnd = sc(end);
+  // Bisector rays (geometry precomputed above).
+  rays.forEach((r, i) => {
+    const sFrom = sc(r.from), sEnd = sc(rayEnds[i]);
     parts.push(line(sFrom.x, sFrom.y, sEnd.x, sEnd.y));
-  }
+  });
   // Dots + labels (top-line labels above, bottom-line labels below).
   const lbl = (p: { x: number; y: number }, name: string, dx: number, dy: number) => {
     parts.push(dot(p.x, p.y));
@@ -725,7 +755,14 @@ function renderParallelLinesTransversal(s: SceneJSON): string | null {
   };
   lbl(sA, 'A', 0, -10); lbl(sE, 'E', 0, -10); lbl(sB, 'B', 0, -10);
   lbl(sC, 'C', 0, 20);  lbl(sF, 'F', 0, 20);  lbl(sD, 'D', 0, 20);
-  if (P) {
+  // Named points ON the bisector rays ("EG平分…" → G at 60% of the ray).
+  rays.forEach((r, i) => {
+    if (!r.label) return;
+    const sp = sc(rayLabelPts[i]);
+    parts.push(dot(sp.x, sp.y));
+    parts.push(text(sp.x + 10, sp.y - 6, r.label, 'start'));
+  });
+  if (P && wantP) {
     const sP = sc(P);
     parts.push(dot(sP.x, sP.y));
     parts.push(text(sP.x + 12, sP.y + 5, String((s as any).P ?? 'P'), 'start'));

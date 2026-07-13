@@ -486,14 +486,17 @@ STRICT PRINCIPLES:
      "angle": the ONE given angle fixing the slant, vertex is the middle
         letter: {"name":"AEF","value":100}. Valid names: AEF/BEF (at E),
         CFE/DFE (at F).
-     "bisect": 0–2 angle names whose bisectors the text draws, e.g.
-        ["BEF","DFE"]. With two, their exact intersection is computed and
-        labelled (default "P", change with "P":"…").
+     "bisect": 0–2 angle names whose bisectors the text draws. Plain name, or
+        with the ray's NAMED point when the stem uses one: "EG平分∠BEF" →
+        {"angle":"BEF","label":"G"}.
+     "P": the meeting-point label — ONLY when the text itself names one
+        (交于点G / 求∠EPF). If the text names NO meeting point, OMIT "P":
+        the figure must never mark a point the text does not mention.
    ⚠ REALIZABILITY (check BEFORE writing the problem): the bisectors of two
    equal ALTERNATE-interior angles (∠AEF & ∠DFE, or ∠BEF & ∠CFE) are PARALLEL
-   — no intersection point exists, the problem is impossible and the scene
-   will refuse to render it. A meeting point P requires SAME-SIDE interior
-   angles: ∠BEF & ∠DFE, or ∠AEF & ∠CFE (their sum is 180°).
+   — a problem CLAIMING they meet (naming a point on both) is impossible and
+   the scene will refuse to render it. A meeting point P requires SAME-SIDE
+   interior angles: ∠BEF & ∠DFE, or ∠AEF & ∠CFE (their sum is 180°).
    例 — "AB∥CD，直线EF分别交AB、CD于E、F。EP平分∠BEF，FP平分∠DFE。若∠AEF=100°，求∠EPF":
    ${BT}math-diagram
    {"template":"scene","scene":"parallel_lines_transversal","angle":{"name":"AEF","value":100},"bisect":["BEF","DFE"],"P":"P"}
@@ -1266,8 +1269,16 @@ const SIMILARITY_LIMIT = 0.55;
 export function findTooSimilar(text: string, concept: string): { newStem: string; oldStem: string; sim: number } | null {
   const recent = loadRecent('stems', concept);
   if (!recent.length) return null;
+  const twice = (s: string, k: string) => s.split(k).length - 1 >= 2;
   for (const ns of extractStems(text)) {
     for (const os of recent) {
+      // Family rule: TWO bisectors in both stems = the double-bisector
+      // configuration (the model's favourite re-skin — 求角版、求证版、代数版
+      // are all the same problem to a student). Flagged regardless of the
+      // bigram score.
+      if (twice(ns, '平分') && twice(os, '平分')) {
+        return { newStem: ns, oldStem: os, sim: 1 };
+      }
       const sim = stemSimilarity(ns, os);
       if (sim >= SIMILARITY_LIMIT && sharedStructKeywords(ns, os) >= 1) {
         return { newStem: ns, oldStem: os, sim };
@@ -1353,8 +1364,8 @@ export async function generateExercises(
       : '';
     const varietyInstr = (types
       ? (lang === "zh"
-          ? `\n题型分配（强制执行，每道题必须严格采用为它指定的题型）：\n${Array.from({ length: count }, (_, i) => `  第${i + 1}题题型：${types[i % types.length]}`).join('\n')}\n注意：系统提示中的场景示例题（如"PA切⊙O于A，弦BC∥PA"）仅用于说明JSON格式，严禁照搬或改写为生成的题目。`
-          : `\nPROBLEM TYPE ASSIGNMENT (mandatory — each problem MUST use its assigned type):\n${Array.from({ length: count }, (_, i) => `  Problem ${i + 1}: ${types[i % types.length]}`).join('\n')}\nNote: the example problems in the scene docs are FORMAT references only. Never copy or rephrase them.`)
+          ? `\n题型分配（强制执行，每道题必须严格采用为它指定的题型）：\n${Array.from({ length: count }, (_, i) => `  第${i + 1}题题型：${types[i % types.length]}`).join('\n')}\n若指派题型的名称中不含"角平分线"，则题目中严禁出现任何角平分线——把别的题型套上角平分线的外壳是最常见的违规重复，会被系统丢弃。\n注意：系统提示中的场景示例题（如"PA切⊙O于A，弦BC∥PA"）仅用于说明JSON格式，严禁照搬或改写为生成的题目。`
+          : `\nPROBLEM TYPE ASSIGNMENT (mandatory — each problem MUST use its assigned type):\n${Array.from({ length: count }, (_, i) => `  Problem ${i + 1}: ${types[i % types.length]}`).join('\n')}\nIf the assigned type does not mention angle bisectors, the problem must contain NO angle bisector — re-skinning other types with bisectors is the most common violation and gets discarded.\nNote: the example problems in the scene docs are FORMAT references only. Never copy or rephrase them.`)
       : `\nVARIETY: Rotate problem types. Never use the same scenario twice in one batch. Never copy the example problems from the scene docs.`) + forbidden + avoidStems + escalation;
 
     return (
@@ -1421,9 +1432,15 @@ export async function generateExercises(
     const altTypes = altPool && altPool.length
       ? pickTypesAvoidingRecent(altPool, count, conceptTitle)
       : pickedTypes;
-    const escalation = lang === "zh"
-      ? `\n【严重警告】你上一次的输出与最近已生成的题目雷同（换数字不算新题），已被系统丢弃。绝对禁止再输出与下面内容同结构的题目：\n  「${clash.oldStem}」\n本次必须彻底更换题目结构与情境。`
-      : `\n[SEVERE] Your previous output was a near-duplicate of a recent problem (new numbers do NOT make a new problem) and was DISCARDED. Never output a problem structured like:\n  "${clash.oldStem}"\nUse a completely different structure and scenario.`;
+    const bannedElems = STRUCT_KEYWORDS.filter(k => clash.oldStem.includes(k) && clash.newStem.includes(k));
+    const banLine = bannedElems.length
+      ? (lang === "zh"
+          ? `\n本次题目中严禁出现以下要素：${bannedElems.join('、')}。`
+          : `\nThe new problem must NOT contain any of: ${bannedElems.join('; ')}.`)
+      : '';
+    const escalation = (lang === "zh"
+      ? `\n【严重警告】你上一次的输出与最近已生成的题目雷同（换数字、换字母、改问法都不算新题），已被系统丢弃。绝对禁止再输出与下面内容同结构的题目：\n  「${clash.oldStem}」\n本次必须彻底更换题目结构与情境。`
+      : `\n[SEVERE] Your previous output was a near-duplicate of a recent problem (new numbers, new letters or a re-worded question do NOT make a new problem) and was DISCARDED. Never output a problem structured like:\n  "${clash.oldStem}"\nUse a completely different structure and scenario.`) + banLine;
     // The retry exists ONLY to improve variety, so it runs fail-fast and any
     // failure (a stalled backend, a dropped connection, …) falls back to the
     // perfectly good first attempt instead of surfacing an error. A slightly
@@ -1493,6 +1510,10 @@ export function repairParallelBisectorScenes(text: string): string {
     return nm.split('').map(ch => map[ch] ?? ch).join('');
   };
 
+  const angleOf = (e: any): any => (e !== null && typeof e === 'object' ? e.angle : e);
+  const labelOf = (e: any): string =>
+    e !== null && typeof e === 'object' && typeof e.label === 'string' ? e.label : '';
+
   let out = text;
   // Walk blocks from last to first so earlier indices stay valid after edits.
   for (let i = blocks.length - 1; i >= 0; i--) {
@@ -1502,7 +1523,7 @@ export function repairParallelBisectorScenes(text: string): string {
     if (json?.scene !== 'parallel_lines_transversal') continue;
     const bis: any[] = Array.isArray(json.bisect) ? json.bisect : [];
     if (bis.length !== 2) continue;
-    const n1 = canon(bis[0]), n2 = canon(bis[1]);
+    const n1 = canon(angleOf(bis[0])), n2 = canon(angleOf(bis[1]));
     if (!n1 || !n2) continue;
     const s1 = sideOf(n1), s2 = sideOf(n2);
     if (!s1 || !s2 || n1[1] === n2[1]) continue; // malformed / same-vertex: leave to renderer guard
@@ -1510,6 +1531,8 @@ export function repairParallelBisectorScenes(text: string): string {
     const segStart = i === 0 ? 0 : blocks[i - 1].end;
     let segment = out.slice(segStart, b.start);
     let changed = false;
+    let names: [string, string] = [n1, n2];
+    let labels: [string, string] = [labelOf(bis[0]), labelOf(bis[1])];
 
     if (s1 !== s2) {
       // Impossible alternate-interior pair → flip exactly one angle name,
@@ -1519,18 +1542,42 @@ export function repairParallelBisectorScenes(text: string): string {
       if (given && n1 === given) flipIdx = 1;
       else if (given && n2 === given) flipIdx = 0;
       else flipIdx = n1[1] === 'F' ? 0 : 1; // by convention amend the F-angle
-      const oldName = flipIdx === 0 ? n1 : n2;
+      const oldName = names[flipIdx];
       const newName = flip(oldName);
-      json.bisect = [flipIdx === 0 ? newName : n1, flipIdx === 1 ? newName : n2];
+      names = flipIdx === 0 ? [newName, names[1]] : [names[0], newName];
       const rev = oldName.split('').reverse().join('');
       const nameRe = new RegExp(`(∠|\\\\angle|角)([\\s{]*)(?:${oldName}|${rev})`, 'g');
       segment = segment.replace(nameRe, (_all, p1, p2) => `${p1}${p2}${newName}`);
       changed = true;
     }
 
+    // Infer the NAMED POINT on each bisector ray from the stem itself:
+    // "EG平分∠BEF" defines point G on the ray from E. Without it the figure
+    // would silently drop a point the text names — a broken figure.
+    const rayRe = /([EF])([A-Z])[^\u4e00-\u9fa5A-Z]{0,4}平分[^A-Z]{0,14}([A-Z]{3})/g;
+    let rm: RegExpExecArray | null;
+    while ((rm = rayRe.exec(segment)) !== null) {
+      const vtx = rm[1], lbl = rm[2];
+      const ang = canon(rm[3]);
+      if ('ABCDEF'.includes(lbl) || !ang) continue;
+      for (let k = 0; k < 2; k++) {
+        if (names[k][1] === vtx && (names[k] === ang || canonEquiv(names[k]) === canonEquiv(ang)) && labels[k] !== lbl) {
+          labels[k] = lbl;
+          changed = true;
+        }
+      }
+    }
+    // The SAME letter on both rays means it is their MEETING POINT
+    // ("EG、FG交于点G"), not two mid-ray points — promote it to P.
+    if (labels[0] && labels[0] === labels[1]) {
+      if (json.P === undefined) { json.P = labels[0]; changed = true; }
+      labels = ['', ''];
+    }
+
     // Infer the intersection label from the asked angle (求∠EGF → "G") when
     // the JSON omitted it — otherwise the figure would say "P" while the
-    // text says "G".
+    // text says "G". If the text names NO meeting point at all, "P" stays
+    // absent and the renderer will not mark the intersection.
     if (json.P === undefined) {
       const pm = segment.match(/(?:∠|\\angle|角)[\s{]*(?:E\s*([A-Z])\s*F|F\s*([A-Z])\s*E)/);
       const letter = pm ? (pm[1] ?? pm[2]) : null;
@@ -1539,12 +1586,24 @@ export function repairParallelBisectorScenes(text: string): string {
         changed = true;
       }
     }
+    // A ray label identical to the meeting-point label IS the meeting point.
+    if (json.P !== undefined) {
+      for (let k = 0; k < 2; k++) {
+        if (labels[k] && labels[k] === String(json.P)) { labels[k] = ''; changed = true; }
+      }
+    }
 
     if (!changed) continue;
+    json.bisect = [0, 1].map(k => (labels[k] ? { angle: names[k], label: labels[k] } : names[k]));
     const newBlock = '```math-diagram\n' + JSON.stringify(json) + '\n```';
     out = out.slice(0, segStart) + segment + newBlock + out.slice(b.end);
   }
   return out;
+}
+
+/** Order-insensitive canonical form of a 3-letter angle name (BEF ≡ FEB). */
+function canonEquiv(nm: string): string {
+  return [nm[0], nm[2]].sort().join('') + nm[1];
 }
 
 export function enforceProblemCount(text: string, count: number): string {
