@@ -636,6 +636,60 @@ function render_circle_tangent_perpendicular(s: SceneJSON): string {
  * that case (or if the two rays diverge) this scene REFUSES to render
  * (returns null): the problem text itself is impossible and must be fixed. */
 function renderParallelLinesTransversal(s: SceneJSON): string | null {
+  // ── 2026-07: distance mode (平行线间的距离) ──
+  // "AB∥CD，点E是AB、CD之间的一点。E到AB的距离为5，E到CD的距离为7，求AB与CD
+  // 之间的距离" — no transversal at all. The AI declares only the given
+  // distances; E is placed at the TRUE ratio between the lines, with the
+  // perpendicular through E and right-angle marks at both feet. The two
+  // given distances can be printed with "show_labels":true; the gap itself
+  // (the answer) is never printed.
+  //   {"scene":"parallel_lines_transversal",
+  //    "point_between":{"label":"E","to_AB":5,"to_CD":7,"show_labels":true}}
+  const pb: any = (s as any).point_between;
+  if (pb && typeof pb === 'object') {
+    const dTop = Number(pb.to_AB ?? pb.d_top);
+    const dBot = Number(pb.to_CD ?? pb.d_bottom);
+    if (!Number.isFinite(dTop) || !Number.isFinite(dBot) || dTop <= 0 || dBot <= 0) return null;
+    const eLabel = typeof pb.label === 'string' && pb.label.trim() ? pb.label.trim() : 'E';
+    // math coords: top line y=1 (AB), bottom y=0 (CD); E at the true ratio.
+    const Ey = dBot / (dTop + dBot);
+    const Epr = pt(0, Ey);
+    const A = pt(-0.9, 1), B = pt(0.9, 1), C = pt(-0.9, 0), D = pt(0.9, 0);
+    const keyPts = [A, B, C, D, Epr];
+    const m = 0.3;
+    const minX = Math.min(...keyPts.map(p => p.x)) - m;
+    const maxX = Math.max(...keyPts.map(p => p.x)) + m;
+    const minY = -m, maxY = 1 + m;
+    const k = Math.min(W / (maxX - minX), H / (maxY - minY));
+    const ox = (W - k * (maxX - minX)) / 2, oy = (H - k * (maxY - minY)) / 2;
+    const sc = (p: { x: number; y: number }) =>
+      pt(ox + k * (p.x - minX), H - oy - k * (p.y - minY));
+    const sA = sc(A), sB = sc(B), sC = sc(C), sD = sc(D), sE = sc(Epr);
+    const topFoot = sc(pt(0, 1)), botFoot = sc(pt(0, 0));
+    const parts: string[] = [];
+    parts.push(line(4, sA.y, W - 4, sA.y));   // 直线 AB
+    parts.push(line(4, sC.y, W - 4, sC.y));   // 直线 CD
+    // the perpendicular through E (its two pieces are the given distances)
+    parts.push(line(topFoot.x, topFoot.y, botFoot.x, botFoot.y));
+    // right-angle marks at both feet (perpendicularity is given)
+    const q = 9;
+    parts.push(`<path d="M ${topFoot.x - q} ${topFoot.y} L ${topFoot.x - q} ${topFoot.y + q} L ${topFoot.x} ${topFoot.y + q}" fill="none" stroke="#94a3b8" stroke-width="1.5"/>`);
+    parts.push(`<path d="M ${botFoot.x + q} ${botFoot.y} L ${botFoot.x + q} ${botFoot.y - q} L ${botFoot.x} ${botFoot.y - q}" fill="none" stroke="#94a3b8" stroke-width="1.5"/>`);
+    const lbl = (p: { x: number; y: number }, name: string, dx: number, dy: number) => {
+      parts.push(dot(p.x, p.y));
+      parts.push(text(p.x + dx, p.y + dy, name));
+    };
+    lbl(sA, 'A', 0, -10); lbl(sB, 'B', 0, -10);
+    lbl(sC, 'C', 0, 20);  lbl(sD, 'D', 0, 20);
+    lbl(sE, eLabel, 12, 5);
+    if (pb.show_labels === true) {
+      // the two GIVEN distances, printed beside their segments
+      parts.push(text(topFoot.x - 14, (topFoot.y + sE.y) / 2 + 4, String(dTop), 'end'));
+      parts.push(text(botFoot.x - 14, (botFoot.y + sE.y) / 2 + 4, String(dBot), 'end'));
+    }
+    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${parts.join('')}</svg>`;
+  }
+
   const angleSpec: any = (s as any).angle;
   const givenName = String(angleSpec?.name ?? '').toUpperCase();
   const givenValue = Number(angleSpec?.value);
@@ -808,6 +862,12 @@ export function renderScene(sceneJson: SceneJSON): string | null {
     }
     if (scene === "parallelogram_general" || scene === "rhombus" || scene === "parallelogram_midpoints" || scene === "quadrilateral_midpoints") {
       return render_parallelogram_general(sceneJson);
+    }
+    // 2026-07: fuzzy fallback for a common model typo — a spurious trailing
+    // "s" on the scene name (e.g. "parallel_lines_transversals"). Retry once
+    // with the singular form before giving up.
+    if (typeof scene === 'string' && /s$/i.test(scene)) {
+      return renderScene({ ...(sceneJson as any), scene: scene.replace(/s$/i, '') });
     }
     return null;
   } catch (e) {

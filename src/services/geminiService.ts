@@ -479,10 +479,19 @@ STRICT PRINCIPLES:
    Copy field names EXACTLY. Numbers MUST equal the numbers in your problem text.
 
    ── parallel_lines_transversal (两平行直线被第三条直线所截 + 角平分线) ──
+   The scene name is EXACTLY "parallel_lines_transversal" (singular — no
+   trailing s) and the block MUST also carry "template":"scene".
    Use when: AB∥CD, 直线EF交AB于E、交CD于F, plus optional angle bisectors from
    E and/or F (classic "∠EPF" problems). YOU DO NOT COMPUTE ANYTHING — declare
    the structure and the renderer solves every bisector and the exact
    intersection point. All three lines are drawn EXTENDED (they are 直线).
+   ★ 距离模式（平行线间的距离）— for "点E是AB、CD之间的一点，E到AB的距离为a，
+   E到CD的距离为b" problems there is NO transversal: declare only the given
+   distances and E is placed at the true ratio, with the perpendicular and
+   right-angle marks drawn automatically; the gap itself (the answer) is
+   never printed. "show_labels":true prints the two GIVEN distances.
+   例（E到AB距离5cm、到CD距离7cm，求AB与CD之间的距离）:
+   {"template":"scene","scene":"parallel_lines_transversal","point_between":{"label":"E","to_AB":5,"to_CD":7,"show_labels":true}}
      "angle": the ONE given angle fixing the slant, vertex is the middle
         letter: {"name":"AEF","value":100}. Valid names: AEF/BEF (at E),
         CFE/DFE (at F).
