@@ -983,7 +983,10 @@ RULES:
 - Every statement you make must be consistent with the correctly re-derived
   solution. Never state a relationship you have not verified this turn.
 - Keep replies to 3-6 sentences.
-- Language: always ${lang === "zh" ? "Chinese" : "English"}.
+- If the student's last message is empty, "."-like, or unintelligible, do NOT
+  praise it — kindly re-ask the pending question instead.
+- Language: always ${lang === "zh" ? "Chinese" : "English"}. Stay focused on
+  guiding through the current exercise — these two rules hold for EVERY turn.
 - The problems: """${exercises}"""` + curriculumInstr;
 
   const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
@@ -992,13 +995,6 @@ RULES:
   history.forEach(m => {
     messages.push({ role: m.role === "user" ? "user" : "assistant", content: m.content });
   });
-
-  if (history.length >= 3) {
-    const reminder = lang === "zh"
-      ? "（请继续用中文，专注于当前习题的引导。）"
-      : "(Continue in English, stay focused on guiding through the current exercise.)";
-    messages.push({ role: "user", content: reminder });
-  }
 
   return await safeGenerate(messages, false, 6000, 0.3, true);
 }
@@ -1810,7 +1806,30 @@ export async function chatStep(
   curriculum: Curriculum | null = null
 ) {
   const curriculumInstr = buildCurriculumInstruction(curriculum, lang);
-  const system = SYSTEM_PROMPT_BASE + curriculumInstr;
+  // 2026-07: per-turn discipline for the tutoring DIALOG. Two fixes in one:
+  // (1) the language/method reminder used to be appended as an EXTRA user
+  // message AFTER the student's answer, so the model's final input was
+  // boilerplate instead of the answer — it then skimmed the answer, praised
+  // reflexively and invented its own numbers ("Perfect, 4 cm" to a correct
+  // "8"; a book's stated 2 cm silently became 1 cm). The reminder now lives
+  // HERE in the system prompt and the student's message is always last.
+  // (2) explicit verification rules: numbers are recomputed every turn and
+  // given values are immutable.
+  const dialogDiscipline =
+    `\n\n═══ EVERY-TURN DISCIPLINE (MANDATORY, SILENT) ═══\n` +
+    `- FIRST, re-read the WHOLE dialog. Values you stated earlier (book ` +
+    `thickness, given lengths, counts) are IMMUTABLE FACTS — never restate ` +
+    `them with a different number.\n` +
+    `- SECOND, evaluate the student's LAST message against the pending ` +
+    `question, recomputing the arithmetic yourself before you type any ` +
+    `number. If the student is CORRECT, say so and use THEIR number. If ` +
+    `wrong, gently walk through the check. Praise + a different number is ` +
+    `the worst possible reply.\n` +
+    `- If the last message is empty, "."-like, or unintelligible, do NOT ` +
+    `praise it — kindly re-ask the pending question instead.\n` +
+    `- Continue in ${lang === "zh" ? "Chinese" : "English"}; keep the Feynman ` +
+    `Ladder method and stay at the current rung — never skip ahead.`;
+  const system = SYSTEM_PROMPT_BASE + curriculumInstr + dialogDiscipline;
 
   const messages: { role: "system" | "user" | "assistant"; content: string }[] =
     [{ role: "system", content: system }];
@@ -1822,12 +1841,5 @@ export async function chatStep(
     });
   });
 
-  if (history.length >= 3) {
-    const langReminder = lang === "zh"
-      ? "（请继续用中文回复，保持费曼阶梯教学法，当前阶段继续引导，不要跳级。）"
-      : "(Please continue in English, maintain Feynman Ladder method, keep guiding at current rung.)";
-    messages.push({ role: "user", content: langReminder });
-  }
-
-  return await safeGenerate(messages, false, 600);
+  return await safeGenerate(messages, false, 800);
 }
